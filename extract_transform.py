@@ -12,18 +12,36 @@ import utils  # Importeer de utils module
 log = logging.getLogger(__name__)
 
 def scan_en_extraheer(r_schijf_pad: str) -> List[Dict[str, Any]]:
-    """Scant de R-schijf en extraheert metadata."""
+    """Scans the R-drive and extracts metadata, including file hashes and directory modification times."""
     metadata_lijst: List[Dict[str, Any]] = []
-    for root, _, files in os.walk(r_schijf_pad):
-        for file in files:
-            bestandspad = Path(root) / file
+    for root, dirs, files in os.walk(r_schijf_pad):
+        # Process directories first
+        for dir_name in dirs:
+            dir_path = Path(root) / dir_name
+            metadata = {
+                "bestandspad": str(dir_path),
+                "bestandsnaam": dir_name,
+                "bestandstype": "directory",
+                "metadata": {
+                    "last_modified": os.path.getmtime(dir_path),  # Directory modification time
+                },
+                "relative_path": str(dir_path.relative_to(r_schijf_pad)), #Relative Path
+            }
+            metadata_lijst.append(metadata)
+
+        # Now process files
+        for file_name in files:
+            file_path = Path(root) / file_name
             try:
-                metadata = _extract_metadata(bestandspad) #_extract_metadata aanroepen.
-                if metadata:  # Voeg alleen toe als er metadata is (geen overgeslagen bestanden)
+                metadata = _extract_metadata(file_path)
+                if metadata:
+                    metadata["relative_path"] = str(file_path.relative_to(r_schijf_pad))
+                    metadata["metadata"]["file_hash"] = utils.calculate_file_hash(str(file_path)) #Calculate the hash
                     metadata_lijst.append(metadata)
             except Exception as e:
-                log.error(f"Fout bij verwerken van {bestandspad}: {e}", exc_info=True) #exc_info=True voor volledige traceback
+                log.error(f"Fout bij verwerken van {file_path}: {e}", exc_info=True)
     return metadata_lijst
+
 
 def _extract_metadata(bestandspad: Path) -> Optional[Dict[str, Any]]:
     """
@@ -48,7 +66,7 @@ def _extract_metadata(bestandspad: Path) -> Optional[Dict[str, Any]]:
         metadata["metadata"] = _extract_shapefile_metadata(bestandspad)
     else:
         log.warning(f"Onbekend bestandstype: {bestandspad}")
-        return None  # Retourneer None voor overgeslagen bestanden
+        return None
 
     return metadata
 
@@ -70,7 +88,6 @@ def _extract_pdf_metadata(bestandspad: Path) -> Dict[str, Any]:
             xmp_metadata = doc_info.get("/Metadata")
             if xmp_metadata:
                 try:
-                    #Gebruik .get_data() om de bytes te pakken te krijgen, decodeer vervolgens.
                     encoding = chardet.detect(xmp_metadata.get_data())['encoding'] or 'utf-8'
                     metadata["xmp"] = xmp_metadata.get_data().decode(encoding, errors='replace')
                 except Exception as e:
@@ -109,10 +126,10 @@ def _extract_shapefile_metadata(bestandspad: Path) -> Dict[str, Any]:
     try:
         gdf = geopandas.read_file(bestandspad)
         metadata["crs"] = str(gdf.crs)
-        metadata["bounds"] = gdf.total_bounds.tolist()  # Converteer naar lijst
+        metadata["bounds"] = gdf.total_bounds.tolist()
         metadata["aantal_features"] = len(gdf)
-        metadata["kolomnamen"] = gdf.columns.tolist()  # Converteer naar lijst
-        metadata["geometrie_types"] = gdf.geometry.type.unique().tolist() # Converteer naar lijst
+        metadata["kolomnamen"] = gdf.columns.tolist()
+        metadata["geometrie_types"] = gdf.geometry.type.unique().tolist()
     except Exception as e:
         log.error(f"Fout bij extractie Shapefile metadata van {bestandspad}: {e}", exc_info=True)
         metadata["fout"] = "Fout bij lezen Shapefile"
@@ -164,5 +181,5 @@ def transformeer_naar_ckan(metadata: Dict[str, Any], ckan_mapping: Dict[str, str
                                      [waarde[0], waarde[1]]]]
                 }
             else:
-                ckan_metadata[ckan_veld] = waarde  # Voeg de waarde direct toe.
+                ckan_metadata[ckan_veld] = waarde
     return ckan_metadata

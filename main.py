@@ -5,8 +5,10 @@ import utils
 import extract_transform
 import load_publish
 from ckanapi import RemoteCKAN
+import argparse
 
-log = utils.setup_logging()  # Initialiseer logging
+
+log = utils.setup_logging()
 
 
 def run_pipeline() -> None:
@@ -14,32 +16,16 @@ def run_pipeline() -> None:
     try:
         ckan = RemoteCKAN(config.CKAN_API_URL, apikey=config.CKAN_API_KEY)
 
-        log.info("Start data pipeline...")
+        log.info(f"Start data pipeline for R-drive: {config.R_SCHIJF_PAD}...")
         metadata_lijst: List[Dict[str, Any]] = extract_transform.scan_en_extraheer(config.R_SCHIJF_PAD)
 
-        for metadata in metadata_lijst:
-            validatie_resultaten = extract_transform.valideer_metadata(metadata)
-            if validatie_resultaten:
-                log.warning(f"Validatiefouten voor {metadata['bestandspad']}: {validatie_resultaten}")
-                continue  # Sla ongeldige bestanden over
-
-            organisatie_id = load_publish.bepaal_ckan_organisatie(metadata, config.AUTHORIZATION_MAPPING)
-            if not organisatie_id:
-                log.warning(f"Geen organisatie-ID gevonden voor {metadata['bestandspad']}, overslaan.")
-                continue
-
-            #Gebruik bestandsnaam (zonder extensie) als unieke dataset naam
-            dataset_naam = metadata['bestandsnaam'].rsplit('.', 1)[0]
-
-            dataset = load_publish.create_or_update_dataset(ckan, dataset_naam, organisatie_id)
-            resource = load_publish.upload_en_koppel_resource(ckan, dataset["id"], metadata)
-
-            log.info(f"Bestand verwerkt: {metadata['bestandspad']} -> Dataset: {dataset['id']}, Resource: {resource['id']}")
+        load_publish.process_extracted_files(ckan, metadata_lijst, config.AUTHORIZATION_MAPPING)
 
         log.info("Data pipeline voltooid.")
 
     except Exception as e:
-        log.exception("Fout tijdens uitvoeren pipeline: %s", e) #Gebruik exception om de volledige stacktrace te loggen
+        log.exception("Fout tijdens uitvoeren pipeline: %s", e)
+
 
 if __name__ == "__main__":
-    run_pipeline()
+    run_pipeline() # No arguments needed, it uses R_SCHIJF_PAD from config.
