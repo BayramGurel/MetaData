@@ -6,41 +6,87 @@ from openpyxl import load_workbook
 import geopandas
 import chardet
 from pathlib import Path
-import utils  # Importeer de utils module
+import utils
+import zipfile  # Import the zipfile module
 
 
 log = logging.getLogger(__name__)
 
 def scan_en_extraheer(r_schijf_pad: str) -> List[Dict[str, Any]]:
-    """Scans the R-drive and extracts metadata, including file hashes and directory modification times."""
+    """Scans the R-drive, extracts files (including from ZIPs), and extracts metadata."""
     metadata_lijst: List[Dict[str, Any]] = []
-    for root, dirs, files in os.walk(r_schijf_pad):
-        # Process directories first
-        for dir_name in dirs:
-            dir_path = Path(root) / dir_name
-            metadata = {
-                "bestandspad": str(dir_path),
-                "bestandsnaam": dir_name,
-                "bestandstype": "directory",
-                "metadata": {
-                    "last_modified": os.path.getmtime(dir_path),  # Directory modification time
-                },
-                "relative_path": str(dir_path.relative_to(r_schijf_pad)), #Relative Path
-            }
-            metadata_lijst.append(metadata)
+    temp_dir = Path("./temp_extraction")
+    if not temp_dir.exists():
+        temp_dir.mkdir()
 
-        # Now process files
-        for file_name in files:
-            file_path = Path(root) / file_name
-            try:
-                metadata = _extract_metadata(file_path)
-                if metadata:
-                    metadata["relative_path"] = str(file_path.relative_to(r_schijf_pad))
-                    metadata["metadata"]["file_hash"] = utils.calculate_file_hash(str(file_path)) #Calculate the hash
-                    metadata_lijst.append(metadata)
-            except Exception as e:
-                log.error(f"Fout bij verwerken van {file_path}: {e}", exc_info=True)
+    try:
+        for root, dirs, files in os.walk(r_schijf_pad):
+            log.debug(f"Processing directory: {root}") # Add this
+            for dir_name in dirs:
+                dir_path = Path(root) / dir_name
+                log.debug(f"  Found directory: {dir_name}") # Add this
+                metadata = {
+                    "bestandspad": str(dir_path),
+                    "bestandsnaam": dir_name,
+                    "bestandstype": "directory",
+                    "metadata": {
+                        "last_modified": os.path.getmtime(dir_path),
+                    },
+                    "relative_path": str(dir_path.relative_to(r_schijf_pad)),
+                }
+                metadata_lijst.append(metadata)
+
+
+            for file_name in files:
+                file_path = Path(root) / file_name
+                log.debug(f"  Found file: {file_name}") # Add this
+                try:
+                    if file_path.suffix.lower() == ".zip":
+                        # ... (rest of the ZIP handling logic) ...
+                        log.debug(f"Extracting zip file: {file_path}")
+
+                    else:
+                        metadata = _extract_metadata(file_path)
+                        if metadata:
+                            metadata["relative_path"] = str(file_path.relative_to(r_schijf_pad))
+                            metadata["metadata"]["file_hash"] = utils.calculate_file_hash(str(file_path))
+                            metadata_lijst.append(metadata)
+                            log.debug(f"    Metadata extracted: {metadata}") # Add this
+                except Exception as e:
+                    log.error(f"Fout bij verwerken van {file_path}: {e}", exc_info=True)
+    finally:
+        # Clean up the temporary directory and all its contents
+        if temp_dir.exists():
+            for item in temp_dir.iterdir():
+                if item.is_dir():
+                    import shutil
+                    shutil.rmtree(item)
+                else:
+                    item.unlink()
+            temp_dir.rmdir()
+
+    log.debug(f"Total metadata entries: {len(metadata_lijst)}")  # Add this
     return metadata_lijst
+
+def _extract_zip(zip_path: Path, extract_to: Path):
+    """Recursively extracts ZIP files, including nested ZIPs."""
+    try:
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_to)
+
+        # Check for nested ZIP files
+        for item in extract_to.glob("**/*.zip"):  # Find any .zip files recursively
+            if item.is_file():
+                nested_temp_dir = extract_to / item.stem # Create subfolder
+                if not nested_temp_dir.exists():
+                    nested_temp_dir.mkdir()
+                _extract_zip(item, nested_temp_dir)  # Recursive call
+                item.unlink() # Delete after extraction.
+
+    except zipfile.BadZipFile:
+        log.error(f"Corrupt ZIP file: {zip_path}")
+    except Exception as e:
+        log.error(f"Error extracting ZIP file {zip_path}: {e}", exc_info=True)
 
 
 def _extract_metadata(bestandspad: Path) -> Optional[Dict[str, Any]]:
@@ -48,7 +94,7 @@ def _extract_metadata(bestandspad: Path) -> Optional[Dict[str, Any]]:
     Extraheert metadata op basis van bestandstype (interne hulpfunctie).
     """
     metadata = {
-        "bestandspad": str(bestandspad),  # Sla op als string
+        "bestandspad": str(bestandspad),
         "bestandsnaam": bestandspad.name,
         "bestandstype": None,
         "metadata": {}
@@ -64,6 +110,8 @@ def _extract_metadata(bestandspad: Path) -> Optional[Dict[str, Any]]:
     elif bestands_extensie == ".shp":
         metadata["bestandstype"] = "Shapefile"
         metadata["metadata"] = _extract_shapefile_metadata(bestandspad)
+    elif bestands_extensie == ".zip": # We handle them above.
+        return None
     else:
         log.warning(f"Onbekend bestandstype: {bestandspad}")
         return None
@@ -167,13 +215,14 @@ def transformeer_naar_ckan(metadata: Dict[str, Any], ckan_mapping: Dict[str, str
     ckan_metadata: Dict[str, Any] = {}
 
     for r_veld, ckan_veld in ckan_mapping.items():
-        waarde = utils.extract_value(metadata, r_veld, "metadata") or metadata.get(r_veld)
+        waarde = utils.extract_value(metadata, r_veld, "metadata") or metadata.get(r_veld)  # Check both places
         if waarde is not None:
             if ckan_veld == "keywords" and isinstance(waarde, str):
-                waarde = waarde.split(",")
+                waarde = waarde.split(",")  # Split comma-separated keywords
             elif ckan_veld == "format":
-                waarde = waarde.upper()
+                waarde = waarde.upper()  # Uppercase for CKAN format
             elif ckan_veld == "spatial_bbox" and isinstance(waarde, list):
+                # Convert bounding box to GeoJSON (if needed by your CKAN instance)
                 ckan_metadata["spatial"] = {
                     "type": "Polygon",
                     "coordinates": [[[waarde[0], waarde[1]], [waarde[2], waarde[1]],
@@ -181,5 +230,5 @@ def transformeer_naar_ckan(metadata: Dict[str, Any], ckan_mapping: Dict[str, str
                                      [waarde[0], waarde[1]]]]
                 }
             else:
-                ckan_metadata[ckan_veld] = waarde
+                ckan_metadata[ckan_veld] = waarde  # Direct mapping
     return ckan_metadata

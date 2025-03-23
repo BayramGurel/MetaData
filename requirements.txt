@@ -1,0 +1,6 @@
+ckanapi
+python-dotenv
+PyPDF2
+openpyxl
+geopandas
+chardet
