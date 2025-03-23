@@ -1,238 +1,194 @@
-import os
+# load_publish.py
 import logging
-from typing import List, Dict, Any, Optional
-import PyPDF2
-from openpyxl import load_workbook
-import geopandas
-import chardet
-from pathlib import Path
+from typing import Dict, Any, Optional, List  # List added here
+from ckanapi import RemoteCKAN, NotFound, NotAuthorized
+import config
+import extract_transform
 import utils
-import zipfile  # Import zipfile
-
+from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-def scan_en_extraheer(r_schijf_pad: str) -> List[Dict[str, Any]]:
-    """Scans the R-drive, extracts files (including from ZIPs), and extracts metadata."""
-    metadata_lijst: List[Dict[str, Any]] = []
-    temp_dir = Path("./temp_extraction")
-    if not temp_dir.exists():
-        temp_dir.mkdir()
 
+def create_or_update_dataset(ckan: RemoteCKAN, dataset_naam: str, organisatie_id: Optional[str] = None, parent_dataset_id: Optional[str] = None, dataset_metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """
+    Maakt een dataset aan of werkt deze bij.  Includes parent dataset handling.
+    """
     try:
-        for root, dirs, files in os.walk(r_schijf_pad):
-            # --- Process Directories (for modification times) ---
-            for dir_name in dirs:
-                dir_path = Path(root) / dir_name
-                metadata = {
-                    "bestandspad": str(dir_path),
-                    "bestandsnaam": dir_name,
-                    "bestandstype": "directory",
-                    "metadata": {
-                        "last_modified": os.path.getmtime(dir_path),
-                    },
-                    "relative_path": str(dir_path.relative_to(r_schijf_pad)),
-                }
-                metadata_lijst.append(metadata)
+        # Try to update first
+        return ckan.action.package_update(id=dataset_naam, owner_org=organisatie_id)
+    except NotFound:
+        log.info(f"Dataset '{dataset_naam}' not found, creating.")
+        dataset_dict = {
+            "name": dataset_naam,
+            "title": dataset_naam,
+            "owner_org": organisatie_id,
+            "notes": f"Automatically created dataset for {dataset_naam}",
+        }
+        if parent_dataset_id:
+            dataset_dict["groups"] = [{"id": parent_dataset_id}]
 
-            # --- Process Files ---
-            for file_name in files:
-                file_path = Path(root) / file_name
-                try:
-                    if file_path.suffix.lower() == ".zip":
-                        # Extract ZIP file and process its contents
-                        _extract_zip(file_path, temp_dir)
-                        #Now, walk through newly extracted files:
-                        for extracted_root, _, extracted_files in os.walk(temp_dir):
-                            for extracted_file in extracted_files:
-                                 extracted_path = Path(extracted_root) / extracted_file
-                                 metadata = _extract_metadata(extracted_path)
-                                 if metadata:
-                                    metadata["relative_path"] = str(
-                                        Path(root) / file_name / extracted_path.relative_to(temp_dir) #Correct relative path.
-                                    )
-                                    metadata["metadata"]["file_hash"] = utils.calculate_file_hash(str(extracted_path))
-                                    metadata_lijst.append(metadata)
-                                 extracted_path.unlink() #Delete extracted file
-                        #Clean up the temporary directory and its contents after processing the zip.
-                        for temp_root, temp_dirs, temp_files in os.walk(temp_dir, topdown=False):
-                            for temp_file in temp_files:
-                                (Path(temp_root) / temp_file).unlink()
-                            for temp_dir_name in temp_dirs:
-                                (Path(temp_root) / temp_dir_name).rmdir()
-
-                    else:  # Regular file
-                        metadata = _extract_metadata(file_path)
-                        if metadata:
-                            metadata["relative_path"] = str(file_path.relative_to(r_schijf_pad))
-                            metadata["metadata"]["file_hash"] = utils.calculate_file_hash(str(file_path))
-                            metadata_lijst.append(metadata)
-                except Exception as e:
-                    log.error(f"Fout bij verwerken van {file_path}: {e}", exc_info=True)
-    finally:
-        # Clean up the temporary directory ONLY IF it's empty
-        if temp_dir.exists() and not any(temp_dir.iterdir()):
-            temp_dir.rmdir()
-
-    return metadata_lijst
-
-def _extract_zip(zip_path: Path, extract_to: Path):
-    """Recursively extracts ZIP files, including nested ZIPs."""
-    try:
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-            zip_ref.extractall(extract_to)
-
-        # Check for nested ZIP files
-        for item in extract_to.glob("**/*.zip"):  # Find any .zip files recursively
-            if item.is_file():
-                nested_temp_dir = extract_to / item.stem  # Create a subdir for the nested zip
-                if not nested_temp_dir.exists():
-                    nested_temp_dir.mkdir()
-                _extract_zip(item, nested_temp_dir)  # Recursive call
-                item.unlink() # Delete after extraction
-
-    except zipfile.BadZipFile:
-        log.error(f"Corrupt ZIP file: {zip_path}")
+        if dataset_metadata:
+            dataset_dict.update(dataset_metadata)
+        try:
+            return ckan.action.package_create(**dataset_dict)
+        except Exception as e:
+            log.error(f"Error creating dataset: {e}", exc_info=True)
+            raise
+    except NotAuthorized:
+        log.error("Not authorized for dataset operations.", exc_info=True)
+        raise
     except Exception as e:
-        log.error(f"Error extracting ZIP file {zip_path}: {e}", exc_info=True)
+         log.error(f"Unexpected error during dataset creation/update: {e}", exc_info=True)
+         raise
 
-def _extract_metadata(bestandspad: Path) -> Optional[Dict[str, Any]]:
-    """Extraheert metadata op basis van bestandstype (interne hulpfunctie)."""
-    metadata = {
-        "bestandspad": str(bestandspad),
-        "bestandsnaam": bestandspad.name,
-        "bestandstype": None,
-        "metadata": {}
-    }
-    bestands_extensie = bestandspad.suffix.lower()
 
-    if bestands_extensie == ".pdf":
-        metadata["bestandstype"] = "PDF"
-        metadata["metadata"] = _extract_pdf_metadata(bestandspad)
-    elif bestands_extensie in (".xlsx", ".xls"):
-        metadata["bestandstype"] = "Excel"
-        metadata["metadata"] = _extract_excel_metadata(bestandspad)
-    elif bestands_extensie == ".shp":
-        metadata["bestandstype"] = "Shapefile"
-        metadata["metadata"] = _extract_shapefile_metadata(bestandspad)
-    elif bestands_extensie == ".zip": #Skip zips, because we handle them separately
-        return None
-    else:
-        log.warning(f"Onbekend bestandstype: {bestandspad}")
-        return None
 
-    return metadata
-
-def _extract_pdf_metadata(bestandspad: Path) -> Dict[str, Any]:
-    """Extraheert metadata uit een PDF."""
-    metadata: Dict[str, Any] = {}
+def check_for_resource_changes(ckan: RemoteCKAN, resource_id: str, current_hash: str) -> bool:
+    """Checks if a resource has changed based on its hash."""
     try:
-        with open(bestandspad, "rb") as f:
-            pdf_reader = PyPDF2.PdfReader(f)
-            doc_info = pdf_reader.metadata
-            metadata["titel"] = doc_info.get("/Title")
-            metadata["auteur"] = doc_info.get("/Author")
-            metadata["onderwerp"] = doc_info.get("/Subject")
-            metadata["creatiedatum"] = doc_info.get("/CreationDate")
-            metadata["wijzigingsdatum"] = doc_info.get("/ModDate")
-            metadata["producent"] = doc_info.get("/Producer")
-            metadata["aantal_paginas"] = len(pdf_reader.pages)
+        existing_resource = ckan.action.resource_show(id=resource_id)
+        existing_hash = existing_resource.get("file_hash")
 
-            xmp_metadata = doc_info.get("/Metadata")
-            if xmp_metadata:
-                try:
-                    encoding = chardet.detect(xmp_metadata.get_data())['encoding'] or 'utf-8'
-                    metadata["xmp"] = xmp_metadata.get_data().decode(encoding, errors='replace')
-                except Exception as e:
-                    log.warning(f"Fout bij decoderen XMP metadata in {bestandspad}: {e}")
-                    metadata["xmp"] = None
+        if existing_hash and existing_hash == current_hash:
+            log.info(f"Resource {resource_id} has not changed (hash match).")
+            return False
+        else:
+             log.info(f"Resource {resource_id} has changed (hash mismatch).")
+             return True
 
-    except (PyPDF2.errors.PdfReadError, Exception) as e:
-        log.error(f"Fout bij extractie PDF metadata van {bestandspad}: {e}", exc_info=True)
-        metadata["fout"] = "Corrupte PDF of andere fout"
-    return metadata
-
-def _extract_excel_metadata(bestandspad: Path) -> Dict[str, Any]:
-    """Extraheert metadata uit een Excel."""
-    metadata: Dict[str, Any] = {}
-    try:
-        workbook = load_workbook(filename=bestandspad, read_only=True)
-        metadata["werkbladen"] = workbook.sheetnames
-        metadata["aantal_werkbladen"] = len(workbook.sheetnames)
-        props = workbook.properties
-        metadata["titel"] = props.title
-        metadata["auteur"] = props.creator
-        metadata["laatst_gewijzigd_door"] = props.lastModifiedBy
-        metadata["creatiedatum"] = props.created
-        metadata["wijzigingsdatum"] = props.modified
-        metadata["onderwerp"] = props.subject
-        metadata["categorie"] = props.category
-        metadata["tags"] = props.keywords
+    except NotFound:
+        log.info(f"Resource {resource_id} not found (new resource).")
+        return True
     except Exception as e:
-        log.error(f"Fout bij extractie Excel metadata van {bestandspad}: {e}", exc_info=True)
-        metadata["fout"] = "Fout bij lezen Excel"
-    return metadata
+        log.error(f"Error checking resource changes for {resource_id}: {e}", exc_info=True)
+        raise
 
-def _extract_shapefile_metadata(bestandspad: Path) -> Dict[str, Any]:
-    """Extraheert metadata uit een Shapefile."""
-    metadata: Dict[str, Any] = {}
+def upload_en_koppel_resource(ckan: RemoteCKAN, dataset_id: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
+    """Uploadt bestand, maakt resource, koppelt metadata (including hash)."""
+    bestandspad = Path(metadata["bestandspad"])
+    ckan_metadata = extract_transform.transformeer_naar_ckan(metadata, config.CKAN_MAPPING)
+    resource_naam = metadata["bestandsnaam"]
+
+    file_hash = metadata["metadata"].get("file_hash")
+    if file_hash:
+        ckan_metadata["file_hash"] = file_hash
+
     try:
-        gdf = geopandas.read_file(bestandspad)
-        metadata["crs"] = str(gdf.crs)
-        metadata["bounds"] = gdf.total_bounds.tolist()
-        metadata["aantal_features"] = len(gdf)
-        metadata["kolomnamen"] = gdf.columns.tolist()
-        metadata["geometrie_types"] = gdf.geometry.type.unique().tolist()
-    except Exception as e:
-        log.error(f"Fout bij extractie Shapefile metadata van {bestandspad}: {e}", exc_info=True)
-        metadata["fout"] = "Fout bij lezen Shapefile"
-    return metadata
+        existing_resource = None
+        try:
+            result = ckan.action.resource_search(query=f'name:"{resource_naam}" AND package_id:{dataset_id}')
+            if result['count'] > 0:
+                existing_resource = result['results'][0]
+        except Exception:
+             log.info(f"Cannot find the resource")
 
-
-def valideer_metadata(metadata: Dict[str, Any]) -> Dict[str, str]:
-    """Valideert metadata."""
-    validatie_resultaten: Dict[str, str] = {}
-    bestandstype = metadata.get("bestandstype")
-
-    if bestandstype == "PDF":
-        if not utils.extract_value(metadata, "titel", "metadata"):
-            validatie_resultaten["titel"] = "Ontbreekt"
-        if (aantal_paginas := utils.extract_value(metadata, "aantal_paginas", "metadata")) and aantal_paginas > 1000:
-             validatie_resultaten["aantal_paginas"] = "Te veel pagina's"
-
-    elif bestandstype == "Excel":
-        if (aantal_werkbladen:= utils.extract_value(metadata, "aantal_werkbladen", "metadata")) and aantal_werkbladen > 25:
-            validatie_resultaten["aantal_werkbladen"] = "Te veel werkbladen"
-        if not utils.extract_value(metadata,"titel", "metadata"):
-            validatie_resultaten["titel"] = "Ontbreekt"
-
-    elif bestandstype == "Shapefile":
-        if not utils.extract_value(metadata, "crs", "metadata"):
-            validatie_resultaten["crs"] = "Ontbreekt"
-        if not utils.extract_value(metadata, "geometrie_types", "metadata"):
-            validatie_resultaten["geometrie_types"] = "Geen geometrie types"
-
-    return validatie_resultaten
-
-
-def transformeer_naar_ckan(metadata: Dict[str, Any], ckan_mapping: Dict[str, str]) -> Dict[str, Any]:
-    """Transformeert metadata naar CKAN formaat."""
-    ckan_metadata: Dict[str, Any] = {}
-
-    for r_veld, ckan_veld in ckan_mapping.items():
-        waarde = utils.extract_value(metadata, r_veld, "metadata") or metadata.get(r_veld)
-        if waarde is not None:
-            if ckan_veld == "keywords" and isinstance(waarde, str):
-                waarde = waarde.split(",")
-            elif ckan_veld == "format":
-                waarde = waarde.upper()
-            elif ckan_veld == "spatial_bbox" and isinstance(waarde, list):
-                ckan_metadata["spatial"] = {
-                    "type": "Polygon",
-                    "coordinates": [[[waarde[0], waarde[1]], [waarde[2], waarde[1]],
-                                     [waarde[2], waarde[3]], [waarde[0], waarde[3]],
-                                     [waarde[0], waarde[1]]]]
-                }
+        if existing_resource:
+            resource_changed = check_for_resource_changes(ckan, existing_resource['id'], file_hash)
+            if not resource_changed:
+                return existing_resource
             else:
-                ckan_metadata[ckan_veld] = waarde
-    return ckan_metadata
+                with open(bestandspad, 'rb') as file_to_upload:
+                    resource_dict = {
+                        'id': existing_resource['id'],
+                        'name': resource_naam,
+                        'url_type': 'upload',
+                        'upload': file_to_upload,
+                        **ckan_metadata,
+                    }
+                return ckan.action.resource_update(**resource_dict)
+
+        else:
+            with open(bestandspad, 'rb') as file_to_upload:
+                resource_dict = {
+                    'package_id': dataset_id,
+                    'name': resource_naam,
+                    'url_type': 'upload',
+                    'upload': file_to_upload,
+                    **ckan_metadata,
+                }
+                return ckan.action.resource_create(**resource_dict)
+    except Exception as e:
+        log.error(f"Fout bij uploaden/aanmaken resource: {e}", exc_info=True)
+        raise
+
+
+
+def bepaal_ckan_organisatie(metadata: Dict[str, Any], authorization_mapping: Dict[str, str]) -> Optional[str]:
+    """
+    Bepaalt de CKAN organisatie ID.
+    """
+    log = logging.getLogger(__name__)
+    organisatie_veld = metadata.get("metadata", {}).get("department")
+
+    if organisatie_veld:
+        org_id = authorization_mapping.get(organisatie_veld)
+        if org_id:
+             return org_id
+        else:
+            log.warning(f"Geen organisatie-ID gevonden in mapping voor '{organisatie_veld}'. Metadata: {metadata}")
+            return None
+    else:
+        log.warning(f"Metadata veld 'department' niet gevonden in: {metadata}")
+        return None
+
+
+def process_extracted_files(ckan: RemoteCKAN, metadata_lijst: List[Dict[str, Any]], authorization_mapping: Dict[str,str]) -> None:
+    """Processes extracted files/directories, creating/updating datasets and resources in CKAN."""
+
+    dataset_cache: Dict[str, str] = {}
+
+    # --- Process Directories (Create Datasets) ---
+    for metadata in metadata_lijst:
+        if metadata["bestandstype"] == "directory":
+            relative_path = metadata["relative_path"]
+            parts = Path(relative_path).parts
+
+            current_parent_id = None
+            current_path = ""
+
+            for part in parts:
+                current_path = str(Path(current_path) / part)
+                dataset_naam = part.lower().replace(" ", "-")
+
+                if dataset_naam not in dataset_cache:
+                    organisatie_id = bepaal_ckan_organisatie(metadata, authorization_mapping)
+                    if not organisatie_id:
+                        log.warning(f"Skipping dataset {dataset_naam} (no org).")
+                        continue
+
+                    dataset = create_or_update_dataset(ckan, dataset_naam, organisatie_id, current_parent_id, metadata["metadata"])
+                    dataset_cache[dataset_naam] = dataset["id"]
+                    current_parent_id = dataset["id"]
+                else:
+                    current_parent_id = dataset_cache[dataset_naam]
+
+    # --- Process Files (Create/Update Resources) ---
+    for metadata in metadata_lijst:
+        if metadata["bestandstype"] != "directory":
+            relative_path = metadata["relative_path"]
+            parts = Path(relative_path).parts[:-1]
+
+            if not parts:
+                organisatie_id = bepaal_ckan_organisatie(metadata, authorization_mapping)
+                if not organisatie_id:
+                   log.warning(f"Skipping resource {metadata['bestandsnaam']} (no org).")
+                   continue
+
+                dataset_naam = metadata['bestandsnaam'].rsplit('.', 1)[0].lower().replace(" ", "-")
+                if dataset_naam not in dataset_cache:
+                    dataset = create_or_update_dataset(ckan, dataset_naam, organisatie_id)
+                    dataset_cache[dataset_naam] = dataset["id"]
+                else:
+                    dataset = {"id": dataset_cache[dataset_naam]}
+                resource = upload_en_koppel_resource(ckan, dataset["id"], metadata)
+                log.info(f"Resource processed: {metadata['bestandsnaam']} -> Dataset: {dataset_naam}")
+
+            else:
+                dataset_naam = parts[-1].lower().replace(" ", "-")
+                if dataset_naam in dataset_cache:
+                    dataset_id = dataset_cache[dataset_naam]
+                    resource = upload_en_koppel_resource(ckan, dataset_id, metadata)
+                    log.info(f"Resource processed: {metadata['bestandsnaam']} -> Dataset: {dataset_naam}")
+                else:
+                    log.error(f"Dataset {dataset_naam} not found for resource {metadata['bestandsnaam']}.")

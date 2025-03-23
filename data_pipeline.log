@@ -1,0 +1,9 @@
+2025-03-23 16:33:30,635 - root - INFO - Start data pipeline for R-drive: C:\Users\gurelb\Downloads\RTest...
+2025-03-23 16:33:30,635 - root - ERROR - Fout tijdens uitvoeren pipeline: module 'load_publish' has no attribute 'process_extracted_files'
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\main.py", line 22, in run_pipeline
+    load_publish.process_extracted_files(ckan, metadata_lijst, config.AUTHORIZATION_MAPPING)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'load_publish' has no attribute 'process_extracted_files'
+2025-03-23 16:36:00,407 - root - INFO - Start data pipeline for R-drive: C:\Users\gurelb\Downloads\RTest...
+2025-03-23 16:36:00,407 - root - INFO - Data pipeline voltooid.
