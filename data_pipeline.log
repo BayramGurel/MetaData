@@ -333,3 +333,7 @@ ckanapi.errors.CKANAPIError: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.gi
 2025-03-24 14:27:05,027 - root - INFO - Data pipeline voltooid.
 2025-03-24 14:50:19,421 - root - INFO - CKAN connection established with API key.
 2025-03-24 14:50:19,483 - root - ERROR - Failed to connect to CKAN: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+2025-03-24 14:52:17,372 - root - INFO - CKAN connection established with API key.
+2025-03-24 14:52:17,433 - root - ERROR - Failed to connect to CKAN: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/package_list', 401, '']
+2025-03-24 14:52:24,068 - root - INFO - CKAN connection established with API key.
+2025-03-24 14:52:24,120 - root - ERROR - Failed to connect to CKAN: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/package_list', 401, '']
