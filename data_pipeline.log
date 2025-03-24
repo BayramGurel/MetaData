@@ -144,3 +144,192 @@ Traceback (most recent call last):
   File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 134, in reverse_apicontroller_action
     raise CKANAPIError(repr([url, status, response]))
 ckanapi.errors.CKANAPIError: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/api/action/site_read', 401, '']
+2025-03-24 13:38:13,177 - root - ERROR - Fout tijdens uitvoeren pipeline: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\main.py", line 18, in run_pipeline
+    print(ckan.action.site_read())  # Add this line for testing
+          ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 51, in action
+    return self._ckan.call_action(name, data_dict=kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\remoteckan.py", line 97, in call_action
+    return reverse_apicontroller_action(url, status, response)
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 134, in reverse_apicontroller_action
+    raise CKANAPIError(repr([url, status, response]))
+ckanapi.errors.CKANAPIError: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+2025-03-24 13:39:11,660 - root - ERROR - Fout tijdens uitvoeren pipeline: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\main.py", line 18, in run_pipeline
+    print(ckan.action.site_read())  # Add this line for testing
+          ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 51, in action
+    return self._ckan.call_action(name, data_dict=kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\remoteckan.py", line 97, in call_action
+    return reverse_apicontroller_action(url, status, response)
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 134, in reverse_apicontroller_action
+    raise CKANAPIError(repr([url, status, response]))
+ckanapi.errors.CKANAPIError: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+2025-03-24 13:41:02,724 - root - ERROR - Fout tijdens uitvoeren pipeline: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\main.py", line 22, in run_pipeline
+    print(ckan.action.site_read())
+          ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 51, in action
+    return self._ckan.call_action(name, data_dict=kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\remoteckan.py", line 97, in call_action
+    return reverse_apicontroller_action(url, status, response)
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 134, in reverse_apicontroller_action
+    raise CKANAPIError(repr([url, status, response]))
+ckanapi.errors.CKANAPIError: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+2025-03-24 13:41:19,593 - root - ERROR - Fout tijdens uitvoeren pipeline: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\main.py", line 22, in run_pipeline
+    print(ckan.action.site_read())
+          ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 51, in action
+    return self._ckan.call_action(name, data_dict=kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\remoteckan.py", line 97, in call_action
+    return reverse_apicontroller_action(url, status, response)
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 134, in reverse_apicontroller_action
+    raise CKANAPIError(repr([url, status, response]))
+ckanapi.errors.CKANAPIError: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+2025-03-24 13:42:21,277 - root - ERROR - Fout tijdens uitvoeren pipeline: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\main.py", line 22, in run_pipeline
+    print(ckan.action.site_read())
+          ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 51, in action
+    return self._ckan.call_action(name, data_dict=kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\remoteckan.py", line 97, in call_action
+    return reverse_apicontroller_action(url, status, response)
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 134, in reverse_apicontroller_action
+    raise CKANAPIError(repr([url, status, response]))
+ckanapi.errors.CKANAPIError: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+2025-03-24 13:43:40,476 - root - ERROR - Fout tijdens uitvoeren pipeline: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\main.py", line 22, in run_pipeline
+    print(ckan.action.site_read())
+          ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 51, in action
+    return self._ckan.call_action(name, data_dict=kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\remoteckan.py", line 97, in call_action
+    return reverse_apicontroller_action(url, status, response)
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 134, in reverse_apicontroller_action
+    raise CKANAPIError(repr([url, status, response]))
+ckanapi.errors.CKANAPIError: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+2025-03-24 13:47:10,818 - root - ERROR - Fout tijdens uitvoeren pipeline: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\main.py", line 22, in run_pipeline
+    print(ckan.action.site_read())
+          ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 51, in action
+    return self._ckan.call_action(name, data_dict=kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\remoteckan.py", line 97, in call_action
+    return reverse_apicontroller_action(url, status, response)
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 134, in reverse_apicontroller_action
+    raise CKANAPIError(repr([url, status, response]))
+ckanapi.errors.CKANAPIError: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+2025-03-24 13:53:34,277 - root - ERROR - Fout tijdens uitvoeren pipeline: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\main.py", line 23, in run_pipeline
+    print(ckan.action.site_read())
+          ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 51, in action
+    return self._ckan.call_action(name, data_dict=kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\remoteckan.py", line 97, in call_action
+    return reverse_apicontroller_action(url, status, response)
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 134, in reverse_apicontroller_action
+    raise CKANAPIError(repr([url, status, response]))
+ckanapi.errors.CKANAPIError: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+2025-03-24 13:53:49,835 - root - ERROR - Fout tijdens uitvoeren pipeline: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\main.py", line 24, in run_pipeline
+    print(ckan.action.site_read())
+          ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 51, in action
+    return self._ckan.call_action(name, data_dict=kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\remoteckan.py", line 97, in call_action
+    return reverse_apicontroller_action(url, status, response)
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 134, in reverse_apicontroller_action
+    raise CKANAPIError(repr([url, status, response]))
+ckanapi.errors.CKANAPIError: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+2025-03-24 13:54:10,979 - root - ERROR - Fout tijdens uitvoeren pipeline: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\main.py", line 23, in run_pipeline
+    print(ckan.action.site_read())
+          ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 51, in action
+    return self._ckan.call_action(name, data_dict=kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\remoteckan.py", line 97, in call_action
+    return reverse_apicontroller_action(url, status, response)
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 134, in reverse_apicontroller_action
+    raise CKANAPIError(repr([url, status, response]))
+ckanapi.errors.CKANAPIError: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+2025-03-24 13:56:16,441 - root - ERROR - Fout tijdens uitvoeren pipeline: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\main.py", line 23, in run_pipeline
+    print(ckan.action.site_read())
+          ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 51, in action
+    return self._ckan.call_action(name, data_dict=kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\remoteckan.py", line 97, in call_action
+    return reverse_apicontroller_action(url, status, response)
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 134, in reverse_apicontroller_action
+    raise CKANAPIError(repr([url, status, response]))
+ckanapi.errors.CKANAPIError: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+2025-03-24 13:57:21,842 - root - ERROR - Fout tijdens uitvoeren pipeline: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/package_list', 401, '']
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\main.py", line 23, in run_pipeline
+    print(ckan.action.package_list())
+          ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 51, in action
+    return self._ckan.call_action(name, data_dict=kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\remoteckan.py", line 97, in call_action
+    return reverse_apicontroller_action(url, status, response)
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 134, in reverse_apicontroller_action
+    raise CKANAPIError(repr([url, status, response]))
+ckanapi.errors.CKANAPIError: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/package_list', 401, '']
+2025-03-24 13:59:22,471 - root - ERROR - Fout tijdens uitvoeren pipeline: name 'sys' is not defined
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\main.py", line 23, in run_pipeline
+    sys.exit()
+    ^^^
+NameError: name 'sys' is not defined. Did you forget to import 'sys'?
+2025-03-24 14:00:27,861 - root - ERROR - Fout tijdens uitvoeren pipeline: 'function' object has no attribute 'site_read'
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\main.py", line 23, in run_pipeline
+    print(ckan.action.sit.site_read())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'function' object has no attribute 'site_read'
+2025-03-24 14:01:15,800 - root - ERROR - Fout tijdens uitvoeren pipeline: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\main.py", line 23, in run_pipeline
+    print(ckan.action.site_read())
+          ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 51, in action
+    return self._ckan.call_action(name, data_dict=kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\remoteckan.py", line 97, in call_action
+    return reverse_apicontroller_action(url, status, response)
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\ckanapi\common.py", line 134, in reverse_apicontroller_action
+    raise CKANAPIError(repr([url, status, response]))
+ckanapi.errors.CKANAPIError: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
+2025-03-24 14:01:46,273 - root - INFO - Start data pipeline for R-drive: C:\Users\gurelb\Downloads\RTest...
+2025-03-24 14:01:46,277 - root - INFO - Data pipeline voltooid.
+2025-03-24 14:22:54,030 - root - INFO - Start data pipeline for R-drive: C:\Users\gurelb\Downloads\RTest...
+2025-03-24 14:22:54,031 - root - INFO - Data pipeline voltooid.
+2025-03-24 14:27:05,026 - root - INFO - Start data pipeline for R-drive: C:\Users\gurelb\Downloads\RTest...
+2025-03-24 14:27:05,027 - root - INFO - Data pipeline voltooid.
+2025-03-24 14:50:19,421 - root - INFO - CKAN connection established with API key.
+2025-03-24 14:50:19,483 - root - ERROR - Failed to connect to CKAN: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 401, '']
