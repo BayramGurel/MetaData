@@ -1,6 +1,7 @@
 # main.py
 import logging
 from typing import List, Dict, Any # Keep basic types if needed
+from urllib.parse import urlparse # <<< --- ADD THIS IMPORT ---
 
 # --- Module Imports ---
 # Import the singleton config object and utility function
@@ -8,18 +9,15 @@ try:
     import config # Import the module to access the singleton 'config' instance
     import utils
 except (ImportError, ValueError, RuntimeError) as config_err:
-    # Catch errors during config loading/validation (ImportError/ValueError/RuntimeError)
-    # Log directly to stderr as logging might not be set up.
     import sys
     print(f"CRITICAL [main]: Failed to load configuration or utils: {config_err}", file=sys.stderr)
-    sys.exit(1) # Exit if config fails
+    sys.exit(1)
 
 # Import the necessary classes from refactored modules
 try:
     from extract_transform import MetadataScanner, CkanTransformer, MetadataValidator
     from load_publish import CkanUploader
 except ImportError as import_err:
-    # Log directly to stderr if class imports fail
     import sys
     print(f"CRITICAL [main]: Failed to import necessary classes: {import_err}", file=sys.stderr)
     print("Ensure extract_transform.py and load_publish.py are correctly refactored and accessible.", file=sys.stderr)
@@ -27,18 +25,15 @@ except ImportError as import_err:
 
 # --- Logging Setup ---
 # Setup logging using the configuration loaded by the config module
-# It's crucial that config loading succeeded before this point.
 try:
     log = utils.setup_logging(
-        log_file=config.config.LOG_FILE, # Access attributes via the 'config' instance
+        log_file=config.config.LOG_FILE,
         level=config.config.LOG_LEVEL,
-        logger_name="DataPipeline" # Give the main pipeline logger a name
+        logger_name="DataPipeline"
     )
 except Exception as log_err:
-     # Fallback if logging setup itself fails
      import sys
      print(f"CRITICAL [main]: Failed to set up logging: {log_err}", file=sys.stderr)
-     # Continue execution? Or exit? Let's try to continue with basic logging.
      logging.basicConfig(level=logging.WARNING, format='%(asctime)s %(levelname)s: %(message)s')
      log = logging.getLogger("DataPipeline_Fallback")
      log.error(f"Logging setup failed: {log_err}. Using basic logging.")
@@ -52,47 +47,43 @@ class DataPipeline:
         """Initializes the pipeline components using loaded configuration."""
         log.info("Initializing Data Pipeline components...")
         try:
-            # Access configuration via the singleton instance 'config.config'
             self.scanner = MetadataScanner(
                 root_scan_path=config.config.R_SCHIJF_PAD,
                 temp_dir=config.config.TEMP_EXTRACTION_DIR
-                # Removed max_workers based on extract_transform simplification
             )
             self.validator = MetadataValidator()
             self.transformer = CkanTransformer(
-                ckan_mapping=config.config.CKAN_MAPPING # Use the general mapping
+                ckan_mapping=config.config.CKAN_MAPPING
             )
             self.uploader = CkanUploader(
-                ckan_api_url=str(config.config.CKAN_API_URL), # Ensure string for ckanapi
+                ckan_api_url=str(config.config.CKAN_API_URL), # Ensure string
                 ckan_api_key=config.config.CKAN_API_KEY
             )
         except Exception as e:
              log.exception("CRITICAL: Failed to initialize pipeline components.")
-             # Reraise or handle appropriately - pipeline cannot run
              raise RuntimeError("Pipeline component initialization failed.") from e
 
     def run(self) -> None:
         """Executes the full data pipeline."""
         log.info("="*20 + " Starting Data Pipeline Run " + "="*20)
 
-        # --- Check CKAN Connection (established during CkanUploader init) ---
         if not self.uploader.is_connected():
             log.critical("CKAN connection failed during initialization. Pipeline cannot continue.")
-            return # Stop if no CKAN connection
+            return
 
         try:
             # --- 1. Scan and Extract ---
-            scan_path = config.config.R_SCHIJF_PAD # For logging
+            scan_path = config.config.R_SCHIJF_PAD
             log.info(f"Starting scan of directory: {scan_path}")
             extracted_metadata: List[Dict[str, Any]] = self.scanner.scan()
 
             if not extracted_metadata:
                 log.info("Scan complete: No processable items found.")
-                return # Exit cleanly if nothing to process
+                return
 
             log.info(f"Scan complete: Found {len(extracted_metadata)} initial items.")
 
-            # --- 2. Validate (Optional but Recommended) ---
+            # --- 2. Validate ---
             log.info("Starting metadata validation...")
             items_to_process: List[Dict[str, Any]] = []
             validation_issue_count = 0
@@ -102,10 +93,6 @@ class DataPipeline:
                 if issues:
                      validation_issue_count += 1
                      log.warning(f"Validation issues for '{rel_path}': {issues}")
-                     # Policy: Log issues but still attempt to process the item? Or skip?
-                     # Let's process all items for now and let CKAN potentially reject them.
-                     # Add validation info to metadata if needed downstream?
-                     # item_meta['_validation_issues'] = issues # Example
                 items_to_process.append(item_meta)
 
             if validation_issue_count > 0:
@@ -113,13 +100,25 @@ class DataPipeline:
             else:
                  log.info("Validation complete: No issues found.")
 
-
             # --- 3. Load and Publish ---
-            log.info(f"Starting upload process for {len(items_to_process)} items to CKAN: {config.config.CKAN_API_URL.host}...")
+            log.info(f"Starting upload process for {len(items_to_process)} items...") # <<< MODIFIED LINE (Removed host)
+            try:
+                # Parse the URL string to safely get the hostname for logging
+                ckan_url_str = config.config.CKAN_API_URL or ""
+                ckan_url_parsed = urlparse(ckan_url_str)
+                ckan_host = ckan_url_parsed.hostname # Use .hostname
+                if ckan_host:
+                     log.info(f"... Target CKAN instance: {ckan_host}") # <<< MODIFIED LINE (Log host separately)
+                else:
+                     log.warning(f"Could not determine hostname from CKAN URL: {ckan_url_str}")
+            except Exception as parse_err:
+                log.warning(f"Could not parse CKAN URL host: {parse_err}")
+                # Continue without logging the host
+
+            # Call the uploader
             resource_count, dataset_count = self.uploader.process_list(
                 metadata_list=items_to_process,
                 transformer=self.transformer,
-                # Pass the specific dataset/resource maps from config
                 dataset_field_map=config.config.CKAN_DATASET_FIELD_MAP,
                 resource_field_map=config.config.CKAN_RESOURCE_FIELD_MAP
             )
@@ -128,28 +127,43 @@ class DataPipeline:
             log.info("="*20 + " Data Pipeline Run Finished Successfully " + "="*20)
 
         except Exception as e:
-            # Catch unexpected errors during the main pipeline execution
             log.exception("CRITICAL: An unexpected error occurred during pipeline execution:")
-            # Optionally add notifications here
-            # utils.send_notification("Pipeline Failure", f"Critical error: {e}")
             log.info("="*20 + " Data Pipeline Run Failed " + "="*20)
 
 
 # --- Script Entry Point ---
 if __name__ == "__main__":
+    # Use a try-except block to catch initialization errors
+    pipeline_instance = None
     try:
-        pipeline = DataPipeline()
-        pipeline.run()
+        pipeline_instance = DataPipeline()
     except (ValueError, RuntimeError, ImportError) as init_err:
-         # Catch critical errors during config loading or component initialization
-         # Logging might not be fully set up, so print to stderr as well
          err_msg = f"CRITICAL [main]: Pipeline initialization failed: {init_err}"
+         # Logging might not be set up, print to stderr
+         import sys
          print(err_msg, file=sys.stderr)
-         if log: log.critical(err_msg) # Log if logger exists
-         sys.exit(1) # Exit with error status
-    except Exception as e:
-         # Catch any other unexpected errors at the top level
-         err_msg = f"CRITICAL [main]: Unhandled exception during pipeline execution: {e}"
-         print(err_msg, file=sys.stderr)
-         if log: log.exception(err_msg) # Log with traceback if logger exists
+         # Try logging as well, in case basic logging was set up
+         logging.getLogger().critical(err_msg)
          sys.exit(1)
+    except Exception as e:
+         err_msg = f"CRITICAL [main]: Unexpected error during pipeline initialization: {e}"
+         import sys
+         print(err_msg, file=sys.stderr)
+         logging.getLogger().critical(err_msg, exc_info=True)
+         sys.exit(1)
+
+    # If initialization succeeded, run the pipeline
+    if pipeline_instance:
+        try:
+            pipeline_instance.run()
+            # Exit with 0 if run completes (even if errors were logged during run)
+            import sys
+            sys.exit(0)
+        except Exception as e:
+            # Catch unexpected errors during run() itself
+            err_msg = f"CRITICAL [main]: Unhandled exception during pipeline execution: {e}"
+            import sys
+            print(err_msg, file=sys.stderr)
+            # Log with traceback if logger exists
+            logging.getLogger("DataPipeline").exception(err_msg)
+            sys.exit(1) # Exit with error status if run() fails catastrophically

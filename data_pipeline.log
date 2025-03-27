@@ -45,3 +45,90 @@
 2025-03-27 14:09:50,982 - DataPipeline - INFO - Initializing Data Pipeline components...
 2025-03-27 14:09:51,654 - DataPipeline - INFO - ==================== Starting Data Pipeline Run ====================
 2025-03-27 14:09:51,654 - DataPipeline - CRITICAL - CKAN connection failed during initialization. Pipeline cannot continue.
+2025-03-27 14:22:50,063 - DataPipeline - INFO - Logging configured for 'DataPipeline'. Level: INFO, Console Level: INFO, File: C:\Users\gurelb\Documents\GitHub\MetaData\data_pipeline.log
+2025-03-27 14:22:50,064 - DataPipeline - INFO - Initializing Data Pipeline components...
+2025-03-27 14:22:50,125 - DataPipeline - INFO - ==================== Starting Data Pipeline Run ====================
+2025-03-27 14:22:50,125 - DataPipeline - CRITICAL - CKAN connection failed during initialization. Pipeline cannot continue.
+2025-03-27 14:25:04,671 - DataPipeline - INFO - Logging configured for 'DataPipeline'. Level: INFO, Console Level: INFO, File: C:\Users\gurelb\Documents\GitHub\MetaData\data_pipeline.log
+2025-03-27 14:25:04,671 - DataPipeline - INFO - Initializing Data Pipeline components...
+2025-03-27 14:25:04,720 - DataPipeline - INFO - ==================== Starting Data Pipeline Run ====================
+2025-03-27 14:25:04,720 - DataPipeline - CRITICAL - CKAN connection failed during initialization. Pipeline cannot continue.
+2025-03-27 14:46:55,102 - DataPipeline - INFO - Logging configured for 'DataPipeline'. Level: INFO, Console Level: INFO, File: C:\Users\gurelb\Documents\GitHub\MetaData\data_pipeline.log
+2025-03-27 14:46:55,102 - DataPipeline - INFO - Initializing Data Pipeline components...
+2025-03-27 14:46:55,439 - DataPipeline - INFO - ==================== Starting Data Pipeline Run ====================
+2025-03-27 14:46:55,439 - DataPipeline - CRITICAL - CKAN connection failed during initialization. Pipeline cannot continue.
+2025-03-27 14:47:24,008 - DataPipeline - INFO - Logging configured for 'DataPipeline'. Level: INFO, Console Level: INFO, File: C:\Users\gurelb\Documents\GitHub\MetaData\data_pipeline.log
+2025-03-27 14:47:24,009 - DataPipeline - INFO - Initializing Data Pipeline components...
+2025-03-27 14:47:24,361 - DataPipeline - INFO - ==================== Starting Data Pipeline Run ====================
+2025-03-27 14:47:24,361 - DataPipeline - CRITICAL - CKAN connection failed during initialization. Pipeline cannot continue.
+2025-03-27 14:49:02,322 - DataPipeline - INFO - Logging configured for 'DataPipeline'. Level: INFO, Console Level: INFO, File: C:\Users\gurelb\Documents\GitHub\MetaData\data_pipeline.log
+2025-03-27 14:49:02,323 - DataPipeline - INFO - Initializing Data Pipeline components...
+2025-03-27 14:49:02,675 - DataPipeline - INFO - ==================== Starting Data Pipeline Run ====================
+2025-03-27 14:49:02,675 - DataPipeline - INFO - Starting scan of directory: C:\Users\gurelb\Downloads\RTest
+2025-03-27 14:49:02,676 - DataPipeline - INFO - Scan complete: No processable items found.
+2025-03-27 14:50:01,253 - DataPipeline - INFO - Logging configured for 'DataPipeline'. Level: INFO, Console Level: INFO, File: C:\Users\gurelb\Documents\GitHub\MetaData\data_pipeline.log
+2025-03-27 14:50:01,253 - DataPipeline - INFO - Initializing Data Pipeline components...
+2025-03-27 14:50:01,615 - DataPipeline - INFO - ==================== Starting Data Pipeline Run ====================
+2025-03-27 14:50:01,615 - DataPipeline - INFO - Starting scan of directory: C:\Users\gurelb\Downloads\RTest
+2025-03-27 14:50:02,493 - DataPipeline - INFO - Scan complete: Found 2 initial items.
+2025-03-27 14:50:02,493 - DataPipeline - INFO - Starting metadata validation...
+2025-03-27 14:50:02,493 - DataPipeline - INFO - Validation complete: No issues found.
+2025-03-27 14:50:02,493 - DataPipeline - ERROR - CRITICAL: An unexpected error occurred during pipeline execution:
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\main.py", line 118, in run
+    log.info(f"Starting upload process for {len(items_to_process)} items to CKAN: {config.config.CKAN_API_URL.host}...")
+                                                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'host'
+2025-03-27 14:50:02,495 - DataPipeline - INFO - ==================== Data Pipeline Run Failed ====================
+2025-03-27 14:53:07,672 - DataPipeline - INFO - Logging configured for 'DataPipeline'. Level: INFO, Console Level: INFO, File: C:\Users\gurelb\Documents\GitHub\MetaData\data_pipeline.log
+2025-03-27 14:53:07,672 - DataPipeline - INFO - Initializing Data Pipeline components...
+2025-03-27 14:53:08,025 - DataPipeline - INFO - ==================== Starting Data Pipeline Run ====================
+2025-03-27 14:53:08,025 - DataPipeline - INFO - Starting scan of directory: C:\Users\gurelb\Downloads\RTest
+2025-03-27 14:53:08,907 - DataPipeline - INFO - Scan complete: Found 2 initial items.
+2025-03-27 14:53:08,907 - DataPipeline - INFO - Starting metadata validation...
+2025-03-27 14:53:08,908 - DataPipeline - INFO - Validation complete: No issues found.
+2025-03-27 14:53:08,908 - DataPipeline - INFO - Starting upload process for 2 items...
+2025-03-27 14:53:08,908 - DataPipeline - INFO - ... Target CKAN instance: orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev
+2025-03-27 14:53:08,921 - DataPipeline - ERROR - CRITICAL: An unexpected error occurred during pipeline execution:
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\load_publish.py", line 141, in get_or_create_dataset
+    existing_ds = self._execute_action("package_show", {"id": dataset_slug}, log_prefix)
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\load_publish.py", line 106, in _execute_action
+    if last_exception: raise last_exception # type: ignore
+                       ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\load_publish.py", line 93, in _execute_action
+    return self.ckan.action.__getattribute__(action)(**params)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^
+AttributeError: 'ActionShortcut' object has no attribute 'package_show'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\main.py", line 119, in run
+    resource_count, dataset_count = self.uploader.process_list(
+                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        metadata_list=items_to_process,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        resource_field_map=config.config.CKAN_RESOURCE_FIELD_MAP
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\load_publish.py", line 334, in process_list
+    dataset_id = self.get_or_create_dataset(prep_info.target_dataset_slug, org_id, prep_info.dataset_payload)
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\load_publish.py", line 166, in get_or_create_dataset
+    if not existing_ds and isinstance(e, ValidationError) and 'name' in getattr(e, 'error_dict', {}):
+           ^^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'existing_ds' where it is not associated with a value
+2025-03-27 14:53:08,924 - DataPipeline - INFO - ==================== Data Pipeline Run Failed ====================
+2025-03-27 14:57:12,346 - DataPipeline - INFO - Logging configured for 'DataPipeline'. Level: INFO, Console Level: INFO, File: C:\Users\gurelb\Documents\GitHub\MetaData\data_pipeline.log
+2025-03-27 14:57:12,346 - DataPipeline - INFO - Initializing Data Pipeline components...
+2025-03-27 14:57:12,773 - DataPipeline - INFO - ==================== Starting Data Pipeline Run ====================
+2025-03-27 14:57:12,773 - DataPipeline - INFO - Starting scan of directory: C:\Users\gurelb\Downloads\RTest
+2025-03-27 14:57:13,628 - DataPipeline - INFO - Scan complete: Found 2 initial items.
+2025-03-27 14:57:13,628 - DataPipeline - INFO - Starting metadata validation...
+2025-03-27 14:57:13,629 - DataPipeline - INFO - Validation complete: No issues found.
+2025-03-27 14:57:13,629 - DataPipeline - INFO - Starting upload process for 2 items...
+2025-03-27 14:57:13,629 - DataPipeline - INFO - ... Target CKAN instance: orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev
+2025-03-27 14:57:14,781 - DataPipeline - INFO - Upload process complete. Processed 0 resources across 0 unique datasets.
+2025-03-27 14:57:14,781 - DataPipeline - INFO - ==================== Data Pipeline Run Finished Successfully ====================
