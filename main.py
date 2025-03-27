@@ -9,26 +9,34 @@ from ckanapi import RemoteCKAN, errors
 
 log = utils.setup_logging()
 
-
 def _ckan_connect() -> Optional[RemoteCKAN]:
     """Establishes a connection to CKAN, handling API key and connection tests."""
     try:
-        if config.CKAN_API_KEY:
-            ckan = RemoteCKAN(config.CKAN_API_URL, apikey=config.CKAN_API_KEY)
-            log.info("CKAN connection established with API key.")
-            ckan.action.package_list()  # Use a valid API call for testing
-        else:
-            ckan = RemoteCKAN(config.CKAN_API_URL)
-            log.info("CKAN connection established without API key (limited access).")
-            ckan.action.package_list()  # Use a valid API call
-        return ckan
-    except errors.CKANAPIError as e:
-        log.error("Failed to connect to CKAN: %s", e)
-        return None
-    except Exception as e:
-        log.exception("An unexpected error occurred during CKAN connection: %s", e)
-        return None
+        # ONLY attempt an anonymous connection.
+        log.debug(f"CKAN_API_URL from config: {config.CKAN_API_URL}")
+        # We intentionally do NOT log the API key now, since we aren't using it.
 
+        ckan = RemoteCKAN(config.CKAN_API_URL)
+        log.info("Attempting anonymous connection to CKAN...")
+        try:
+            result = ckan.action.package_list()
+            log.info("Anonymous CKAN connection successful. Result: %s", result)
+            return ckan
+        except errors.CKANAPIError as e:
+            log.error(f"CKAN API error (anonymous connection): {e}")
+            if isinstance(e, errors.NotAuthorized):
+                log.error("CKAN authorization failed (401). Anonymous access is not allowed.")
+            elif isinstance(e, errors.NotFound):
+                log.error("CKAN URL not found (404). Double-check CKAN_API_URL.")
+            return None  # Explicitly return None on failure
+        except Exception as e:
+            log.exception("An unexpected error occurred during anonymous CKAN connection: %s", e)
+            return None
+
+
+    except Exception as e:
+        log.exception("An unexpected error occurred during CKAN connection setup: %s", e)
+        return None
 
 def run_pipeline() -> None:
     """
@@ -36,6 +44,7 @@ def run_pipeline() -> None:
     """
     ckan = _ckan_connect()
     if not ckan:
+        log.error("CKAN connection failed.  Exiting pipeline.")
         return
 
     log.info(f"Starting data pipeline for R-drive: {config.R_SCHIJF_PAD}...")
