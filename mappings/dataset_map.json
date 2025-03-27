@@ -1,0 +1,13 @@
+{
+    "name": "name",
+    "title": "title",
+    "owner_org": "owner_org",
+    "notes": "notes",
+    "author": "author",
+    "tags": "tags",
+    "groups": "groups",
+    "spatial": "spatial",
+    "spatial_crs": "spatial_crs",
+    "category": "category",
+    "license_id": "license_id"
+}

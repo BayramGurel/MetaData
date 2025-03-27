@@ -41,3 +41,7 @@
 2025-03-25 13:04:47,430 - root - INFO - Attempting anonymous connection to CKAN...
 2025-03-25 13:04:47,500 - root - ERROR - CKAN API error (anonymous connection): ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/package_list', 401, '']
 2025-03-25 13:04:47,500 - root - ERROR - CKAN connection failed.  Exiting pipeline.
+2025-03-27 14:09:50,982 - DataPipeline - INFO - Logging configured for 'DataPipeline'. Level: INFO, Console Level: INFO, File: C:\Users\gurelb\Documents\GitHub\MetaData\data_pipeline.log
+2025-03-27 14:09:50,982 - DataPipeline - INFO - Initializing Data Pipeline components...
+2025-03-27 14:09:51,654 - DataPipeline - INFO - ==================== Starting Data Pipeline Run ====================
+2025-03-27 14:09:51,654 - DataPipeline - CRITICAL - CKAN connection failed during initialization. Pipeline cannot continue.

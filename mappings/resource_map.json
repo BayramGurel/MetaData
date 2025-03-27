@@ -1,0 +1,13 @@
+{
+    "name": "name",
+    "url": "url",
+    "format": "format",
+    "description": "notes",
+    "hash": "hash",
+    "size": "size",
+    "created": "created",
+    "last_modified": "last_modified",
+    "resource_path": "resource_path",
+    "error_message": "error_message",
+    "num_pages": "num_pages"
+}
