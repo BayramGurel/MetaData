@@ -132,3 +132,51 @@ UnboundLocalError: cannot access local variable 'existing_ds' where it is not as
 2025-03-27 14:57:13,629 - DataPipeline - INFO - ... Target CKAN instance: orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev
 2025-03-27 14:57:14,781 - DataPipeline - INFO - Upload process complete. Processed 0 resources across 0 unique datasets.
 2025-03-27 14:57:14,781 - DataPipeline - INFO - ==================== Data Pipeline Run Finished Successfully ====================
+2025-03-27 15:07:11,796 - DataPipeline - INFO - Logging configured for 'DataPipeline'. Level: INFO, Console Level: INFO, File: C:\Users\gurelb\Documents\GitHub\MetaData\data_pipeline.log
+2025-03-27 15:07:11,796 - DataPipeline - INFO - Initializing Data Pipeline components...
+2025-03-27 15:07:12,122 - DataPipeline - INFO - ==================== Starting Data Pipeline Run ====================
+2025-03-27 15:07:12,123 - DataPipeline - INFO - Starting scan of directory: C:\Users\gurelb\Downloads\RTest
+2025-03-27 15:07:13,044 - DataPipeline - INFO - Scan complete: Found 2 initial items.
+2025-03-27 15:07:13,044 - DataPipeline - INFO - Starting metadata validation...
+2025-03-27 15:07:13,044 - DataPipeline - INFO - Validation complete: No issues found.
+2025-03-27 15:07:13,044 - DataPipeline - INFO - Starting upload process for 2 items...
+2025-03-27 15:07:13,045 - DataPipeline - INFO - ... Target CKAN instance: orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev
+2025-03-27 15:07:14,888 - DataPipeline - INFO - Upload process complete. Processed 0 resources across 1 unique datasets.
+2025-03-27 15:07:14,888 - DataPipeline - INFO - ==================== Data Pipeline Run Finished Successfully ====================
+2025-03-27 15:11:42,471 - DataPipeline - INFO - Logging configured for 'DataPipeline'. Level: INFO, Console Level: INFO, File: C:\Users\gurelb\Documents\GitHub\MetaData\data_pipeline.log
+2025-03-27 15:11:42,471 - DataPipeline - INFO - Initializing Data Pipeline components...
+2025-03-27 15:11:42,796 - DataPipeline - INFO - ==================== Starting Data Pipeline Run ====================
+2025-03-27 15:11:42,796 - DataPipeline - INFO - Starting scan of directory: C:\Users\gurelb\Downloads\RTest
+2025-03-27 15:11:42,831 - DataPipeline - INFO - Scan complete: Found 1 initial items.
+2025-03-27 15:11:42,831 - DataPipeline - INFO - Starting metadata validation...
+2025-03-27 15:11:42,831 - DataPipeline - INFO - Validation complete: No issues found.
+2025-03-27 15:11:42,831 - DataPipeline - INFO - Starting upload process for 1 items...
+2025-03-27 15:11:42,831 - DataPipeline - INFO - ... Target CKAN instance: orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev
+2025-03-27 15:11:44,101 - DataPipeline - INFO - Upload process complete. Processed 0 resources across 1 unique datasets.
+2025-03-27 15:11:44,102 - DataPipeline - INFO - ==================== Data Pipeline Run Finished Successfully ====================
+2025-03-27 15:11:44,102 - DataPipeline - INFO - Cleaning up main scan temporary directory: C:\Users\gurelb\Documents\GitHub\MetaData\temp_extraction\scan_20250327_141142
+2025-03-27 15:11:44,102 - DataPipeline - INFO - Main scan temporary directory cleaned.
+2025-03-27 15:12:17,368 - DataPipeline - INFO - Logging configured for 'DataPipeline'. Level: INFO, Console Level: INFO, File: C:\Users\gurelb\Documents\GitHub\MetaData\data_pipeline.log
+2025-03-27 15:12:17,369 - DataPipeline - INFO - Initializing Data Pipeline components...
+2025-03-27 15:12:17,760 - DataPipeline - INFO - ==================== Starting Data Pipeline Run ====================
+2025-03-27 15:12:17,760 - DataPipeline - INFO - Starting scan of directory: C:\Users\gurelb\Downloads\RTest
+2025-03-27 15:12:17,761 - DataPipeline - ERROR - CRITICAL: An unexpected error occurred during pipeline execution:
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\main.py", line 65, in run
+    scan_temp_dir_to_clean = self.scanner.run_temp_dir # <<< Assign before scan potentially changes it
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MetadataScanner' object has no attribute 'run_temp_dir'
+2025-03-27 15:12:17,762 - DataPipeline - INFO - ==================== Data Pipeline Run Failed ====================
+2025-03-27 15:12:35,669 - DataPipeline - INFO - Logging configured for 'DataPipeline'. Level: INFO, Console Level: INFO, File: C:\Users\gurelb\Documents\GitHub\MetaData\data_pipeline.log
+2025-03-27 15:12:35,669 - DataPipeline - INFO - Initializing Data Pipeline components...
+2025-03-27 15:12:35,813 - DataPipeline - INFO - ==================== Starting Data Pipeline Run ====================
+2025-03-27 15:12:35,813 - DataPipeline - INFO - Starting scan of directory: C:\Users\gurelb\Downloads\RTest
+2025-03-27 15:12:35,849 - DataPipeline - INFO - Scan complete: Found 1 initial items.
+2025-03-27 15:12:35,849 - DataPipeline - INFO - Starting metadata validation...
+2025-03-27 15:12:35,849 - DataPipeline - INFO - Validation complete: No issues found.
+2025-03-27 15:12:35,849 - DataPipeline - INFO - Starting upload process for 1 items...
+2025-03-27 15:12:35,849 - DataPipeline - INFO - ... Target CKAN instance: orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev
+2025-03-27 15:12:36,482 - DataPipeline - INFO - Upload process complete. Processed 0 resources across 1 unique datasets.
+2025-03-27 15:12:36,482 - DataPipeline - INFO - ==================== Data Pipeline Run Finished Successfully ====================
+2025-03-27 15:12:36,483 - DataPipeline - INFO - Cleaning up main scan temporary directory: C:\Users\gurelb\Documents\GitHub\MetaData\temp_extraction\scan_20250327_141235
+2025-03-27 15:12:36,483 - DataPipeline - INFO - Main scan temporary directory cleaned.

@@ -1,28 +1,42 @@
 # config.py
 import os
 import logging
-from typing import Dict, Optional, Any, ClassVar # Keep ClassVar for MAPPINGS_DIR
+from typing import Dict, Optional, Any, ClassVar
 from pathlib import Path
 import json
-import sys # For API key warning output
+import sys
+
+# --- Basic Logging Setup ---
+# Configure basic logging IMMEDIATELY to catch errors during config loading itself.
+# This handler will be removed later by utils.setup_logging if it runs successfully.
+logging.basicConfig(level=logging.INFO, format='%(levelname)-8s [%(name)s] %(message)s')
 
 # --- DotEnv Loading ---
-# Needs python-dotenv: pip install python-dotenv
 try:
     from dotenv import load_dotenv
-    if load_dotenv(): # Returns True if a .env file was found and loaded
-        logging.info(".env file loaded.")
+    if load_dotenv():
+        logging.info("(.env file found and loaded)")
     else:
-        logging.debug(".env file not found or empty.")
+        logging.debug("(.env file not found or empty)")
 except ImportError:
-    logging.warning("python-dotenv not found. .env file support disabled. Install: pip install python-dotenv")
+    logging.warning("(python-dotenv not found, .env support disabled. Run: pip install python-dotenv)")
 
-log = logging.getLogger(__name__)
+log = logging.getLogger(__name__) # Logger for messages specific to this module's logic
 
 # --- Constants ---
-MAPPINGS_DIR = Path(__file__).parent / "mappings" # Assume mappings/ subdirectory
+# Define paths relative to this config file's location
+CONFIG_FILE_PATH = Path(__file__).resolve()
+PROJECT_ROOT = CONFIG_FILE_PATH.parent # Assumes config.py is in the project root
+# If config.py is in a subdirectory (e.g., 'conf'), use .parent.parent
+# PROJECT_ROOT = CONFIG_FILE_PATH.parent.parent
+MAPPINGS_DIR = PROJECT_ROOT / "mappings"
 
-# --- Helper Function to Load Mappings (Same as before) ---
+# Default paths relative to project root
+DEFAULT_TEMP_DIR_PATH = PROJECT_ROOT / "temp_extraction"
+DEFAULT_LOG_FILE_PATH = PROJECT_ROOT / "data_pipeline.log"
+
+
+# --- Helper Function to Load Mappings ---
 def _load_mapping_from_json(file_path: Path) -> Dict[str, str]:
     """Loads a mapping dictionary from a JSON file. Raises error if file is invalid/missing."""
     log.debug(f"Attempting to load mapping from: {file_path}")
@@ -33,10 +47,10 @@ def _load_mapping_from_json(file_path: Path) -> Dict[str, str]:
         with file_path.open('r', encoding='utf-8') as f:
             mapping = json.load(f)
         if isinstance(mapping, dict) and all(isinstance(v, str) for v in mapping.values()):
-            log.info(f"Successfully loaded mapping from {file_path}")
+            log.info(f"Successfully loaded mapping from {file_path.name}")
             return mapping
         else:
-             log.error(f"Invalid format or value types in mapping file {file_path}.")
+             log.error(f"Invalid format or value types in mapping file {file_path}. Expected JSON object with string values.")
              raise TypeError(f"Invalid format or values in mapping file {file_path}")
     except json.JSONDecodeError as e:
         log.error(f"Error decoding JSON mapping file {file_path}: {e}")
@@ -49,166 +63,146 @@ def _load_mapping_from_json(file_path: Path) -> Dict[str, str]:
 # --- Manual Settings Class ---
 class AppConfig:
     """
-    Handles loading and providing access to application configuration settings.
-    Reads from environment variables (optionally loaded from .env) and JSON mapping files.
-    Performs manual validation.
+    Handles loading config from environment variables/.env and JSON mapping files.
+    Performs manual validation. Access settings via the 'config' instance.
     """
 
-    # --- Core Settings Attributes ---
+    # --- Declare Attributes with Types and Defaults ---
     R_SCHIJF_PAD: Optional[Path] = None
-    TEMP_EXTRACTION_DIR: Path = Path("./temp_extraction").resolve() # Default
+    TEMP_EXTRACTION_DIR: Path = DEFAULT_TEMP_DIR_PATH
     CKAN_API_URL: Optional[str] = None
     CKAN_API_KEY: Optional[str] = None
-    LOG_FILE: Path = Path("data_pipeline.log").resolve() # Default
-    LOG_LEVEL_STR: str = "INFO" # Default
-
-    # --- Mapping Attributes ---
+    LOG_FILE: Path = DEFAULT_LOG_FILE_PATH
+    LOG_LEVEL_STR: str = "INFO"
     CKAN_MAPPING: Dict[str, str] = {}
     CKAN_DATASET_FIELD_MAP: Dict[str, str] = {}
     CKAN_RESOURCE_FIELD_MAP: Dict[str, str] = {}
 
     def __init__(self):
-        """
-        Loads configuration manually from environment variables and files.
-        """
-        log.info("Loading application configuration manually...")
+        """Loads and validates configuration."""
+        log.info("Loading application configuration...")
 
         # --- Load Core Settings ---
         self.R_SCHIJF_PAD = self._load_path("R_SCHIJF_PAD", is_dir=True, is_critical=True)
-        # Allow overriding temp dir via env var, use default otherwise
-        _temp_dir_str = self._load_str("TEMP_EXTRACTION_DIR", default=None, is_critical=False)
-        if _temp_dir_str:
-            self.TEMP_EXTRACTION_DIR = Path(_temp_dir_str).resolve()
-            log.info(f"Using TEMP_EXTRACTION_DIR from environment: {self.TEMP_EXTRACTION_DIR}")
+
+        # Load temp dir, using default path object if not set in env
+        _temp_dir_env = self._load_str("TEMP_EXTRACTION_DIR", is_critical=False)
+        if _temp_dir_env:
+            self.TEMP_EXTRACTION_DIR = Path(_temp_dir_env).resolve()
+            log.info(f"Using TEMP_EXTRACTION_DIR from env: {self.TEMP_EXTRACTION_DIR}")
         else:
             log.info(f"Using default TEMP_EXTRACTION_DIR: {self.TEMP_EXTRACTION_DIR}")
-        # Optional: Ensure parent exists here if desired
-        # try: self.TEMP_EXTRACTION_DIR.parent.mkdir(parents=True, exist_ok=True)
-        # except Exception as e: log.warning(f"Could not ensure TEMP_EXTRACTION_DIR parent exists: {e}")
 
-        self.CKAN_API_URL = self._load_str("CKAN_API_URL", is_critical=True) # Basic validation: must exist
-        # Optional: Add URL validation here if needed (e.g., using urllib.parse)
+        self.CKAN_API_URL = self._load_str("CKAN_API_URL", is_critical=True)
         self.CKAN_API_KEY = self._load_str("CKAN_API_KEY", is_critical=False)
 
-        # Load logging settings
-        _log_file_str = self._load_str("LOG_FILE", default=None, is_critical=False)
-        if _log_file_str: self.LOG_FILE = Path(_log_file_str).resolve()
+        # Load log file path, using default path object if not set in env
+        _log_file_env = self._load_str("LOG_FILE", is_critical=False)
+        if _log_file_env: self.LOG_FILE = Path(_log_file_env).resolve()
         self.LOG_LEVEL_STR = self._load_str("LOG_LEVEL", default="INFO", is_critical=False) or "INFO"
 
-        # --- Load Mappings ---
-        # Errors during mapping load are critical and will raise exceptions
+        # --- Load Mappings (Critical) ---
         try:
             self.CKAN_MAPPING = _load_mapping_from_json(MAPPINGS_DIR / "general_mapping.json")
             self.CKAN_DATASET_FIELD_MAP = _load_mapping_from_json(MAPPINGS_DIR / "dataset_map.json")
             self.CKAN_RESOURCE_FIELD_MAP = _load_mapping_from_json(MAPPINGS_DIR / "resource_map.json")
             log.info("Successfully loaded field mappings.")
-        except (FileNotFoundError, TypeError, ValueError, Exception) as map_load_e:
-             log.critical(f"Failed to load required field mappings: {map_load_e}")
-             # Re-raise as a RuntimeError to be caught by the singleton block
-             raise RuntimeError(f"Failed to load required field mappings: {map_load_e}") from map_load_e
+        except Exception as map_load_e:
+             # Error already logged by helper, just raise critical exception
+             raise RuntimeError("Failed to load required field mappings") from map_load_e
 
-        # --- Post-Loading Checks / Warnings ---
+        # --- Post-Loading Checks ---
         if self.CKAN_API_URL and not self.CKAN_API_KEY:
-            # Use print for critical startup warnings, as logging might not be fully configured
-             print(f"WARNING [config]: CKAN_API_KEY is not set for {self.CKAN_API_URL}. Auth operations will fail.", file=sys.stderr)
+             # Use print for critical startup warnings before full logging is guaranteed
+             print(f"WARNING [config]: CKAN_API_KEY not set for {self.CKAN_API_URL}. Auth required operations will fail.", file=sys.stderr)
 
         log.info("Manual configuration loading complete.")
 
-
-    # --- Helper Methods for Loading/Validation ---
+    # --- Loading Helpers ---
     def _load_str(self, env_var: str, default: Optional[str] = None, is_critical: bool = False) -> Optional[str]:
         """Loads a string value from environment variables."""
-        value = os.getenv(env_var) # Get value from environment
-        if value is None:
-             value = default # Use default if not found in env
+        value = os.getenv(env_var, default) # Uses default if env var not set
 
-        if is_critical and not value: # Check if critical and still missing
-            error_msg = f"CRITICAL: Required environment variable '{env_var}' is not set and no default provided."
-            log.critical(error_msg)
-            raise ValueError(error_msg)
+        if is_critical and not value: # Check if critical and effectively missing
+            error_msg = f"CRITICAL: Required env var '{env_var}' is not set and no default provided."
+            log.critical(error_msg); raise ValueError(error_msg)
 
-        log_val = '********' if 'KEY' in env_var.upper() and value else value # Basic masking for keys
-        log.debug(f"Config loaded - {env_var}: {log_val if value else 'Not set (using default or optional)'}")
+        # Basic masking for logging
+        log_val = '********' if 'KEY' in env_var.upper() and value else value
+        # Log only if value is set (or has default), avoid logging "None" constantly
+        if value: log.debug(f"Config {env_var}: {log_val}")
+        elif default: log.debug(f"Config {env_var}: Not set, using default.")
+        else: log.debug(f"Config {env_var}: Not set (Optional).")
+
         return value if value else None # Return None if empty string or None
 
     def _load_path(self, env_var: str, default: Optional[str] = None, is_dir: bool = False, is_critical: bool = False) -> Optional[Path]:
-        """Loads a path value, resolves it, and optionally validates."""
+        """Loads a path value, resolves it, and validates."""
         path_str = self._load_str(env_var, default, is_critical)
-        if not path_str: return None # Handled by _load_str
+        if not path_str: return None
 
-        try:
-             path_obj = Path(path_str).resolve() # Resolve to absolute path
+        try: path_obj = Path(path_str).resolve()
         except Exception as e:
-             error_msg = f"CRITICAL: Invalid path format for '{env_var}' ('{path_str}'): {e}"
-             log.critical(error_msg)
-             if is_critical: raise ValueError(error_msg) from e
-             else: return None # Return None if not critical but path is invalid
+             error_msg = f"Invalid path format for '{env_var}' ('{path_str}'): {e}"
+             log.critical(error_msg);
+             if is_critical: raise ValueError(error_msg) from e;
+             else: return None
 
-        # Perform existence/type validation if required
+        # Perform critical validation
         if is_critical:
              if not path_obj.exists():
-                  error_msg = f"CRITICAL: Required path '{env_var}' does not exist: {path_obj}"
-                  log.critical(error_msg)
-                  raise ValueError(error_msg)
+                  error_msg = f"CRITICAL: Path '{env_var}' does not exist: {path_obj}"
+                  log.critical(error_msg); raise ValueError(error_msg)
              if is_dir and not path_obj.is_dir():
-                  error_msg = f"CRITICAL: Required path '{env_var}' is not a directory: {path_obj}"
-                  log.critical(error_msg)
-                  raise ValueError(error_msg)
-             elif not is_dir and not path_obj.is_file(): # If check needed for file
-                  # Currently no critical file checks needed, but structure is here
-                  pass
+                  error_msg = f"CRITICAL: Path '{env_var}' is not a directory: {path_obj}"
+                  log.critical(error_msg); raise ValueError(error_msg)
+             # Add is_file check here if needed for other paths
 
-        log.debug(f"Config loaded - {env_var} Path: {path_obj}")
+        log.debug(f"Config Path {env_var}: {path_obj} (Exists: {path_obj.exists()})")
         return path_obj
 
     # --- Computed Property ---
     @property
     def LOG_LEVEL(self) -> int:
-        """Returns the logging level integer."""
+        """Returns the logging level integer from LOG_LEVEL_STR."""
         level_map: Dict[str, int] = {
             "DEBUG": logging.DEBUG, "INFO": logging.INFO, "WARNING": logging.WARNING,
             "ERROR": logging.ERROR, "CRITICAL": logging.CRITICAL,
         }
-        # Use .get with default logging.INFO if string is invalid
         return level_map.get(self.LOG_LEVEL_STR.upper(), logging.INFO)
 
-
 # --- Singleton Instance ---
-# Create a single instance upon import. Errors during instantiation will halt import.
+# Load config immediately upon module import. Critical errors will stop the application.
 try:
     config = AppConfig()
-    # Log summary after successful loading
-    log.info("--- Configuration Summary (Manual Load) ---")
-    log.info(f"  R_SCHIJF_PAD: {config.R_SCHIJF_PAD}")
-    log.info(f"  TEMP_EXTRACTION_DIR: {config.TEMP_EXTRACTION_DIR}")
-    log.info(f"  CKAN_API_URL: {config.CKAN_API_URL}")
-    log.info(f"  CKAN_API_KEY loaded: {'Yes' if config.CKAN_API_KEY else 'No'}")
-    log.info(f"  LOG_FILE: {config.LOG_FILE}")
-    log.info(f"  LOG_LEVEL: {logging.getLevelName(config.LOG_LEVEL)}")
-    log.info(f"  Mapping files loaded: Yes")
-    log.info("-------------------------------------------")
+    log.info("Application configuration loaded successfully.")
+    # Removed verbose summary logging here - rely on debug logs during loading
 
-except (ValueError, RuntimeError) as config_load_err: # Catch critical config/mapping errors
+except (ValueError, RuntimeError, FileNotFoundError) as config_load_err:
+    # Catch specific critical errors from loading/validation/mappings
     log.critical(f"CRITICAL: Configuration loading failed: {config_load_err}")
-    # Re-raise crucial errors to prevent application from running with invalid config
-    raise
+    raise RuntimeError("Application configuration failed to load.") from config_load_err
 except Exception as e:
-     log.critical(f"CRITICAL: Unexpected error during configuration loading: {e}", exc_info=True)
-     raise ValueError("Unexpected error during configuration loading.") from e
+    # Catch any other unexpected errors during instantiation
+     log.critical(f"CRITICAL: Unexpected error loading configuration: {e}", exc_info=True)
+     raise RuntimeError("Unexpected error loading application configuration.") from e
 
 
 # --- Direct Execution Test ---
 if __name__ == "__main__":
-    print("\n--- Direct execution: Testing manual config loading ---")
+    # Configure basic logging again just for this test block if needed
+    logging.basicConfig(level=logging.DEBUG, format='%(levelname)-8s [%(name)s] %(message)s')
+    print("\n--- Direct execution: Testing config instance ---")
     try:
-        # Assumes config instance was created successfully above
+        # The 'config' instance should already exist if import succeeded
         print(f"R_SCHIJF_PAD: {config.R_SCHIJF_PAD}")
+        print(f"TEMP_EXTRACTION_DIR: {config.TEMP_EXTRACTION_DIR}")
         print(f"CKAN_API_URL: {config.CKAN_API_URL}")
         print(f"CKAN_API_KEY is set: {bool(config.CKAN_API_KEY)}")
         print(f"Log Level Name: {logging.getLevelName(config.LOG_LEVEL)}")
-        print(f"CKAN General Mapping keys loaded: {len(config.CKAN_MAPPING)}")
-        print("\nConfig loaded and accessible.")
+        print(f"CKAN Mapping keys: {len(config.CKAN_MAPPING)}")
+        print("\nConfig instance accessible.")
     except NameError:
-        print("\nERROR: Global 'config' instance failed creation.")
+        print("\nERROR: Global 'config' instance failed creation during module import.")
     except Exception as e:
         print(f"\nERROR accessing config instance: {e}")
