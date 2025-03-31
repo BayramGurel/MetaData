@@ -6,6 +6,7 @@ import sys
 import time
 import zipfile
 from pathlib import Path
+from typing import List, Tuple, Optional, Dict
 
 # Probeer ckanapi te importeren
 try:
@@ -15,542 +16,625 @@ except ImportError:
     print("Installeer deze met: pip install ckanapi")
     sys.exit(1)
 
-# --- Configuratie Laden ---
-config = configparser.ConfigParser()
-script_dir = Path(__file__).parent
-config_path = script_dir / 'config.ini'
+# Globale logger instantie
+logger = logging.getLogger(__name__)
 
-if not config_path.is_file():
-    print(f"Fout: Configuratiebestand 'config.ini' niet gevonden in {script_dir}")
-    sys.exit(1)
+# --- Configuratie Klasse (Aangepast) ---
+class ConfigLoader:
+    """Laadt en beheert de pipeline configuratie uit een .ini bestand."""
 
-try:
-    config.read(config_path)
+    def __init__(self, config_path: Path):
+        self.config_path = config_path
+        self.config = configparser.ConfigParser()
+        self.script_dir = Path(__file__).parent
 
-    # Paden
-    SOURCE_DIR = Path(config.get('Paths', 'source_dir'))
-    STAGING_DIR = Path(config.get('Paths', 'staging_dir'))
-    PROCESSED_DIR_STR = config.get('Paths', 'processed_dir', fallback=None)  # Lees als string
-    LOG_FILE_REL = config.get('Paths', 'log_file')  # Relatief pad uit config
+        if not config_path.is_file():
+            logger.critical(f"Configuratiebestand '{config_path}' niet gevonden!")
+            raise FileNotFoundError(f"Configuratiebestand '{config_path}' niet gevonden.")
 
-    # Maak log path absoluut t.o.v. script dir
-    LOG_FILE = (script_dir / LOG_FILE_REL).resolve()
+        try:
+            self.config.read(config_path)
+            self._load_settings()
+            self._validate_settings()
+            self._show_security_warning()
+        except (configparser.Error, ValueError, KeyError) as e:
+            logger.critical(f"Fout bij lezen/verwerken config file '{config_path}': {e}")
+            raise ValueError(f"Fout bij lezen/verwerken config file '{config_path}': {e}") from e
 
-    # CKAN
-    CKAN_URL = config.get('CKAN', 'ckan_url')
-    CKAN_API_KEY = config.get('CKAN', 'api_key')
-    CKAN_OWNER_ORG = config.get('CKAN', 'owner_org')
+    def _load_settings(self):
+        """Interne methode om settings te laden naar attributen."""
+        # Paden
+        self.source_dir = Path(self.config.get('Paths', 'source_dir'))
+        self.staging_dir = Path(self.config.get('Paths', 'staging_dir'))
+        processed_dir_str = self.config.get('Paths', 'processed_dir', fallback=None)
+        log_file_rel = self.config.get('Paths', 'log_file')
+        self.log_file = (self.script_dir / log_file_rel).resolve()
 
-    # --- !!! SECURITY WARNING !!! ---
-    if CKAN_API_KEY == 'JOUW_CKAN_API_KEY_HIER' or not CKAN_API_KEY:
-        print("WAARSCHUWING: CKAN API Key is niet ingesteld in config.ini of is de placeholder.")
-        # Optioneel: sys.exit(1) als je wilt stoppen zonder API key
-    elif len(CKAN_API_KEY) < 20:  # Zeer simpele check op placeholder vs echte key
-        print("WAARSCHUWING: De ingestelde CKAN API key lijkt erg kort. Controleer config.ini.")
-    print("-" * 30)
-    print("WAARSCHUWING: Hardcodeer API keys NOOIT in scripts voor productie of versiebeheer.")
-    print("Gebruik environment variables of een secrets manager.")
-    print("-" * 30)
-    # --- !!! END SECURITY WARNING !!! ---
+        # CKAN
+        self.ckan_url = self.config.get('CKAN', 'ckan_url')
+        self.ckan_api_key = self.config.get('CKAN', 'api_key')
+        # self.ckan_owner_org = self.config.get('CKAN', 'owner_org') # Niet meer nodig voor plaatsing
 
-    # Pipeline
-    MOVE_PROCESSED = config.getboolean('Pipeline', 'move_processed_files', fallback=False)
-    PROCESSED_DIR = Path(PROCESSED_DIR_STR) if MOVE_PROCESSED and PROCESSED_DIR_STR else None
+        # Pipeline
+        self.move_processed = self.config.getboolean('Pipeline', 'move_processed_files', fallback=False)
+        self.processed_dir = Path(processed_dir_str) if self.move_processed and processed_dir_str else None
 
-    # Zip Handling
-    RELEVANT_EXTENSIONS_STR = config.get('ZipHandling', 'relevant_extensions', fallback='')
-    # Splits, trim spaties, maak lowercase, en filter lege strings
-    RELEVANT_EXTENSIONS = [
-        ext.strip().lower()
-        for ext in RELEVANT_EXTENSIONS_STR.split(',')
-        if ext.strip() and ext.strip().startswith('.')  # Moet beginnen met een punt
-    ]
-    EXTRACT_NESTED_ZIPS = config.getboolean('ZipHandling', 'extract_nested_zips', fallback=False)
+        # Zip Handling
+        extensions_str = self.config.get('ZipHandling', 'relevant_extensions', fallback='')
+        self.relevant_extensions = [ext.strip().lower() for ext in extensions_str.split(',') if ext.strip() and ext.strip().startswith('.')]
+        self.extract_nested_zips = self.config.getboolean('ZipHandling', 'extract_nested_zips', fallback=False)
 
-except (configparser.NoSectionError, configparser.NoOptionError, ValueError) as e:
-    print(f"Fout bij het lezen van config file '{config_path}': {e}")
-    sys.exit(1)
-except Exception as e:
-    print(f"Onverwachte fout bij het laden van de configuratie: {e}")
-    sys.exit(1)
+        # Behaviour (Nieuw)
+        self.create_organizations = self.config.getboolean('Behaviour', 'create_organizations', fallback=False)
 
 
-# --- Logging Instellen ---
-def setup_logging():
-    """Configureert logging naar console en bestand."""
+    def _validate_settings(self):
+        """Controleert essentiële settings."""
+        if not self.source_dir.is_dir():
+            logger.warning(f"Bronmap '{self.source_dir}' bestaat niet of is geen map.")
+        if not self.ckan_url or not self.ckan_api_key:
+             # owner_org is niet meer verplicht hier
+            raise ValueError("CKAN URL en API Key moeten ingesteld zijn in config.ini")
+
+    def _show_security_warning(self):
+        """Toont de security waarschuwing m.b.t. de API key."""
+        if self.ckan_api_key == 'JOUW_CKAN_API_KEY_HIER':
+            logger.warning("CKAN API Key is NIET ingesteld in config.ini (gebruikt placeholder).")
+        elif len(self.ckan_api_key) < 20:
+            logger.warning("De ingestelde CKAN API key lijkt erg kort. Controleer config.ini.")
+        logger.warning("=" * 30)
+        logger.warning("WAARSCHUWING: Hardcodeer API keys NOOIT in scripts voor productie of versiebeheer.")
+        logger.warning("Gebruik environment variables of een secrets manager.")
+        if self.create_organizations:
+             logger.warning("WAARSCHUWING: 'create_organizations' staat op True. Dit vereist sysadmin rechten voor de API key!")
+        logger.warning("=" * 30)
+
+# --- Logging Setup Functie (Onveranderd) ---
+def setup_logging(log_file_path: Path):
+    # ... (zelfde als voorheen) ...
     try:
-        LOG_FILE.parent.mkdir(parents=True, exist_ok=True)  # Zorg dat de log map bestaat
+        log_file_path.parent.mkdir(parents=True, exist_ok=True)
         logging.basicConfig(
             level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - [%(module)s:%(lineno)d] - %(message)s',
+            format='%(asctime)s - %(levelname)s - [%(name)s:%(lineno)d] - %(message)s',
             handlers=[
-                logging.FileHandler(LOG_FILE, encoding='utf-8'),
-                logging.StreamHandler(sys.stdout)  # Ook naar console
+                logging.FileHandler(log_file_path, encoding='utf-8'),
+                logging.StreamHandler(sys.stdout)
             ],
             datefmt='%Y-%m-%d %H:%M:%S'
         )
-        logging.info(f"Logging geïnitialiseerd. Logbestand: {LOG_FILE}")
+        logging.getLogger('ckanapi').setLevel(logging.WARNING)
+        logger.info(f"Logging geïnitialiseerd. Logbestand: {log_file_path}")
     except Exception as e:
-        print(f"Kritieke fout bij opzetten logging naar {LOG_FILE}: {e}")
+        print(f"Kritieke fout bij opzetten logging naar {log_file_path}: {e}")
         sys.exit(1)
 
 
-# --- Pipeline Stappen ---
+# --- CKAN Handler Klasse (Aangepast) ---
+class CkanHandler:
+    """Verantwoordelijk voor alle interacties met de CKAN API."""
 
-def detect_new_files(source_dir):
-    """Detecteert ZIP-bestanden in de bronmap."""
-    logging.info(f"Zoeken naar ZIP-bestanden in: {source_dir}")
-    if not source_dir.is_dir():
-        # Loggen en error gooien is beter dan alleen printen
-        logging.error(f"Bronmap {source_dir} niet gevonden of geen map.")
-        raise FileNotFoundError(f"Bronmap {source_dir} niet gevonden of geen map.")
-
-    files_to_process = [f for f in source_dir.iterdir() if f.is_file() and f.suffix.lower() == '.zip']
-    logging.info(f"{len(files_to_process)} ZIP-bestand(en) gevonden om te verwerken.")
-    return files_to_process
-
-
-def copy_to_staging(file_path, staging_dir):
-    """Kopieert het input ZIP-bestand naar de staging map."""
-    logging.info(f"Kopiëren input ZIP '{file_path.name}' naar staging: {staging_dir}")
-    staging_dir.mkdir(parents=True, exist_ok=True)
-    try:
-        dest_path = staging_dir / file_path.name
-        # Overschrijven voorkomen in staging? Kan nuttig zijn bij hertesten.
-        if dest_path.exists():
-            # Voeg timestamp toe om uniek te maken
-            timestamp = int(time.time())
-            dest_path = staging_dir / f"{file_path.stem}_{timestamp}{file_path.suffix}"
-            logging.warning(f"Bestand '{file_path.name}' bestond al in staging. Gekopieerd als '{dest_path.name}'.")
-
-        shutil.copy2(file_path, dest_path)  # copy2 behoudt metadata
-        logging.info(f"Input ZIP succesvol gekopieerd naar '{dest_path}'")
-        return dest_path
-    except Exception as e:
-        logging.error(f"Fout bij kopiëren input ZIP '{file_path.name}' naar {staging_dir}: {e}")
-        raise IOError(f"Fout bij kopiëren input ZIP '{file_path.name}' naar {staging_dir}: {e}")
-
-
-def extract_zip_in_staging(staged_zip_path, staging_dir):
-    """Pakt een ZIP-bestand uit in een unieke submap binnen staging."""
-    zip_filename_stem = staged_zip_path.stem
-    # Gebruik timestamp voor gegarandeerd unieke extractiemap
-    timestamp = int(time.time())
-    extract_subdir = staging_dir / f"extracted_{zip_filename_stem}_{timestamp}"
-
-    logging.info(f"Start uitpakken van '{staged_zip_path.name}' naar '{extract_subdir.relative_to(staging_dir)}'")
-    extracted_files_paths = []
-    try:
-        extract_subdir.mkdir(parents=True, exist_ok=True)
-        with zipfile.ZipFile(staged_zip_path, 'r') as zip_ref:
-            # Controleer op corrupte bestanden tijdens extractie
-            corrupt_files = zip_ref.testzip()
-            if corrupt_files:
-                logging.warning(f"ZIP '{staged_zip_path.name}' bevat mogelijk corrupte bestanden: {corrupt_files}")
-                # Je kunt hier kiezen om te stoppen of door te gaan
-
-            zip_ref.extractall(extract_subdir)
-            # Verzamel paden van alle direct uitgepakte bestanden
-            for item in extract_subdir.rglob('*'):
-                if item.is_file():
-                    extracted_files_paths.append(item)
-        logging.info(
-            f"ZIP succesvol uitgepakt. {len(extracted_files_paths)} bestanden gevonden in '{extract_subdir.relative_to(staging_dir)}'.")
-
-        # --- Geneste ZIPs (momenteel uitgeschakeld via config) ---
-        if EXTRACT_NESTED_ZIPS:
-            # (Code voor geneste extractie zou hier komen, zoals in vorige versie)
-            logging.warning(
-                "Extractie van geneste ZIPs is ingeschakeld maar code is hier niet actief geïmplementeerd in deze versie.")
-            pass  # Voor nu niets doen
-
-        # Filter op relevante extensies (indien opgegeven in config)
-        if RELEVANT_EXTENSIONS:
-            files_to_upload = [
-                f for f in extracted_files_paths
-                if f.suffix.lower() in RELEVANT_EXTENSIONS
-            ]
-            logging.info(
-                f"{len(files_to_upload)} relevante bestanden gevonden na filteren op extensies: {', '.join(RELEVANT_EXTENSIONS)}")
-        else:
-            # Als RELEVANT_EXTENSIONS leeg is, upload alles
-            files_to_upload = extracted_files_paths
-            logging.info(
-                f"Geen specifieke extensies opgegeven, {len(files_to_upload)} bestanden gevonden om te uploaden.")
-
-        # Sluit .zip bestanden uit van upload als nested extractie UIT staat (om te voorkomen dat je de zips zelf upload)
-        if not EXTRACT_NESTED_ZIPS:
-            files_to_upload = [f for f in files_to_upload if f.suffix.lower() != '.zip']
-            logging.debug(
-                f"{len(files_to_upload)} bestanden blijven over na uitsluiten van .zip (omdat nested extractie uit staat).")
-
-        return extract_subdir, files_to_upload
-
-    except zipfile.BadZipFile:
-        logging.error(f"Input ZIP bestand '{staged_zip_path.name}' is corrupt of geen geldig ZIP-bestand.")
-        # Probeer de (mogelijk deels) uitgepakte map te verwijderen
-        if extract_subdir.exists():
-            try:
-                shutil.rmtree(extract_subdir)
-            except OSError as rm_err:
-                logging.error(f"Kon mislukte extractie map '{extract_subdir}' niet verwijderen: {rm_err}")
-        raise ValueError(f"Input ZIP bestand '{staged_zip_path.name}' is corrupt.")
-    except Exception as e:
-        logging.error(f"Fout bij uitpakken ZIP '{staged_zip_path.name}': {e}")
-        # Probeer op te ruimen
-        if extract_subdir.exists():
-            try:
-                shutil.rmtree(extract_subdir)
-            except OSError as rm_err:
-                logging.error(f"Kon mislukte extractie map '{extract_subdir}' niet verwijderen: {rm_err}")
-        raise IOError(f"Fout bij uitpakken ZIP '{staged_zip_path.name}': {e}")
-
-
-def publish_extracted_files_to_ckan(original_zip_name, extract_subdir, files_to_upload, ckan_url, api_key, owner_org):
-    """Publiceert/update relevante uitgepakte bestanden naar CKAN."""
-    logging.info(f"Start CKAN publicatie voor inhoud van '{original_zip_name}'")
-
-    # Dataset ID afleiden van *originele* ZIP bestandsnaam
-    base_name = Path(original_zip_name).stem
-    # Maak een CKAN-vriendelijke ID (lowercase, koppeltekens)
-    dataset_id = ''.join(c if c.isalnum() else '-' for c in base_name).lower().strip('-')
-    # Titel mag leesbaarder zijn
-    dataset_title = base_name.replace('_', ' ').replace('-', ' ').title()
-
-    # Voorkom lege dataset_id
-    if not dataset_id:
-        dataset_id = f"dataset-{int(time.time())}"
-        logging.warning(
-            f"Kon geen geldige dataset ID afleiden van '{original_zip_name}', gebruik gegenereerde ID: '{dataset_id}'")
-
-    logging.info(f"Doel CKAN Dataset: ID='{dataset_id}', Titel='{dataset_title}'")
-
-    if not files_to_upload:
-        logging.warning(
-            f"Geen bestanden gevonden in '{extract_subdir.name}' om te publiceren naar CKAN voor dataset '{dataset_id}'.")
-        return  # Geen werk te doen
-
-    # Gebruik een sessie voor mogelijk betere performance/reuse van connectie
-    ckan_error = False
-    package = None
-    try:
-        ckan = RemoteCKAN(ckan_url, apikey=api_key)
-
-        # Stap 1: Check/Create dataset (package)
+    def __init__(self, ckan_url: str, api_key: str):
+        # Geen default_owner_org meer nodig
+        self.ckan_url = ckan_url
+        self.api_key = api_key
         try:
-            logging.debug(f"Controleren of dataset '{dataset_id}' bestaat...")
-            package = ckan.call_action('package_show', {'id': dataset_id})
-            logging.info(f"Dataset '{dataset_id}' (ID: {package['id']}) bestaat al.")
-            # Update dataset metadata? Bv. 'laatst bijgewerkt' notitie
-            try:
-                update_notes = package.get('notes', '').split('\nLaatst bijgewerkt:')[0]  # Oude notitie behouden
-                update_notes += f'\nLaatst bijgewerkt met inhoud van {original_zip_name} op {time.strftime("%Y-%m-%d %H:%M:%S")}'
-                ckan.call_action('package_patch', {'id': package['id'], 'notes': update_notes})
-                logging.info(f"Dataset '{dataset_id}' metadata bijgewerkt.")
-            except Exception as patch_err:
-                logging.warning(f"Kon metadata van dataset '{dataset_id}' niet bijwerken: {patch_err}")
+            self.ckan = RemoteCKAN(self.ckan_url, apikey=self.api_key)
+            logger.info(f"CKAN Handler geïnitialiseerd voor URL: {self.ckan_url}")
+        except Exception as e:
+            logger.critical(f"Kon geen verbinding maken met CKAN op {self.ckan_url}: {e}")
+            raise ConnectionError(f"CKAN connectie mislukt: {e}") from e
 
+    def check_organization_exists(self, org_id_or_name: str) -> Dict:
+        # ... (Deze methode blijft hetzelfde als in de vorige versie) ...
+        logger.debug(f"Controleren organisatie: '{org_id_or_name}'")
+        try:
+            org_details = self.ckan.call_action('organization_show', {'id': org_id_or_name, 'include_datasets': False})
+            logger.info(f"Organisatie '{org_id_or_name}' (ID: {org_details['id']}) gevonden.")
+            return org_details
         except NotFound:
-            logging.info(f"Dataset '{dataset_id}' bestaat nog niet. Aanmaken...")
+            logger.info(f"Organisatie '{org_id_or_name}' niet gevonden in CKAN.") # Info level, want we kunnen proberen te maken
+            raise FileNotFoundError(f"Organisatie '{org_id_or_name}' niet gevonden.")
+        except NotAuthorized as e:
+            logger.error(f"Permissiefout: Geen toegang tot organisatie '{org_id_or_name}'. API key rechten? Fout: {e}")
+            raise PermissionError(f"Geen toegang tot organisatie '{org_id_or_name}'.") from e
+        except Exception as e:
+            logger.error(f"Fout bij controleren organisatie '{org_id_or_name}': {e}")
+            raise ConnectionError(f"Fout bij controleren organisatie '{org_id_or_name}'.") from e
+
+
+    # *** NIEUWE METHODE: create_organization ***
+    def create_organization(self, org_id: str, org_title: str) -> Dict:
+        """Probeert een nieuwe organisatie aan te maken."""
+        logger.info(f"Poging tot aanmaken nieuwe organisatie ID='{org_id}', Titel='{org_title}'...")
+        try:
+            # Voeg eventueel meer metadata toe aan de organisatie
+            org_data = {
+                'name': org_id,       # De URL-vriendelijke ID
+                'title': org_title,   # De leesbare titel
+                'description': f'Organisatie automatisch aangemaakt door pipeline op {time.strftime("%Y-%m-%d")}',
+                # 'image_url': '...', # Optioneel
+            }
+            created_org = self.ckan.call_action('organization_create', org_data)
+            logger.info(f"Organisatie '{org_id}' (ID: {created_org['id']}) succesvol aangemaakt.")
+            return created_org
+        except NotAuthorized as e:
+            # Dit gebeurt als de API key geen sysadmin rechten heeft
+            logger.error(f"Permissiefout: Niet geautoriseerd om organisatie '{org_id}' aan te maken. Vereist sysadmin rechten! Fout: {e}")
+            raise PermissionError(f"Aanmaken organisatie '{org_id}' niet toegestaan (sysadmin nodig?).") from e
+        except ValidationError as e:
+            # Bv. als de naam al bestaat of ongeldige tekens bevat
+            error_details = e.error_dict if hasattr(e, 'error_dict') else str(e)
+            logger.error(f"CKAN Validatiefout bij aanmaken organisatie '{org_id}': {error_details}")
+            raise ValueError(f"Organisatie validatiefout: {error_details}") from e
+        except Exception as e:
+            logger.error(f"Fout bij aanmaken CKAN organisatie '{org_id}': {e}")
+            raise ConnectionError(f"Aanmaken organisatie '{org_id}' mislukt: {e}") from e
+
+
+    def get_or_create_dataset(self, dataset_id: str, dataset_title: str, owner_org_id: str, zip_name: str) -> Dict:
+        # ... (Deze methode blijft hetzelfde, gebruikt nu de doorgegeven owner_org_id) ...
+        logger.debug(f"Dataset '{dataset_id}' zoeken of aanmaken in org ID '{owner_org_id}'...")
+        try:
+            package = self.ckan.call_action('package_show', {'id': dataset_id})
+            logger.info(f"Dataset '{dataset_id}' (ID: {package['id']}) bestaat al.")
+            try:
+                update_notes = package.get('notes', '').split('\nLaatst bijgewerkt:')[0]
+                update_notes += f'\nLaatst bijgewerkt met inhoud van {zip_name} op {time.strftime("%Y-%m-%d %H:%M:%S")}'
+                self.ckan.call_action('package_patch', {'id': package['id'], 'notes': update_notes})
+                logger.debug(f"Dataset '{dataset_id}' metadata bijgewerkt.")
+            except Exception as patch_err:
+                 logger.warning(f"Kon metadata van dataset '{dataset_id}' niet bijwerken: {patch_err}")
+            return package
+        except NotFound:
+            logger.info(f"Dataset '{dataset_id}' bestaat niet. Poging tot aanmaken...")
             try:
                 package_data = {
                     'name': dataset_id,
                     'title': dataset_title,
-                    'owner_org': owner_org,
-                    'notes': f'Dataset automatisch aangemaakt voor ZIP-bestand {original_zip_name} op {time.strftime("%Y-%m-%d %H:%M:%S")}',
-                    # Voeg eventueel meer standaard metadata toe
-                    'author': 'Data Pipeline Script',
+                    'owner_org': owner_org_id, # Gebruik de correcte org ID
+                    'notes': f'Dataset automatisch aangemaakt voor ZIP {zip_name} op {time.strftime("%Y-%m-%d %H:%M:%S")}',
+                    'author': 'Data Pipeline Script OOP',
                 }
-                package = ckan.call_action('package_create', package_data)
-                logging.info(f"Dataset '{dataset_id}' (ID: {package['id']}) succesvol aangemaakt.")
-            except ValidationError as e:
-                # Log specifieke validatiefouten indien mogelijk
-                error_details = e.error_dict if hasattr(e, 'error_dict') else str(e)
-                logging.error(f"CKAN Validatiefout bij aanmaken dataset '{dataset_id}': {error_details}")
-                ckan_error = True
-            except Exception as e:
-                logging.error(f"Fout bij aanmaken CKAN dataset '{dataset_id}': {e}")
-                ckan_error = True
-        except NotAuthorized as e:
-            logging.error(
-                f"CKAN Autorisatiefout bij controleren/aanmaken dataset '{dataset_id}'. Controleer API key en rechten voor org '{owner_org}'. Fout: {e}")
-            ckan_error = True
-        except Exception as e:
-            logging.error(f"Algemene fout bij controleren/aanmaken CKAN dataset '{dataset_id}': {e}")
-            ckan_error = True
-
-        if ckan_error or not package or 'id' not in package:
-            raise ConnectionError(
-                f"Kon CKAN dataset '{dataset_id}' niet vinden of aanmaken. Stoppen met publiceren voor deze ZIP.")
-
-        package_id = package['id']  # We hebben de ID nodig
-
-        # Stap 2: Haal bestaande resources op voor efficiënte check
-        existing_resources = {}  # {resource_name: resource_id}
-        try:
-            # Gebruik package_show ipv package_search voor betrouwbaardere resultaten
-            package_details = ckan.call_action('package_show', {'id': package_id})
-            for res in package_details.get('resources', []):
-                # Soms is 'name' None, skip die resources
-                if res.get('name'):
-                    existing_resources[res['name']] = res['id']
-            logging.info(f"Dataset '{dataset_id}' heeft {len(existing_resources)} bestaande resource(s) met een naam.")
-        except Exception as e:
-            logging.warning(
-                f"Kon bestaande resources voor dataset '{dataset_id}' niet ophalen: {e}. Update check gebeurt per bestand.")
-            existing_resources = {}  # Reset om fallback te forceren
-
-        # Stap 3: Verwerk elk relevant uitgepakt bestand
-        successful_uploads = 0
-        failed_uploads = 0
-        for file_path in files_to_upload:
-            # Resource naam moet uniek zijn binnen dataset, gebruik bestandsnaam
-            # CKAN kan moeite hebben met speciale tekens, normaliseer eventueel
-            resource_name = file_path.name
-            relative_path = file_path.relative_to(extract_subdir)  # Pad binnen de extractie map
-            resource_description = f"Bestand '{relative_path}' uit {original_zip_name}, verwerkt op {time.strftime('%Y-%m-%d %H:%M:%S')}"
-            resource_format = file_path.suffix.lstrip('.').upper() if file_path.suffix else 'Unknown'
-
-            logging.info(f"Verwerken bestand voor CKAN: '{relative_path}' (Resource naam: '{resource_name}')")
-
-            try:
-                # Gebruik 'with open' voor correct sluiten van bestand
-                with open(file_path, 'rb') as file_object:
-                    resource_data = {
-                        'package_id': package_id,
-                        'name': resource_name,
-                        'description': resource_description,
-                        'format': resource_format,
-                        'upload': file_object,  # Het file object zelf
-                        # 'url' is niet nodig bij upload, CKAN genereert die
-                    }
-
-                    # Check of resource al bestaat (efficiënt via opgehaalde lijst, anders via API call)
-                    existing_resource_id = existing_resources.get(resource_name)
-                    action = None
-                    if existing_resource_id:
-                        logging.debug(
-                            f"Resource '{resource_name}' gevonden in cache (ID: {existing_resource_id}). Voorbereiden voor update.")
-                        resource_data['id'] = existing_resource_id
-                        action = 'resource_update'
-                    else:
-                        # Als niet in cache, probeer create (kan falen als hij toch bestaat -> niet waterdicht zonder cache)
-                        logging.debug(f"Resource '{resource_name}' niet in cache. Voorbereiden voor create.")
-                        action = 'resource_create'
-
-                    # Voer actie uit
-                    if action == 'resource_update':
-                        logging.info(f"Updaten bestaande resource '{resource_name}'...")
-                        updated_resource = ckan.call_action(action, resource_data)
-                        logging.info(f"Resource '{resource_name}' (ID: {updated_resource['id']}) succesvol bijgewerkt.")
-                        successful_uploads += 1
-                    elif action == 'resource_create':
-                        logging.info(f"Aanmaken nieuwe resource '{resource_name}'...")
-                        new_resource = ckan.call_action(action, resource_data)
-                        logging.info(f"Resource '{resource_name}' (ID: {new_resource['id']}) succesvol aangemaakt.")
-                        successful_uploads += 1
-
-            except FileNotFoundError:
-                logging.error(
-                    f"Bestand '{file_path}' niet gevonden tijdens CKAN upload poging (is het tussentijds verwijderd?).")
-                failed_uploads += 1
-            except ValidationError as e:
-                error_details = e.error_dict if hasattr(e, 'error_dict') else str(e)
-                logging.error(f"CKAN Validatiefout voor resource '{resource_name}': {error_details}")
-                failed_uploads += 1
+                package = self.ckan.call_action('package_create', package_data)
+                logger.info(f"Dataset '{dataset_id}' (ID: {package['id']}) succesvol aangemaakt.")
+                return package
             except NotAuthorized as e:
-                logging.error(
-                    f"CKAN Autorisatiefout voor resource '{resource_name}'. Controleer API key rechten. Fout: {e}")
-                failed_uploads += 1
-                # Mogelijk hier stoppen als authenticatie faalt?
-                # raise ConnectionError("CKAN Autorisatiefout, stoppen.")
+                 logger.error(f"Permissiefout: Niet geautoriseerd om dataset '{dataset_id}' aan te maken in org ID '{owner_org_id}'. Fout: {e}")
+                 raise PermissionError(f"Dataset aanmaken in org ID '{owner_org_id}' niet toegestaan.") from e
+            except ValidationError as e:
+                 error_details = e.error_dict if hasattr(e, 'error_dict') else str(e)
+                 logger.error(f"CKAN Validatiefout bij aanmaken dataset '{dataset_id}': {error_details}")
+                 raise ValueError(f"Dataset validatiefout: {error_details}") from e
             except Exception as e:
-                # Vang andere CKAN of netwerkfouten
-                logging.error(f"Algemene fout bij verwerken resource '{resource_name}' naar CKAN: {e}",
-                              exc_info=False)  # exc_info=False om dubbele traceback te voorkomen bij logging
-                logging.debug("Traceback voor resource fout:", exc_info=True)  # Log traceback naar bestand
-                failed_uploads += 1
-                # Optioneel: stop bij de eerste resource fout?
-                # raise ConnectionError(f"Fout bij resource '{resource_name}', stoppen met uploads voor deze ZIP.")
+                logger.error(f"Fout bij aanmaken CKAN dataset '{dataset_id}': {e}")
+                raise ConnectionError(f"Dataset aanmaken mislukt: {e}") from e
+        except NotAuthorized as e:
+             logger.error(f"Permissiefout: Niet geautoriseerd om dataset '{dataset_id}' te bekijken. Fout: {e}")
+             raise PermissionError(f"Bekijken dataset '{dataset_id}' niet toegestaan.") from e
+        except Exception as e:
+            logger.error(f"Algemene fout bij zoeken/aanmaken CKAN dataset '{dataset_id}': {e}")
+            raise ConnectionError(f"Zoeken/aanmaken dataset mislukt: {e}") from e
 
-        logging.info(
-            f"CKAN publicatie voor '{original_zip_name}' voltooid. Succes: {successful_uploads}, Fouten: {failed_uploads}.")
-        if failed_uploads > 0:
-            # Gooi een fout zodat de main loop weet dat er iets misging met deze ZIP
-            raise ConnectionError(
-                f"{failed_uploads} resource(s) konden niet worden gepubliceerd naar CKAN voor '{original_zip_name}'.")
-
-
-    except Exception as e:
-        logging.error(f"Kritieke fout tijdens CKAN publicatie proces voor '{original_zip_name}': {e}")
-        raise  # Gooi fout opnieuw op voor hoofd error handling
-
-
-def cleanup_staging(staged_zip_path, extract_subdir):
-    """Verwijdert het gestagede ZIP-bestand en de uitgepakte map."""
-    logging.info(f"Start opruimen staging area voor '{staged_zip_path.name if staged_zip_path else 'onbekend ZIP'}'")
-    if staged_zip_path and staged_zip_path.exists():
+    def get_existing_resources(self, package_id: str) -> Dict[str, str]:
+        # ... (Onveranderd) ...
+        logger.debug(f"Ophalen bestaande resources voor package ID '{package_id}'...")
+        existing_resources = {}
         try:
-            staged_zip_path.unlink()
-            logging.info(f"Gestaged ZIP bestand '{staged_zip_path.name}' verwijderd.")
-        except OSError as e:
-            logging.warning(f"Kon gestaged ZIP bestand '{staged_zip_path.name}' niet verwijderen: {e}")
-    else:
-        logging.debug("Geen gestaged ZIP pad opgegeven of bestand bestaat niet meer.")
+            package_details = self.ckan.call_action('package_show', {'id': package_id, 'include_resources': True})
+            for res in package_details.get('resources', []):
+                if res.get('name'):
+                     existing_resources[res['name']] = res['id']
+            logger.debug(f"{len(existing_resources)} bestaande resource(s) met naam gevonden.")
+            return existing_resources
+        except Exception as e:
+            logger.warning(f"Kon bestaande resources voor package ID '{package_id}' niet ophalen: {e}. Update check minder efficiënt.")
+            return {}
 
-    if extract_subdir and extract_subdir.exists():
+    def upload_resource(self, package_id: str, file_path: Path, resource_name: str, description: str, format: str, existing_resource_id: Optional[str] = None):
+        # ... (Onveranderd) ...
+        action = 'resource_update' if existing_resource_id else 'resource_create'
+        log_prefix = "Updaten" if existing_resource_id else "Aanmaken"
+        logger.info(f"{log_prefix} resource '{resource_name}' voor package ID '{package_id}'...")
         try:
-            # Wees voorzichtig met rmtree! Dubbelcheck pad.
-            if STAGING_DIR in extract_subdir.parents:  # Extra check dat we binnen staging blijven
-                shutil.rmtree(extract_subdir)
-                logging.info(f"Extractie map '{extract_subdir.name}' verwijderd.")
+            with open(file_path, 'rb') as file_object:
+                resource_data = {
+                    'package_id': package_id,
+                    'name': resource_name,
+                    'description': description,
+                    'format': format,
+                    'upload': file_object,
+                }
+                if existing_resource_id:
+                    resource_data['id'] = existing_resource_id
+                result = self.ckan.call_action(action, resource_data)
+                logger.info(f"Resource '{resource_name}' (ID: {result['id']}) succesvol {log_prefix.lower()}d.")
+        except FileNotFoundError:
+            logger.error(f"Bestand '{file_path}' niet gevonden tijdens upload poging.")
+            raise
+        except ValidationError as e:
+            error_details = e.error_dict if hasattr(e, 'error_dict') else str(e)
+            logger.error(f"CKAN Validatiefout voor resource '{resource_name}': {error_details}")
+            raise
+        except NotAuthorized as e:
+             logger.error(f"Permissiefout: Niet geautoriseerd om resource '{resource_name}' te {action}n. Fout: {e}")
+             raise
+        except Exception as e:
+            logger.error(f"Algemene fout bij {action} resource '{resource_name}': {e}")
+            raise
+
+# --- ZIP Processor Klasse (Onveranderd) ---
+class ZipProcessor:
+    # ... (Deze klasse blijft exact hetzelfde als in de vorige OOP versie) ...
+    """Verantwoordelijk voor het verwerken van één enkel ZIP bestand."""
+
+    def __init__(self, source_zip_path: Path, config: ConfigLoader):
+        self.source_path = source_zip_path
+        self.config = config
+        self.staged_zip_path: Optional[Path] = None
+        self.extract_subdir: Optional[Path] = None
+        self.files_to_upload: List[Path] = []
+        self.original_name = source_zip_path.name
+
+        timestamp = int(time.time())
+        unique_suffix = f"{self.source_path.stem}_{timestamp}"
+        self.staged_zip_path_potential = self.config.staging_dir / f"{unique_suffix}{self.source_path.suffix}"
+        self.extract_subdir_potential = self.config.staging_dir / f"extracted_{unique_suffix}"
+
+    def stage(self) -> Path:
+        logger.info(f"[{self.original_name}] Kopiëren naar staging...")
+        self.config.staging_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self.staged_zip_path = self.staged_zip_path_potential
+            shutil.copy2(self.source_path, self.staged_zip_path)
+            logger.info(f"[{self.original_name}] Gekopieerd naar '{self.staged_zip_path.relative_to(self.config.staging_dir)}'")
+            return self.staged_zip_path
+        except Exception as e:
+            logger.error(f"[{self.original_name}] Fout bij kopiëren naar staging: {e}")
+            raise IOError(f"Fout bij kopiëren naar staging: {e}") from e
+
+    def extract(self) -> Tuple[Path, List[Path]]:
+        if not self.staged_zip_path or not self.staged_zip_path.is_file():
+             raise FileNotFoundError(f"[{self.original_name}] Gestaged ZIP bestand niet gevonden voor extractie.")
+
+        logger.info(f"[{self.original_name}] Start uitpakken naar '{self.extract_subdir_potential.relative_to(self.config.staging_dir)}'")
+        self.extract_subdir = self.extract_subdir_potential
+        extracted_files_all = []
+        try:
+            self.extract_subdir.mkdir(parents=True, exist_ok=True)
+            with zipfile.ZipFile(self.staged_zip_path, 'r') as zip_ref:
+                corrupt_files = zip_ref.testzip()
+                if corrupt_files:
+                    logger.warning(f"[{self.original_name}] ZIP bevat mogelijk corrupte bestanden: {corrupt_files}")
+                zip_ref.extractall(self.extract_subdir)
+                for item in self.extract_subdir.rglob('*'):
+                    if item.is_file():
+                        extracted_files_all.append(item)
+            logger.info(f"[{self.original_name}] Uitpakken voltooid. {len(extracted_files_all)} bestanden gevonden.")
+
+            if self.config.relevant_extensions:
+                self.files_to_upload = [f for f in extracted_files_all if f.suffix.lower() in self.config.relevant_extensions]
+                logger.info(f"[{self.original_name}] {len(self.files_to_upload)} bestanden geselecteerd op basis van extensies.")
             else:
-                logging.error(
-                    f"WEIGEREN te verwijderen: Map '{extract_subdir}' lijkt buiten de staging dir '{STAGING_DIR}' te vallen.")
-        except OSError as e:
-            logging.warning(f"Kon extractie map '{extract_subdir.name}' niet verwijderen: {e}")
-    else:
-        logging.debug("Geen extractie submap opgegeven of map bestaat niet meer.")
+                self.files_to_upload = extracted_files_all
+                logger.info(f"[{self.original_name}] Alle {len(self.files_to_upload)} uitgepakte bestanden worden meegenomen (geen filter).")
 
+            if not self.config.extract_nested_zips:
+                 original_count = len(self.files_to_upload)
+                 self.files_to_upload = [f for f in self.files_to_upload if f.suffix.lower() != '.zip']
+                 if len(self.files_to_upload) < original_count:
+                      logger.debug(f"[{self.original_name}] {original_count - len(self.files_to_upload)} .zip bestanden uitgesloten van upload.")
 
-def move_to_processed(file_path, processed_dir):
-    """Verplaatst het originele input ZIP-bestand naar de 'verwerkt' map."""
-    # Deze functie wordt alleen aangeroepen als MOVE_PROCESSED True is en PROCESSED_DIR is ingesteld.
-    logging.info(f"Verplaatsen origineel input ZIP bestand '{file_path.name}' naar: {processed_dir}")
-    try:
-        processed_dir.mkdir(parents=True, exist_ok=True)
-        dest_path = processed_dir / file_path.name
-        # Voorkom overschrijven - voeg timestamp toe als bestand al bestaat
-        counter = 1
-        original_dest_path = dest_path
-        while dest_path.exists():
-            timestamp = int(time.time())
-            dest_path = processed_dir / f"{file_path.stem}_{timestamp}_{counter}{file_path.suffix}"
-            counter += 1
-        if dest_path != original_dest_path:
-            logging.warning(
-                f"Bestand '{original_dest_path.name}' bestond al in {processed_dir}. Hernoemd naar '{dest_path.name}' bij verplaatsen.")
+            if self.config.extract_nested_zips:
+                 logger.warning(f"[{self.original_name}] Extractie van geneste ZIPs is ingeschakeld maar niet geïmplementeerd.")
 
-        shutil.move(str(file_path), str(dest_path))  # shutil.move werkt beter met strings voor paden
-        logging.info(f"Origineel input ZIP bestand succesvol verplaatst naar '{dest_path}'")
-    except Exception as e:
-        # Fout bij verplaatsen mag de rest niet blokkeren, maar moet gelogd worden.
-        logging.error(
-            f"Fout bij verplaatsen origineel ZIP bestand '{file_path.name}' naar {processed_dir}: {e}. Bestand blijft in bronmap '{SOURCE_DIR}' staan.")
-        # Geen e-mail meer, alleen loggen.
+            return self.extract_subdir, self.files_to_upload
 
+        except zipfile.BadZipFile:
+            logger.error(f"[{self.original_name}] Corrupt of ongeldig ZIP bestand.")
+            self._safe_remove_dir(self.extract_subdir)
+            raise ValueError(f"Corrupt ZIP: {self.original_name}") from None
+        except Exception as e:
+            logger.error(f"[{self.original_name}] Fout bij uitpakken: {e}")
+            self._safe_remove_dir(self.extract_subdir)
+            raise IOError(f"Fout bij uitpakken: {e}") from e
 
-# --- Hoofd Pipeline Logica ---
-def main():
-    """Voert de volledige data pipeline uit voor alle ZIPs in de source_dir."""
-    setup_logging()  # Start logging zo snel mogelijk
-    logging.info("=" * 50)
-    logging.info("--- Start Data Pipeline Run (ZIP Processing) ---")
-    logging.info(f"Bronmap: {SOURCE_DIR}")
-    logging.info(f"Stagingmap: {STAGING_DIR}")
-    logging.info(f"Verplaats verwerkte bestanden: {MOVE_PROCESSED}")
-    if MOVE_PROCESSED and PROCESSED_DIR:
-        logging.info(f"Verwerkt map: {PROCESSED_DIR}")
-    logging.info(f"CKAN URL: {CKAN_URL}")
-    logging.info(f"CKAN Owner Org: {CKAN_OWNER_ORG}")
-    logging.info(f"Upload alleen extensies: {'Alle' if not RELEVANT_EXTENSIONS else ', '.join(RELEVANT_EXTENSIONS)}")
-    logging.info(f"Pak geneste ZIPs uit: {EXTRACT_NESTED_ZIPS}")
-    logging.info("=" * 50)
-
-    start_time = time.time()
-    total_processed_zips = 0
-    total_error_zips = 0
-
-    try:
-        # 1. Detecteer nieuwe input ZIP bestanden
-        zip_files_to_process = detect_new_files(SOURCE_DIR)
-
-        if not zip_files_to_process:
-            logging.info("Geen nieuwe ZIP-bestanden gevonden om te verwerken.")
-        else:
-            logging.info(f"Start verwerking van {len(zip_files_to_process)} ZIP bestand(en)...")
-
-        # Verwerk elk gevonden ZIP bestand
-        for i, source_zip_path in enumerate(zip_files_to_process, 1):
-            zip_start_time = time.time()
-            original_zip_name = source_zip_path.name
-            logging.info(f"--- [{i}/{len(zip_files_to_process)}] Start verwerking ZIP: '{original_zip_name}' ---")
-
-            staged_zip_path = None
-            extract_subdir = None
-            zip_processed_successfully = False  # Flag om te bepalen of verplaatsen mag
-
+    def cleanup_staging(self):
+        logger.info(f"[{self.original_name}] Opruimen staging area...")
+        if self.staged_zip_path and self.staged_zip_path.exists():
             try:
-                # 2. Kopieer input ZIP naar Staging
-                staged_zip_path = copy_to_staging(source_zip_path, STAGING_DIR)
+                self.staged_zip_path.unlink()
+                logger.debug(f"[{self.original_name}] Gestaged ZIP '{self.staged_zip_path.name}' verwijderd.")
+            except OSError as e:
+                logger.warning(f"[{self.original_name}] Kon gestaged ZIP '{self.staged_zip_path.name}' niet verwijderen: {e}")
+        else:
+             logger.debug(f"[{self.original_name}] Geen gestaged ZIP gevonden om te verwijderen.")
+        self._safe_remove_dir(self.extract_subdir)
 
-                # 3. Pak ZIP uit in Staging
-                extract_subdir, relevant_files_to_upload = extract_zip_in_staging(staged_zip_path, STAGING_DIR)
+    def _safe_remove_dir(self, dir_to_remove: Optional[Path]):
+         if dir_to_remove and dir_to_remove.exists() and dir_to_remove.is_dir():
+            if self.config.staging_dir in dir_to_remove.parents:
+                try:
+                    shutil.rmtree(dir_to_remove)
+                    logger.debug(f"[{self.original_name}] Extractie map '{dir_to_remove.name}' verwijderd.")
+                except OSError as e:
+                    logger.warning(f"[{self.original_name}] Kon extractie map '{dir_to_remove.name}' niet verwijderen: {e}")
+            else:
+                logger.error(f"[{self.original_name}] WEIGEREN te verwijderen: Map '{dir_to_remove}' valt buiten staging dir '{self.config.staging_dir}'.")
+         elif dir_to_remove:
+              logger.debug(f"[{self.original_name}] Extractie map '{dir_to_remove.name}' niet gevonden of geen map.")
 
-                # 4. Publiceer relevante uitgepakte bestanden naar CKAN
-                publish_extracted_files_to_ckan(
-                    original_zip_name,
-                    extract_subdir,
-                    relevant_files_to_upload,
-                    CKAN_URL,
-                    CKAN_API_KEY,
-                    CKAN_OWNER_ORG
-                )
+    def move_to_processed(self):
+        if not self.config.processed_dir:
+            logger.warning(f"[{self.original_name}] Kan niet naar 'processed' verplaatsen: map niet geconfigureerd.")
+            return
+        logger.info(f"[{self.original_name}] Verplaatsen origineel bestand naar: {self.config.processed_dir}")
+        try:
+            self.config.processed_dir.mkdir(parents=True, exist_ok=True)
+            dest_path = self.config.processed_dir / self.original_name
+            counter = 1
+            original_dest_path = dest_path
+            while dest_path.exists():
+                 timestamp = int(time.time())
+                 dest_path = self.config.processed_dir / f"{self.source_path.stem}_{timestamp}_{counter}{self.source_path.suffix}"
+                 counter += 1
+            if dest_path != original_dest_path:
+                 logger.warning(f"[{self.original_name}] Bestond al in processed dir. Hernoemd naar '{dest_path.name}'.")
+            shutil.move(str(self.source_path), str(dest_path))
+            logger.info(f"[{self.original_name}] Origineel bestand succesvol verplaatst naar '{dest_path}'.")
+        except Exception as e:
+            logger.error(f"[{self.original_name}] Fout bij verplaatsen naar processed dir: {e}. Bestand blijft in '{self.config.source_dir}'.")
 
-                # Als we hier komen zonder exceptions, is deze ZIP succesvol verwerkt
-                zip_processed_successfully = True
-                total_processed_zips += 1
-                logging.info(f"Input ZIP '{original_zip_name}' succesvol verwerkt.")
 
+# --- Pipeline Klasse (Aangepast) ---
+class Pipeline:
+    """Orkestreert het volledige data pipeline proces."""
 
-            except (FileNotFoundError, IOError, ValueError, ConnectionError, zipfile.BadZipFile, Exception) as e:
-                total_error_zips += 1
-                # Log de fout specifiek voor deze ZIP
-                logging.error(f"Pipeline FOUT voor input ZIP '{original_zip_name}': {e}", exc_info=False)
-                # De volledige traceback wordt al gelogd binnen de falende functie (als debug) of hier als nodig
-                logging.debug(f"Traceback voor fout bij '{original_zip_name}':", exc_info=True)
-                # Ga door met het volgende ZIP bestand
+    def __init__(self, config: ConfigLoader):
+        self.config = config
+        # Initialiseer CkanHandler zonder default org
+        self.ckan_handler = CkanHandler(config.ckan_url, config.ckan_api_key)
+        self.total_processed_zips = 0
+        self.total_error_zips = 0
+        logger.info("Pipeline geïnitialiseerd.")
+        logger.info(f"Automatisch organisaties aanmaken: {self.config.create_organizations}")
 
-            finally:
-                # 5. Ruim staging area op (altijd proberen, ongeacht succes/falen)
-                cleanup_staging(staged_zip_path, extract_subdir)
+    def _detect_input_files(self) -> List[Path]:
+        # ... (Onveranderd) ...
+        logger.info(f"Zoeken naar input ZIPs in: {self.config.source_dir}")
+        if not self.config.source_dir.is_dir():
+             logger.error(f"Bronmap {self.config.source_dir} niet gevonden!")
+             return []
+        try:
+            files = [f for f in self.config.source_dir.iterdir() if f.is_file() and f.suffix.lower() == '.zip']
+            logger.info(f"{len(files)} input ZIP(s) gevonden.")
+            return files
+        except Exception as e:
+             logger.error(f"Fout bij lezen van bronmap {self.config.source_dir}: {e}")
+             return []
 
-                # 6. (Optioneel) Verplaats origineel input ZIP bestand na succes
-                # Alleen verplaatsen als geconfigureerd EN deze specifieke zip succesvol was
-                if MOVE_PROCESSED and PROCESSED_DIR and zip_processed_successfully:
-                    move_to_processed(source_zip_path, PROCESSED_DIR)
-                elif MOVE_PROCESSED and not zip_processed_successfully:
-                    logging.warning(
-                        f"Origineel bestand '{original_zip_name}' wordt NIET verplaatst naar processed dir vanwege fouten tijdens verwerking.")
+    def _process_single_zip(self, zip_path: Path, index: int, total_files: int):
+        # ... (Logica voor staging, extract, cleanup, move blijft hetzelfde) ...
+        zip_processor = ZipProcessor(zip_path, self.config)
+        zip_start_time = time.time()
+        logger.info(f"--- [{index}/{total_files}] Start verwerking ZIP: '{zip_processor.original_name}' ---")
+        zip_processed_successfully = False
+
+        try:
+            zip_processor.stage()
+            extract_subdir, files_to_upload = zip_processor.extract()
+
+            # Aanroep naar aangepaste _publish_to_ckan
+            self._publish_to_ckan(
+                zip_processor.original_name,
+                extract_subdir,
+                files_to_upload
+            )
+
+            zip_processed_successfully = True
+            self.total_processed_zips += 1
+            logger.info(f"[{zip_processor.original_name}] Succesvol verwerkt.")
+
+        except (FileNotFoundError, IOError, ValueError, ConnectionError, PermissionError, Exception) as e:
+            self.total_error_zips += 1
+            logger.error(f"[{zip_processor.original_name}] FOUT tijdens verwerking: {e}", exc_info=False)
+            logger.debug(f"[{zip_processor.original_name}] Traceback:", exc_info=True)
+
+        finally:
+            zip_processor.cleanup_staging()
+            if self.config.move_processed and zip_processor.config.processed_dir:
+                 if zip_processed_successfully:
+                      zip_processor.move_to_processed()
+                 else:
+                      logger.warning(f"[{zip_processor.original_name}] Wordt NIET verplaatst naar processed dir vanwege fouten.")
 
             zip_duration = time.time() - zip_start_time
-            logging.info(
-                f"--- [{i}/{len(zip_files_to_process)}] Einde verwerking ZIP: '{original_zip_name}'. Duur: {zip_duration:.2f} sec. ---")
+            status = "VOLTOOID" if zip_processed_successfully else "MISLUKT"
+            logger.info(f"--- [{index}/{total_files}] Einde verwerking ZIP: '{zip_processor.original_name}'. Status: {status}. Duur: {zip_duration:.2f} sec. ---")
 
 
-    except FileNotFoundError as e:
-        # Fout bij het vinden van de source dir is kritiek
-        logging.critical(f"Kritieke fout bij toegang tot bronmap: {e}. Pipeline stopt.", exc_info=True)
-        total_error_zips += 1
-    except Exception as e:
-        # Vang andere onverwachte kritieke fouten in de hoofdloop
-        logging.critical(f"Onverwachte kritieke fout in pipeline hoofdloop: {e}", exc_info=True)
-        total_error_zips += 1
+    # *** AANGEPASTE _publish_to_ckan METHODE ***
+    def _publish_to_ckan(self, original_zip_name: str, extract_subdir: Path, files_to_upload: List[Path]):
+        """Bepaalt organisatie, checkt/maakt aan, en publiceert bestanden."""
+        logger.info(f"[{original_zip_name}] Start CKAN publicatie...")
 
-    finally:
-        # Log samenvatting van de totale run
-        end_time = time.time()
-        total_duration = end_time - start_time
-        logging.info("=" * 50)
-        logging.info("--- Einde Data Pipeline Run (ZIP Processing) ---")
-        logging.info(
-            f"Totaal aantal ZIPs gevonden: {len(zip_files_to_process) if 'zip_files_to_process' in locals() else 0}")
-        logging.info(f"Totaal succesvol verwerkte ZIPs: {total_processed_zips}")
-        logging.info(f"Totaal aantal ZIPs met fouten: {total_error_zips}")
-        logging.info(f"Totale duur van de run: {total_duration:.2f} seconden.")
-        logging.info("=" * 50)
+        if not files_to_upload:
+             logger.warning(f"[{original_zip_name}] Geen bestanden om naar CKAN te publiceren.")
+             return
+
+        # Stap 1: Leid organisatie en dataset namen af van ZIP naam
+        base_name = Path(original_zip_name).stem
+        # ID's: lowercase, alphanumeric/hyphen
+        target_org_id = ''.join(c if c.isalnum() else '-' for c in base_name).lower().strip('-')
+        dataset_id = target_org_id # Vaak is de dataset gerelateerd aan de 'organisatie' van de data
+        # Titels: leesbaarder
+        target_org_title = base_name.replace('_', ' ').replace('-', ' ').title()
+        dataset_title = target_org_title # Titel ook hetzelfde voor nu
+
+        # Voorkom lege ID's
+        if not target_org_id:
+             timestamp_id = f"org-or-dataset-{int(time.time())}"
+             logger.warning(f"[{original_zip_name}] Kon geen geldige org/dataset ID afleiden, gebruik: '{timestamp_id}'")
+             target_org_id = timestamp_id
+             dataset_id = timestamp_id
+             if not target_org_title: target_org_title = f"Organisatie {timestamp_id}"
+             if not dataset_title: dataset_title = f"Dataset {timestamp_id}"
 
 
-# Zorgt dat main() alleen draait als het script direct wordt uitgevoerd
+        logger.info(f"[{original_zip_name}] Doel Organisatie ID: '{target_org_id}', Titel: '{target_org_title}'")
+        logger.info(f"[{original_zip_name}] Doel Dataset ID: '{dataset_id}', Titel: '{dataset_title}'")
+
+        organization = None
+        owner_org_id = None # ID van de gevonden of aangemaakte organisatie
+
+        try:
+            # Stap 2: Zoek of maak de organisatie aan
+            try:
+                # Probeer organisatie te vinden
+                organization = self.ckan_handler.check_organization_exists(target_org_id)
+                owner_org_id = organization['id']
+            except FileNotFoundError:
+                # Organisatie niet gevonden, probeer aan te maken indien geconfigureerd
+                logger.info(f"[{original_zip_name}] Organisatie '{target_org_id}' niet gevonden.")
+                if self.config.create_organizations:
+                    logger.warning(f"[{original_zip_name}] Poging tot automatisch aanmaken organisatie '{target_org_id}' (vereist sysadmin)...")
+                    try:
+                        organization = self.ckan_handler.create_organization(target_org_id, target_org_title)
+                        owner_org_id = organization['id']
+                    except PermissionError as pe:
+                        # Specifiek falen door gebrek aan sysadmin rechten
+                        logger.error(f"[{original_zip_name}] Kan organisatie '{target_org_id}' niet aanmaken: {pe}")
+                        raise # Gooi opnieuw op om deze ZIP te stoppen
+                    except (ValueError, ConnectionError) as ce:
+                         # Andere fouten bij aanmaken (validatie, connectie)
+                         logger.error(f"[{original_zip_name}] Kan organisatie '{target_org_id}' niet aanmaken: {ce}")
+                         raise # Gooi opnieuw op om deze ZIP te stoppen
+                else:
+                    # Niet gevonden en automatisch aanmaken staat uit
+                    logger.error(f"[{original_zip_name}] Organisatie '{target_org_id}' niet gevonden en 'create_organizations' staat uit. Kan niet doorgaan.")
+                    raise FileNotFoundError(f"Doel organisatie '{target_org_id}' niet gevonden en aanmaken is uitgeschakeld.")
+            except PermissionError as e:
+                 # Geen toegang tot bestaande organisatie
+                 logger.error(f"[{original_zip_name}] Geen toegang tot bestaande organisatie '{target_org_id}': {e}")
+                 raise # Gooi opnieuw op
+            except ConnectionError as e:
+                 # Andere fout bij checken
+                 logger.error(f"[{original_zip_name}] Fout bij controleren organisatie '{target_org_id}': {e}")
+                 raise # Gooi opnieuw op
+
+            # Als we hier zijn, hebben we een geldige owner_org_id
+            if not owner_org_id:
+                 # Veiligheidscheck, zou niet mogen gebeuren
+                 raise ValueError(f"[{original_zip_name}] Kon geen geldige organisatie ID bepalen voor '{target_org_id}'.")
+
+            logger.info(f"[{original_zip_name}] Gebruiken Organisatie ID: '{owner_org_id}'")
+
+            # Stap 3: Get or Create Dataset binnen de gevonden/gemaakte organisatie
+            package = self.ckan_handler.get_or_create_dataset(dataset_id, dataset_title, owner_org_id, original_zip_name)
+            package_id = package['id']
+
+            # Stap 4: Get Existing Resources
+            existing_resources = self.ckan_handler.get_existing_resources(package_id)
+
+            # Stap 5: Upload/Update Resources
+            successful_resource_uploads = 0
+            failed_resource_uploads = 0
+            for file_path in files_to_upload:
+                # ... (logica voor resource upload blijft hetzelfde) ...
+                resource_name = file_path.name
+                relative_path = file_path.relative_to(extract_subdir)
+                description = f"Bestand '{relative_path}' uit {original_zip_name}, verwerkt op {time.strftime('%Y-%m-%d %H:%M:%S')}"
+                format = file_path.suffix.lstrip('.').upper() if file_path.suffix else 'Unknown'
+                existing_resource_id = existing_resources.get(resource_name)
+
+                try:
+                    self.ckan_handler.upload_resource(
+                        package_id, file_path, resource_name, description, format, existing_resource_id
+                    )
+                    successful_resource_uploads += 1
+                except Exception as resource_error:
+                    logger.error(f"[{original_zip_name}] Kon resource '{resource_name}' niet verwerken: {resource_error}")
+                    failed_resource_uploads += 1
+
+            logger.info(f"[{original_zip_name}] CKAN resource verwerking voltooid. Succes: {successful_resource_uploads}, Fouten: {failed_resource_uploads}.")
+            if failed_resource_uploads > 0:
+                raise ConnectionError(f"{failed_resource_uploads} resource(s) mislukt voor ZIP '{original_zip_name}'.")
+
+        except (FileNotFoundError, ValueError, PermissionError, ConnectionError) as e:
+             logger.error(f"[{original_zip_name}] Fout bij CKAN organisatie/dataset niveau: {e}")
+             raise # Gooi opnieuw op zodat _process_single_zip faalt
+        except Exception as e:
+             logger.error(f"[{original_zip_name}] Onverwachte fout tijdens CKAN publicatie: {e}")
+             raise
+
+
+    def run(self):
+        # ... (Deze methode blijft hetzelfde als in de vorige OOP versie) ...
+        run_start_time = time.time()
+        logger.info("="*50)
+        logger.info("--- Start Data Pipeline Run (OOP Version) ---")
+        logger.info(f"Configuratie geladen van: {self.config.config_path}")
+        logger.info(f"Bron: '{self.config.source_dir}', Staging: '{self.config.staging_dir}'")
+        logger.info(f"CKAN: '{self.config.ckan_url}'")
+        # Log de nieuwe behaviour flag
+        logger.info(f"Organisaties automatisch aanmaken: {self.config.create_organizations} (Vereist sysadmin!)")
+        logger.info(f"Verplaats verwerkt: {self.config.move_processed}")
+        logger.info("="*50)
+
+        self.total_processed_zips = 0
+        self.total_error_zips = 0
+        input_files = []
+
+        try:
+            input_files = self._detect_input_files()
+
+            if not input_files:
+                logger.info("Geen input bestanden gevonden om te verwerken.")
+            else:
+                 logger.info(f"Start verwerking van {len(input_files)} ZIP bestand(en)...")
+                 for i, file_path in enumerate(input_files, 1):
+                      self._process_single_zip(file_path, i, len(input_files))
+
+        except Exception as e:
+            logger.critical(f"Onverwachte kritieke fout in pipeline run: {e}", exc_info=True)
+            self.total_error_zips = len(input_files) - self.total_processed_zips
+
+        finally:
+            run_end_time = time.time()
+            run_duration = run_end_time - run_start_time
+            logger.info("="*50)
+            logger.info("--- Einde Data Pipeline Run ---")
+            logger.info(f"Totaal aantal ZIPs gevonden: {len(input_files)}")
+            logger.info(f"Totaal succesvol verwerkte ZIPs: {self.total_processed_zips}")
+            logger.info(f"Totaal aantal ZIPs met fouten: {self.total_error_zips}")
+            logger.info(f"Totale duur van de run: {run_duration:.2f} seconden.")
+            logger.info("="*50)
+
+
+# --- Hoofd Execution Block (Onveranderd) ---
 if __name__ == "__main__":
-    main()
+    CONFIG_FILE = Path(__file__).parent / 'config.ini'
+    temp_log_path = Path(__file__).parent / 'logs' / 'pipeline_init.log'
+    try:
+        temp_log_path.parent.mkdir(parents=True, exist_ok=True)
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[logging.FileHandler(temp_log_path), logging.StreamHandler(sys.stdout)])
+    except Exception as log_init_e:
+         print(f"FATAL: Kon initiële logging niet starten: {log_init_e}")
+         sys.exit(1)
+
+    try:
+        config = ConfigLoader(CONFIG_FILE)
+        setup_logging(config.log_file) # Herconfigureer met juiste pad
+        pipeline = Pipeline(config)
+        pipeline.run()
+    except FileNotFoundError as e:
+        logger.critical(f"Kritieke fout: {e}. Pipeline stopt.")
+        sys.exit(1)
+    except (ValueError, ConnectionError, PermissionError) as e:
+        logger.critical(f"Kritieke initialisatiefout: {e}. Pipeline stopt.", exc_info=True)
+        sys.exit(1)
+    except Exception as e:
+        logger.critical(f"Onverwachte kritieke fout in hoofduitvoering: {e}", exc_info=True)
+        sys.exit(1)
+
+    logger.info("Script uitvoering voltooid.")
