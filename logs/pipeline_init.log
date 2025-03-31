@@ -54,3 +54,492 @@
 2025-03-31 14:15:18,837 - INFO - Totale duur van de run: 3.26 seconden.
 2025-03-31 14:15:18,837 - INFO - ==================================================
 2025-03-31 14:15:18,837 - INFO - Script uitvoering voltooid.
+2025-03-31 14:23:21,906 - WARNING - ==============================
+2025-03-31 14:23:21,906 - WARNING - WAARSCHUWING: Hardcodeer API keys NOOIT in scripts.
+2025-03-31 14:23:21,906 - WARNING - WAARSCHUWING: 'create_organizations' staat op True. Vereist normaal sysadmin, check ckan.ini!
+2025-03-31 14:23:21,906 - WARNING - ==============================
+2025-03-31 14:23:21,907 - INFO - Logging geïnitialiseerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:23:22,251 - ERROR - Netwerk/Request fout tijdens connectie test naar https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:23:22,252 - CRITICAL - CKAN Handler initialisatie mislukt: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:23:22,252 - CRITICAL - Kritieke pipeline initialisatie/uitvoeringsfout: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read.
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 142, in _test_connection
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 680, in <module>
+    pipeline = Pipeline(config)
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 452, in __init__
+    self.ckan_handler = CkanHandler(config.ckan_url, config.ckan_api_key)
+                        ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 130, in __init__
+    self._test_connection()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 149, in _test_connection
+    raise ConnectionError(f"CKAN connectie test mislukt (netwerk): {e}") from e
+ConnectionError: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:24:08,269 - WARNING - ==============================
+2025-03-31 14:24:08,269 - WARNING - WAARSCHUWING: Hardcodeer API keys NOOIT in scripts.
+2025-03-31 14:24:08,270 - WARNING - WAARSCHUWING: 'create_organizations' staat op True. Vereist normaal sysadmin, check ckan.ini!
+2025-03-31 14:24:08,270 - WARNING - ==============================
+2025-03-31 14:24:08,270 - INFO - Logging geïnitialiseerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:24:08,476 - ERROR - Netwerk/Request fout tijdens connectie test naar https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read: Expecting value: line 1 column 1 (char 0)
+2025-03-31 14:24:08,476 - CRITICAL - CKAN Handler initialisatie mislukt: CKAN connectie test mislukt (netwerk): Expecting value: line 1 column 1 (char 0)
+2025-03-31 14:24:08,476 - CRITICAL - Kritieke pipeline initialisatie/uitvoeringsfout: CKAN connectie test mislukt (netwerk): Expecting value: line 1 column 1 (char 0).
+Traceback (most recent call last):
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\requests\models.py", line 974, in json
+    return complexjson.loads(self.text, **kwargs)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\simplejson\__init__.py", line 514, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\simplejson\decoder.py", line 386, in decode
+    obj, end = self.raw_decode(s)
+               ~~~~~~~~~~~~~~~^^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\simplejson\decoder.py", line 416, in raw_decode
+    return self.scan_once(s, idx=_w(s, idx).end())
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+simplejson.errors.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 143, in _test_connection
+    json_response = response.json()
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\requests\models.py", line 978, in json
+    raise RequestsJSONDecodeError(e.msg, e.doc, e.pos)
+requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 680, in <module>
+    pipeline = Pipeline(config)
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 452, in __init__
+    self.ckan_handler = CkanHandler(config.ckan_url, config.ckan_api_key)
+                        ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 130, in __init__
+    self._test_connection()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 149, in _test_connection
+    raise ConnectionError(f"CKAN connectie test mislukt (netwerk): {e}") from e
+ConnectionError: CKAN connectie test mislukt (netwerk): Expecting value: line 1 column 1 (char 0)
+2025-03-31 14:24:25,083 - WARNING - ==============================
+2025-03-31 14:24:25,083 - WARNING - WAARSCHUWING: Hardcodeer API keys NOOIT in scripts.
+2025-03-31 14:24:25,083 - WARNING - WAARSCHUWING: 'create_organizations' staat op True. Vereist normaal sysadmin, check ckan.ini!
+2025-03-31 14:24:25,083 - WARNING - ==============================
+2025-03-31 14:24:25,084 - INFO - Logging geïnitialiseerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:24:27,264 - ERROR - Netwerk/Request fout tijdens connectie test naar https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:24:27,264 - CRITICAL - CKAN Handler initialisatie mislukt: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:24:27,264 - CRITICAL - Kritieke pipeline initialisatie/uitvoeringsfout: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read.
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 142, in _test_connection
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 680, in <module>
+    pipeline = Pipeline(config)
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 452, in __init__
+    self.ckan_handler = CkanHandler(config.ckan_url, config.ckan_api_key)
+                        ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 130, in __init__
+    self._test_connection()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 149, in _test_connection
+    raise ConnectionError(f"CKAN connectie test mislukt (netwerk): {e}") from e
+ConnectionError: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:24:47,289 - WARNING - ==============================
+2025-03-31 14:24:47,289 - WARNING - WAARSCHUWING: Hardcodeer API keys NOOIT in scripts.
+2025-03-31 14:24:47,289 - WARNING - WAARSCHUWING: 'create_organizations' staat op True. Vereist normaal sysadmin, check ckan.ini!
+2025-03-31 14:24:47,289 - WARNING - ==============================
+2025-03-31 14:24:47,290 - INFO - Logging geïnitialiseerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:24:47,651 - ERROR - Netwerk/Request fout tijdens connectie test naar https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:24:47,651 - CRITICAL - CKAN Handler initialisatie mislukt: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:24:47,651 - CRITICAL - Kritieke pipeline initialisatie/uitvoeringsfout: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read.
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 142, in _test_connection
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 680, in <module>
+    pipeline = Pipeline(config)
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 452, in __init__
+    self.ckan_handler = CkanHandler(config.ckan_url, config.ckan_api_key)
+                        ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 130, in __init__
+    self._test_connection()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 149, in _test_connection
+    raise ConnectionError(f"CKAN connectie test mislukt (netwerk): {e}") from e
+ConnectionError: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:24:54,108 - WARNING - ==============================
+2025-03-31 14:24:54,108 - WARNING - WAARSCHUWING: Hardcodeer API keys NOOIT in scripts voor productie of versiebeheer.
+2025-03-31 14:24:54,108 - WARNING - Gebruik environment variables of een secrets manager.
+2025-03-31 14:24:54,108 - WARNING - WAARSCHUWING: 'create_organizations' staat op True. Dit vereist sysadmin rechten voor de API key!
+2025-03-31 14:24:54,108 - WARNING - ==============================
+2025-03-31 14:24:54,109 - INFO - Logging geïnitialiseerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:24:54,109 - INFO - CKAN Handler geïnitialiseerd voor URL: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev
+2025-03-31 14:24:54,109 - INFO - Pipeline geïnitialiseerd.
+2025-03-31 14:24:54,109 - INFO - Automatisch organisaties aanmaken: True
+2025-03-31 14:24:54,109 - INFO - ==================================================
+2025-03-31 14:24:54,109 - INFO - --- Start Data Pipeline Run (OOP Version) ---
+2025-03-31 14:24:54,109 - INFO - Configuratie geladen van: C:\Users\gurelb\Documents\GitHub\MetaData\config.ini
+2025-03-31 14:24:54,109 - INFO - Bron: 'C:\Users\gurelb\Downloads\datawarehouse', Staging: 'C:\Users\gurelb\Downloads\staging'
+2025-03-31 14:24:54,109 - INFO - CKAN: 'https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev'
+2025-03-31 14:24:54,109 - INFO - Organisaties automatisch aanmaken: True (Vereist sysadmin!)
+2025-03-31 14:24:54,109 - INFO - Verplaats verwerkt: False
+2025-03-31 14:24:54,110 - INFO - ==================================================
+2025-03-31 14:24:54,110 - INFO - Zoeken naar input ZIPs in: C:\Users\gurelb\Downloads\datawarehouse
+2025-03-31 14:24:54,110 - INFO - 1 input ZIP(s) gevonden.
+2025-03-31 14:24:54,110 - INFO - Start verwerking van 1 ZIP bestand(en)...
+2025-03-31 14:24:54,110 - INFO - --- [1/1] Start verwerking ZIP: 'Veg kartering - habitatkaart 2021-2023.zip' ---
+2025-03-31 14:24:54,110 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Kopiëren naar staging...
+2025-03-31 14:24:54,128 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Gekopieerd naar 'Veg kartering - habitatkaart 2021-2023_1743423894.zip'
+2025-03-31 14:24:54,128 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Start uitpakken naar 'extracted_Veg kartering - habitatkaart 2021-2023_1743423894'
+2025-03-31 14:24:54,415 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Uitpakken voltooid. 3 bestanden gevonden.
+2025-03-31 14:24:54,416 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Alle 3 uitgepakte bestanden worden meegenomen (geen filter).
+2025-03-31 14:24:54,416 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Start CKAN publicatie...
+2025-03-31 14:24:54,416 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Doel Organisatie ID (met prefix): 'org-veg-kartering---habitatkaart-2021-2023', Titel: 'Veg Kartering   Habitatkaart 2021 2023'
+2025-03-31 14:24:54,416 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Doel Dataset ID: 'veg-kartering---habitatkaart-2021-2023', Titel: 'Veg Kartering   Habitatkaart 2021 2023'
+2025-03-31 14:24:54,822 - ERROR - Permissiefout: Geen toegang tot organisatie 'org-veg-kartering---habitatkaart-2021-2023'. API key rechten? Fout: {'__type': 'Authorization Error', 'message': 'Access denied: User bayram2 not authorized to read group f9d5bad1-eff1-4be4-856d-ebf010b1631e'}
+2025-03-31 14:24:54,822 - WARNING - [Veg kartering - habitatkaart 2021-2023.zip] Kon organisatie 'org-veg-kartering---habitatkaart-2021-2023' niet lezen (permissiefout: Geen toegang tot organisatie 'org-veg-kartering---habitatkaart-2021-2023'.).
+2025-03-31 14:24:54,822 - WARNING - [Veg kartering - habitatkaart 2021-2023.zip] 'create_organizations' staat aan, poging tot aanmaken organisatie 'org-veg-kartering---habitatkaart-2021-2023' desondanks...
+2025-03-31 14:24:54,822 - INFO - Poging tot aanmaken nieuwe organisatie ID='org-veg-kartering---habitatkaart-2021-2023', Titel='Veg Kartering   Habitatkaart 2021 2023'...
+2025-03-31 14:24:54,932 - ERROR - CKAN Validatiefout bij aanmaken organisatie 'org-veg-kartering---habitatkaart-2021-2023': {'name': ['Group name already exists in database'], '__type': 'Validation Error'}
+2025-03-31 14:24:54,932 - ERROR - [Veg kartering - habitatkaart 2021-2023.zip] Fout bij CKAN organisatie/dataset niveau: Organisatie validatiefout: {'name': ['Group name already exists in database'], '__type': 'Validation Error'}
+2025-03-31 14:24:54,932 - ERROR - [Veg kartering - habitatkaart 2021-2023.zip] FOUT tijdens verwerking: Organisatie validatiefout: {'name': ['Group name already exists in database'], '__type': 'Validation Error'}
+2025-03-31 14:24:54,932 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Opruimen staging area...
+2025-03-31 14:24:55,349 - INFO - --- [1/1] Einde verwerking ZIP: 'Veg kartering - habitatkaart 2021-2023.zip'. Status: MISLUKT. Duur: 1.24 sec. ---
+2025-03-31 14:24:55,349 - INFO - ==================================================
+2025-03-31 14:24:55,349 - INFO - --- Einde Data Pipeline Run ---
+2025-03-31 14:24:55,350 - INFO - Totaal aantal ZIPs gevonden: 1
+2025-03-31 14:24:55,350 - INFO - Totaal succesvol verwerkte ZIPs: 0
+2025-03-31 14:24:55,350 - INFO - Totaal aantal ZIPs met fouten: 1
+2025-03-31 14:24:55,350 - INFO - Totale duur van de run: 1.24 seconden.
+2025-03-31 14:24:55,350 - INFO - ==================================================
+2025-03-31 14:24:55,350 - INFO - Script uitvoering voltooid.
+2025-03-31 14:25:08,629 - WARNING - ==============================
+2025-03-31 14:25:08,629 - WARNING - WAARSCHUWING: Hardcodeer API keys NOOIT in scripts.
+2025-03-31 14:25:08,629 - WARNING - WAARSCHUWING: 'create_organizations' staat op True. Vereist normaal sysadmin, check ckan.ini!
+2025-03-31 14:25:08,629 - WARNING - ==============================
+2025-03-31 14:25:08,629 - INFO - Logging geïnitialiseerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:25:08,797 - ERROR - Netwerk/Request fout tijdens connectie test naar https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:25:08,797 - CRITICAL - CKAN Handler initialisatie mislukt: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:25:08,797 - CRITICAL - Kritieke pipeline initialisatie/uitvoeringsfout: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read.
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 142, in _test_connection
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 680, in <module>
+    pipeline = Pipeline(config)
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 452, in __init__
+    self.ckan_handler = CkanHandler(config.ckan_url, config.ckan_api_key)
+                        ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 130, in __init__
+    self._test_connection()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 149, in _test_connection
+    raise ConnectionError(f"CKAN connectie test mislukt (netwerk): {e}") from e
+ConnectionError: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:25:13,077 - WARNING - ==============================
+2025-03-31 14:25:13,077 - WARNING - WAARSCHUWING: Hardcodeer API keys NOOIT in scripts.
+2025-03-31 14:25:13,077 - WARNING - WAARSCHUWING: 'create_organizations' staat op True. Vereist normaal sysadmin, check ckan.ini!
+2025-03-31 14:25:13,077 - WARNING - ==============================
+2025-03-31 14:25:13,078 - INFO - Logging geïnitialiseerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:25:13,669 - ERROR - Netwerk/Request fout tijdens connectie test naar https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:25:13,669 - CRITICAL - CKAN Handler initialisatie mislukt: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:25:13,669 - CRITICAL - Kritieke pipeline initialisatie/uitvoeringsfout: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read.
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 142, in _test_connection
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 680, in <module>
+    pipeline = Pipeline(config)
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 452, in __init__
+    self.ckan_handler = CkanHandler(config.ckan_url, config.ckan_api_key)
+                        ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 130, in __init__
+    self._test_connection()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 149, in _test_connection
+    raise ConnectionError(f"CKAN connectie test mislukt (netwerk): {e}") from e
+ConnectionError: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:28:42,016 - WARNING - ==============================
+2025-03-31 14:28:42,016 - WARNING - WAARSCHUWING: Hardcodeer API keys NOOIT in scripts voor productie of versiebeheer.
+2025-03-31 14:28:42,016 - WARNING - Gebruik environment variables of een secrets manager.
+2025-03-31 14:28:42,016 - WARNING - WAARSCHUWING: 'create_organizations' staat op True. Dit vereist sysadmin rechten voor de API key!
+2025-03-31 14:28:42,016 - WARNING - ==============================
+2025-03-31 14:28:42,017 - INFO - Logging geïnitialiseerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:28:42,017 - INFO - CKAN Handler geïnitialiseerd voor URL: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev
+2025-03-31 14:28:42,017 - INFO - Pipeline geïnitialiseerd.
+2025-03-31 14:28:42,017 - INFO - Automatisch organisaties aanmaken: True
+2025-03-31 14:28:42,017 - INFO - ==================================================
+2025-03-31 14:28:42,017 - INFO - --- Start Data Pipeline Run (OOP Version) ---
+2025-03-31 14:28:42,017 - INFO - Configuratie geladen van: C:\Users\gurelb\Documents\GitHub\MetaData\config.ini
+2025-03-31 14:28:42,017 - INFO - Bron: 'C:\Users\gurelb\Downloads\datawarehouse', Staging: 'C:\Users\gurelb\Downloads\staging'
+2025-03-31 14:28:42,017 - INFO - CKAN: 'https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev'
+2025-03-31 14:28:42,017 - INFO - Organisaties automatisch aanmaken: True (Vereist sysadmin!)
+2025-03-31 14:28:42,017 - INFO - Verplaats verwerkt: False
+2025-03-31 14:28:42,017 - INFO - ==================================================
+2025-03-31 14:28:42,017 - INFO - Zoeken naar input ZIPs in: C:\Users\gurelb\Downloads\datawarehouse
+2025-03-31 14:28:42,018 - INFO - 1 input ZIP(s) gevonden.
+2025-03-31 14:28:42,018 - INFO - Start verwerking van 1 ZIP bestand(en)...
+2025-03-31 14:28:42,018 - INFO - --- [1/1] Start verwerking ZIP: 'Veg kartering - habitatkaart 2021-2023.zip' ---
+2025-03-31 14:28:42,018 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Kopiëren naar staging...
+2025-03-31 14:28:42,034 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Gekopieerd naar 'Veg kartering - habitatkaart 2021-2023_1743424122.zip'
+2025-03-31 14:28:42,034 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Start uitpakken naar 'extracted_Veg kartering - habitatkaart 2021-2023_1743424122'
+2025-03-31 14:28:42,324 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Uitpakken voltooid. 3 bestanden gevonden.
+2025-03-31 14:28:42,324 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Alle 3 uitgepakte bestanden worden meegenomen (geen filter).
+2025-03-31 14:28:42,324 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Start CKAN publicatie...
+2025-03-31 14:28:42,324 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Doel Organisatie ID (met prefix): 'org-veg-kartering---habitatkaart-2021-2023', Titel: 'Veg Kartering   Habitatkaart 2021 2023'
+2025-03-31 14:28:42,325 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Doel Dataset ID: 'veg-kartering---habitatkaart-2021-2023', Titel: 'Veg Kartering   Habitatkaart 2021 2023'
+2025-03-31 14:28:42,716 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Opruimen staging area...
+2025-03-31 14:28:43,323 - INFO - --- [1/1] Einde verwerking ZIP: 'Veg kartering - habitatkaart 2021-2023.zip'. Status: MISLUKT. Duur: 1.30 sec. ---
+2025-03-31 14:28:43,323 - INFO - ==================================================
+2025-03-31 14:28:43,323 - INFO - --- Einde Data Pipeline Run ---
+2025-03-31 14:28:43,323 - INFO - Totaal aantal ZIPs gevonden: 1
+2025-03-31 14:28:43,323 - INFO - Totaal succesvol verwerkte ZIPs: 0
+2025-03-31 14:28:43,323 - INFO - Totaal aantal ZIPs met fouten: 0
+2025-03-31 14:28:43,323 - INFO - Totale duur van de run: 1.31 seconden.
+2025-03-31 14:28:43,323 - INFO - ==================================================
+2025-03-31 14:28:51,259 - WARNING - ==============================
+2025-03-31 14:28:51,259 - WARNING - WAARSCHUWING: Hardcodeer API keys NOOIT in scripts voor productie of versiebeheer.
+2025-03-31 14:28:51,259 - WARNING - Gebruik environment variables of een secrets manager.
+2025-03-31 14:28:51,259 - WARNING - WAARSCHUWING: 'create_organizations' staat op True. Dit vereist sysadmin rechten voor de API key!
+2025-03-31 14:28:51,259 - WARNING - ==============================
+2025-03-31 14:28:51,260 - INFO - Logging geïnitialiseerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:28:51,260 - INFO - CKAN Handler geïnitialiseerd voor URL: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev
+2025-03-31 14:28:51,260 - INFO - Pipeline geïnitialiseerd.
+2025-03-31 14:28:51,260 - INFO - Automatisch organisaties aanmaken: True
+2025-03-31 14:28:51,260 - INFO - ==================================================
+2025-03-31 14:28:51,260 - INFO - --- Start Data Pipeline Run (OOP Version) ---
+2025-03-31 14:28:51,260 - INFO - Configuratie geladen van: C:\Users\gurelb\Documents\GitHub\MetaData\config.ini
+2025-03-31 14:28:51,260 - INFO - Bron: 'C:\Users\gurelb\Downloads\datawarehouse', Staging: 'C:\Users\gurelb\Downloads\staging'
+2025-03-31 14:28:51,260 - INFO - CKAN: 'https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev'
+2025-03-31 14:28:51,260 - INFO - Organisaties automatisch aanmaken: True (Vereist sysadmin!)
+2025-03-31 14:28:51,261 - INFO - Verplaats verwerkt: False
+2025-03-31 14:28:51,261 - INFO - ==================================================
+2025-03-31 14:28:51,261 - INFO - Zoeken naar input ZIPs in: C:\Users\gurelb\Downloads\datawarehouse
+2025-03-31 14:28:51,261 - INFO - 1 input ZIP(s) gevonden.
+2025-03-31 14:28:51,261 - INFO - Start verwerking van 1 ZIP bestand(en)...
+2025-03-31 14:28:51,261 - INFO - --- [1/1] Start verwerking ZIP: 'Veg kartering - habitatkaart 2021-2023.zip' ---
+2025-03-31 14:28:51,261 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Kopiëren naar staging...
+2025-03-31 14:28:51,277 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Gekopieerd naar 'Veg kartering - habitatkaart 2021-2023_1743424131.zip'
+2025-03-31 14:28:51,277 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Start uitpakken naar 'extracted_Veg kartering - habitatkaart 2021-2023_1743424131'
+2025-03-31 14:28:51,582 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Uitpakken voltooid. 3 bestanden gevonden.
+2025-03-31 14:28:51,582 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Alle 3 uitgepakte bestanden worden meegenomen (geen filter).
+2025-03-31 14:28:51,582 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Start CKAN publicatie...
+2025-03-31 14:28:51,582 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Doel Organisatie ID (met prefix): 'org-veg-kartering---habitatkaart-2021-2023', Titel: 'Veg Kartering   Habitatkaart 2021 2023'
+2025-03-31 14:28:51,582 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Doel Dataset ID: 'veg-kartering---habitatkaart-2021-2023', Titel: 'Veg Kartering   Habitatkaart 2021 2023'
+2025-03-31 14:28:51,982 - ERROR - Permissiefout: Geen toegang tot organisatie 'org-veg-kartering---habitatkaart-2021-2023'. API key rechten? Fout: {'__type': 'Authorization Error', 'message': 'Access denied: User bayram2 not authorized to read group f9d5bad1-eff1-4be4-856d-ebf010b1631e'}
+2025-03-31 14:28:51,983 - WARNING - [Veg kartering - habitatkaart 2021-2023.zip] Kon organisatie 'org-veg-kartering---habitatkaart-2021-2023' niet lezen (permissiefout: Geen toegang tot organisatie 'org-veg-kartering---habitatkaart-2021-2023'.).
+2025-03-31 14:28:51,983 - WARNING - [Veg kartering - habitatkaart 2021-2023.zip] 'create_organizations' staat aan, poging tot aanmaken organisatie 'org-veg-kartering---habitatkaart-2021-2023' desondanks...
+2025-03-31 14:28:51,983 - INFO - Poging tot aanmaken nieuwe organisatie ID='org-veg-kartering---habitatkaart-2021-2023', Titel='Veg Kartering   Habitatkaart 2021 2023'...
+2025-03-31 14:28:52,299 - ERROR - CKAN Validatiefout bij aanmaken organisatie 'org-veg-kartering---habitatkaart-2021-2023': {'name': ['Group name already exists in database'], '__type': 'Validation Error'}
+2025-03-31 14:28:52,299 - ERROR - [Veg kartering - habitatkaart 2021-2023.zip] Fout bij CKAN organisatie/dataset niveau: Organisatie validatiefout: {'name': ['Group name already exists in database'], '__type': 'Validation Error'}
+2025-03-31 14:28:52,299 - ERROR - [Veg kartering - habitatkaart 2021-2023.zip] FOUT tijdens verwerking: Organisatie validatiefout: {'name': ['Group name already exists in database'], '__type': 'Validation Error'}
+2025-03-31 14:28:52,300 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Opruimen staging area...
+2025-03-31 14:28:52,686 - INFO - --- [1/1] Einde verwerking ZIP: 'Veg kartering - habitatkaart 2021-2023.zip'. Status: MISLUKT. Duur: 1.42 sec. ---
+2025-03-31 14:28:52,686 - INFO - ==================================================
+2025-03-31 14:28:52,686 - INFO - --- Einde Data Pipeline Run ---
+2025-03-31 14:28:52,687 - INFO - Totaal aantal ZIPs gevonden: 1
+2025-03-31 14:28:52,687 - INFO - Totaal succesvol verwerkte ZIPs: 0
+2025-03-31 14:28:52,687 - INFO - Totaal aantal ZIPs met fouten: 1
+2025-03-31 14:28:52,687 - INFO - Totale duur van de run: 1.43 seconden.
+2025-03-31 14:28:52,687 - INFO - ==================================================
+2025-03-31 14:28:52,687 - INFO - Script uitvoering voltooid.
+2025-03-31 14:40:45,349 - WARNING - ==============================
+2025-03-31 14:40:45,350 - WARNING - WAARSCHUWING: Hardcodeer API keys NOOIT in scripts voor productie of versiebeheer.
+2025-03-31 14:40:45,350 - WARNING - Gebruik environment variables of een secrets manager.
+2025-03-31 14:40:45,350 - WARNING - WAARSCHUWING: 'create_organizations' staat op True. Dit vereist sysadmin rechten voor de API key!
+2025-03-31 14:40:45,350 - WARNING - ==============================
+2025-03-31 14:40:45,350 - INFO - Logging geïnitialiseerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:40:45,351 - INFO - CKAN Handler geïnitialiseerd voor URL: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev
+2025-03-31 14:40:45,351 - INFO - Pipeline geïnitialiseerd.
+2025-03-31 14:40:45,351 - INFO - Automatisch organisaties aanmaken: True
+2025-03-31 14:40:45,351 - INFO - ==================================================
+2025-03-31 14:40:45,351 - INFO - --- Start Data Pipeline Run (OOP Version) ---
+2025-03-31 14:40:45,351 - INFO - Configuratie geladen van: C:\Users\gurelb\Documents\GitHub\MetaData\config.ini
+2025-03-31 14:40:45,351 - INFO - Bron: 'C:\Users\gurelb\Downloads\datawarehouse', Staging: 'C:\Users\gurelb\Downloads\staging'
+2025-03-31 14:40:45,351 - INFO - CKAN: 'https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev'
+2025-03-31 14:40:45,351 - INFO - Organisaties automatisch aanmaken: True (Vereist sysadmin!)
+2025-03-31 14:40:45,351 - INFO - Verplaats verwerkt: False
+2025-03-31 14:40:45,351 - INFO - ==================================================
+2025-03-31 14:40:45,351 - INFO - Zoeken naar input ZIPs in: C:\Users\gurelb\Downloads\datawarehouse
+2025-03-31 14:40:45,352 - INFO - 1 input ZIP(s) gevonden.
+2025-03-31 14:40:45,352 - INFO - Start verwerking van 1 ZIP bestand(en)...
+2025-03-31 14:40:45,352 - INFO - --- [1/1] Start verwerking ZIP: 'Veg kartering - habitatkaart 2021-2023.zip' ---
+2025-03-31 14:40:45,352 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Kopiëren naar staging...
+2025-03-31 14:40:45,385 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Gekopieerd naar 'Veg kartering - habitatkaart 2021-2023_1743424845.zip'
+2025-03-31 14:40:45,386 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Start uitpakken naar 'extracted_Veg kartering - habitatkaart 2021-2023_1743424845'
+2025-03-31 14:40:45,747 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Uitpakken voltooid. 3 bestanden gevonden.
+2025-03-31 14:40:45,747 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Alle 3 uitgepakte bestanden worden meegenomen (geen filter).
+2025-03-31 14:40:45,747 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Start CKAN publicatie...
+2025-03-31 14:40:45,747 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Doel Organisatie ID (met prefix): 'org-veg-kartering---habitatkaart-2021-2023', Titel: 'Veg Kartering   Habitatkaart 2021 2023'
+2025-03-31 14:40:45,747 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Doel Dataset ID: 'veg-kartering---habitatkaart-2021-2023', Titel: 'Veg Kartering   Habitatkaart 2021 2023'
+2025-03-31 14:40:46,164 - ERROR - Permissiefout: Geen toegang tot organisatie 'org-veg-kartering---habitatkaart-2021-2023'. API key rechten? Fout: {'__type': 'Authorization Error', 'message': 'Access denied: User bayram2 not authorized to read group f9d5bad1-eff1-4be4-856d-ebf010b1631e'}
+2025-03-31 14:40:46,164 - WARNING - [Veg kartering - habitatkaart 2021-2023.zip] Kon organisatie 'org-veg-kartering---habitatkaart-2021-2023' niet lezen (permissiefout: Geen toegang tot organisatie 'org-veg-kartering---habitatkaart-2021-2023'.).
+2025-03-31 14:40:46,164 - WARNING - [Veg kartering - habitatkaart 2021-2023.zip] 'create_organizations' staat aan, poging tot aanmaken organisatie 'org-veg-kartering---habitatkaart-2021-2023' desondanks...
+2025-03-31 14:40:46,164 - INFO - Poging tot aanmaken nieuwe organisatie ID='org-veg-kartering---habitatkaart-2021-2023', Titel='Veg Kartering   Habitatkaart 2021 2023'...
+2025-03-31 14:40:46,464 - ERROR - CKAN Validatiefout bij aanmaken organisatie 'org-veg-kartering---habitatkaart-2021-2023': {'name': ['Group name already exists in database'], '__type': 'Validation Error'}
+2025-03-31 14:40:46,464 - ERROR - [Veg kartering - habitatkaart 2021-2023.zip] Fout bij CKAN organisatie/dataset niveau: Organisatie validatiefout: {'name': ['Group name already exists in database'], '__type': 'Validation Error'}
+2025-03-31 14:40:46,464 - ERROR - [Veg kartering - habitatkaart 2021-2023.zip] FOUT tijdens verwerking: Organisatie validatiefout: {'name': ['Group name already exists in database'], '__type': 'Validation Error'}
+2025-03-31 14:40:46,464 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Opruimen staging area...
+2025-03-31 14:40:47,234 - INFO - --- [1/1] Einde verwerking ZIP: 'Veg kartering - habitatkaart 2021-2023.zip'. Status: MISLUKT. Duur: 1.88 sec. ---
+2025-03-31 14:40:47,234 - INFO - ==================================================
+2025-03-31 14:40:47,235 - INFO - --- Einde Data Pipeline Run ---
+2025-03-31 14:40:47,235 - INFO - Totaal aantal ZIPs gevonden: 1
+2025-03-31 14:40:47,235 - INFO - Totaal succesvol verwerkte ZIPs: 0
+2025-03-31 14:40:47,235 - INFO - Totaal aantal ZIPs met fouten: 1
+2025-03-31 14:40:47,235 - INFO - Totale duur van de run: 1.88 seconden.
+2025-03-31 14:40:47,235 - INFO - ==================================================
+2025-03-31 14:40:47,235 - INFO - Script uitvoering voltooid.
+2025-03-31 14:53:17,850 - WARNING - ==============================
+2025-03-31 14:53:17,850 - WARNING - WAARSCHUWING: Hardcodeer API keys NOOIT in scripts voor productie of versiebeheer.
+2025-03-31 14:53:17,851 - WARNING - Gebruik environment variables of een secrets manager.
+2025-03-31 14:53:17,851 - WARNING - WAARSCHUWING: 'create_organizations' staat op True. Dit vereist sysadmin rechten voor de API key!
+2025-03-31 14:53:17,851 - WARNING - ==============================
+2025-03-31 14:53:17,852 - INFO - Logging geïnitialiseerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:53:17,852 - INFO - CKAN Handler geïnitialiseerd voor URL: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev
+2025-03-31 14:53:17,852 - INFO - Pipeline geïnitialiseerd.
+2025-03-31 14:53:17,852 - INFO - Automatisch organisaties aanmaken: True
+2025-03-31 14:53:17,852 - INFO - ==================================================
+2025-03-31 14:53:17,852 - INFO - --- Start Data Pipeline Run (OOP Version) ---
+2025-03-31 14:53:17,853 - INFO - Configuratie geladen van: C:\Users\gurelb\Documents\GitHub\MetaData\config.ini
+2025-03-31 14:53:17,853 - INFO - Bron: 'C:\Users\gurelb\Downloads\datawarehouse', Staging: 'C:\Users\gurelb\Downloads\staging'
+2025-03-31 14:53:17,853 - INFO - CKAN: 'https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev'
+2025-03-31 14:53:17,853 - INFO - Organisaties automatisch aanmaken: True (Vereist sysadmin!)
+2025-03-31 14:53:17,853 - INFO - Verplaats verwerkt: False
+2025-03-31 14:53:17,853 - INFO - ==================================================
+2025-03-31 14:53:17,853 - INFO - Zoeken naar input ZIPs in: C:\Users\gurelb\Downloads\datawarehouse
+2025-03-31 14:53:17,853 - INFO - 1 input ZIP(s) gevonden.
+2025-03-31 14:53:17,854 - INFO - Start verwerking van 1 ZIP bestand(en)...
+2025-03-31 14:53:17,854 - INFO - --- [1/1] Start verwerking ZIP: 'Veg kartering - habitatkaart 2021-2023.zip' ---
+2025-03-31 14:53:17,854 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Kopiëren naar staging...
+2025-03-31 14:53:17,882 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Gekopieerd naar 'Veg kartering - habitatkaart 2021-2023_1743425597.zip'
+2025-03-31 14:53:17,882 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Start uitpakken naar 'extracted_Veg kartering - habitatkaart 2021-2023_1743425597'
+2025-03-31 14:53:18,350 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Uitpakken voltooid. 3 bestanden gevonden.
+2025-03-31 14:53:18,350 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Alle 3 uitgepakte bestanden worden meegenomen (geen filter).
+2025-03-31 14:53:18,350 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Start CKAN publicatie...
+2025-03-31 14:53:18,351 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Doel Organisatie ID (met prefix): 'org-veg-kartering---habitatkaart-2021-2023', Titel: 'Veg Kartering   Habitatkaart 2021 2023'
+2025-03-31 14:53:18,351 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Doel Dataset ID: 'veg-kartering---habitatkaart-2021-2023', Titel: 'Veg Kartering   Habitatkaart 2021 2023'
+2025-03-31 14:53:18,692 - ERROR - Permissiefout: Geen toegang tot organisatie 'org-veg-kartering---habitatkaart-2021-2023'. API key rechten? Fout: {'__type': 'Authorization Error', 'message': 'Access denied: User bayram2 not authorized to read group f9d5bad1-eff1-4be4-856d-ebf010b1631e'}
+2025-03-31 14:53:18,693 - WARNING - [Veg kartering - habitatkaart 2021-2023.zip] Kon organisatie 'org-veg-kartering---habitatkaart-2021-2023' niet lezen (permissiefout: Geen toegang tot organisatie 'org-veg-kartering---habitatkaart-2021-2023'.).
+2025-03-31 14:53:18,693 - WARNING - [Veg kartering - habitatkaart 2021-2023.zip] 'create_organizations' staat aan, poging tot aanmaken organisatie 'org-veg-kartering---habitatkaart-2021-2023' desondanks...
+2025-03-31 14:53:18,693 - INFO - Poging tot aanmaken nieuwe organisatie ID='org-veg-kartering---habitatkaart-2021-2023', Titel='Veg Kartering   Habitatkaart 2021 2023'...
+2025-03-31 14:53:18,820 - ERROR - CKAN Validatiefout bij aanmaken organisatie 'org-veg-kartering---habitatkaart-2021-2023': {'name': ['Group name already exists in database'], '__type': 'Validation Error'}
+2025-03-31 14:53:18,820 - ERROR - [Veg kartering - habitatkaart 2021-2023.zip] Fout bij CKAN organisatie/dataset niveau: Organisatie validatiefout: {'name': ['Group name already exists in database'], '__type': 'Validation Error'}
+2025-03-31 14:53:18,820 - ERROR - [Veg kartering - habitatkaart 2021-2023.zip] FOUT tijdens verwerking: Organisatie validatiefout: {'name': ['Group name already exists in database'], '__type': 'Validation Error'}
+2025-03-31 14:53:18,820 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Opruimen staging area...
+2025-03-31 14:53:19,287 - INFO - --- [1/1] Einde verwerking ZIP: 'Veg kartering - habitatkaart 2021-2023.zip'. Status: MISLUKT. Duur: 1.43 sec. ---
+2025-03-31 14:53:19,288 - INFO - ==================================================
+2025-03-31 14:53:19,288 - INFO - --- Einde Data Pipeline Run ---
+2025-03-31 14:53:19,288 - INFO - Totaal aantal ZIPs gevonden: 1
+2025-03-31 14:53:19,288 - INFO - Totaal succesvol verwerkte ZIPs: 0
+2025-03-31 14:53:19,288 - INFO - Totaal aantal ZIPs met fouten: 1
+2025-03-31 14:53:19,288 - INFO - Totale duur van de run: 1.44 seconden.
+2025-03-31 14:53:19,288 - INFO - ==================================================
+2025-03-31 14:53:19,288 - INFO - Script uitvoering voltooid.
+2025-03-31 14:59:55,968 - WARNING - ==============================
+2025-03-31 14:59:55,968 - WARNING - WAARSCHUWING: Hardcodeer API keys NOOIT in scripts voor productie of versiebeheer.
+2025-03-31 14:59:55,968 - WARNING - Gebruik environment variables of een secrets manager.
+2025-03-31 14:59:55,968 - WARNING - WAARSCHUWING: 'create_organizations' staat op True. Dit vereist sysadmin rechten voor de API key!
+2025-03-31 14:59:55,968 - WARNING - ==============================
+2025-03-31 14:59:55,969 - INFO - Logging geïnitialiseerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:59:55,969 - INFO - CKAN Handler geïnitialiseerd voor URL: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev
+2025-03-31 14:59:55,969 - INFO - Pipeline geïnitialiseerd.
+2025-03-31 14:59:55,969 - INFO - Automatisch organisaties aanmaken: True
+2025-03-31 14:59:55,969 - INFO - ==================================================
+2025-03-31 14:59:55,969 - INFO - --- Start Data Pipeline Run (OOP Version) ---
+2025-03-31 14:59:55,969 - INFO - Configuratie geladen van: C:\Users\gurelb\Documents\GitHub\MetaData\config.ini
+2025-03-31 14:59:55,969 - INFO - Bron: 'C:\Users\gurelb\Downloads\datawarehouse', Staging: 'C:\Users\gurelb\Downloads\staging'
+2025-03-31 14:59:55,969 - INFO - CKAN: 'https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev'
+2025-03-31 14:59:55,969 - INFO - Organisaties automatisch aanmaken: True (Vereist sysadmin!)
+2025-03-31 14:59:55,969 - INFO - Verplaats verwerkt: False
+2025-03-31 14:59:55,969 - INFO - ==================================================
+2025-03-31 14:59:55,969 - INFO - Zoeken naar input ZIPs in: C:\Users\gurelb\Downloads\datawarehouse
+2025-03-31 14:59:55,970 - INFO - 1 input ZIP(s) gevonden.
+2025-03-31 14:59:55,970 - INFO - Start verwerking van 1 ZIP bestand(en)...
+2025-03-31 14:59:55,970 - INFO - --- [1/1] Start verwerking ZIP: 'Veg kartering - habitatkaart 2021-2023.zip' ---
+2025-03-31 14:59:55,970 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Kopiëren naar staging...
+2025-03-31 14:59:55,986 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Gekopieerd naar 'Veg kartering - habitatkaart 2021-2023_1743425995.zip'
+2025-03-31 14:59:55,986 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Start uitpakken naar 'extracted_Veg kartering - habitatkaart 2021-2023_1743425995'
+2025-03-31 14:59:56,298 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Uitpakken voltooid. 3 bestanden gevonden.
+2025-03-31 14:59:56,298 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Alle 3 uitgepakte bestanden worden meegenomen (geen filter).
+2025-03-31 14:59:56,298 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Start CKAN publicatie...
+2025-03-31 14:59:56,299 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Doel Organisatie ID: 'org-veg-kartering-habitatkaart-2021-2023', Titel: 'Veg Kartering   Habitatkaart 2021 2023'
+2025-03-31 14:59:56,299 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Doel Dataset ID: 'veg-kartering-habitatkaart-2021-2023', Titel: 'Veg Kartering   Habitatkaart 2021 2023'
+2025-03-31 14:59:56,655 - INFO - Organisatie 'org-veg-kartering-habitatkaart-2021-2023' niet gevonden in CKAN.
+2025-03-31 14:59:56,655 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Organisatie 'org-veg-kartering-habitatkaart-2021-2023' niet gevonden.
+2025-03-31 14:59:56,656 - WARNING - [Veg kartering - habitatkaart 2021-2023.zip] 'create_organizations' is True. Poging tot aanmaken organisatie 'org-veg-kartering-habitatkaart-2021-2023'...
+2025-03-31 14:59:56,656 - INFO - Poging tot aanmaken nieuwe organisatie ID='org-veg-kartering-habitatkaart-2021-2023', Titel='Veg Kartering   Habitatkaart 2021 2023'...
+2025-03-31 14:59:56,981 - INFO - Organisatie 'org-veg-kartering-habitatkaart-2021-2023' (ID: 25f382a6-a473-4c88-bf7c-ac87f27f23bc) succesvol aangemaakt.
+2025-03-31 14:59:56,981 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Organisatie 'org-veg-kartering-habitatkaart-2021-2023' succesvol aangemaakt (ID: 25f382a6-a473-4c88-bf7c-ac87f27f23bc).
+2025-03-31 14:59:56,982 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Gebruiken Organisatie ID: '25f382a6-a473-4c88-bf7c-ac87f27f23bc' voor dataset 'veg-kartering-habitatkaart-2021-2023'.
+2025-03-31 14:59:57,124 - ERROR - Permissiefout: Niet geautoriseerd om dataset 'veg-kartering-habitatkaart-2021-2023' te bekijken. Fout: {'__type': 'Authorization Error', 'message': 'Access denied: User bayram2 not authorized to read package 27ea1013-d3a8-4885-b893-63cda30e637a'}
+2025-03-31 14:59:57,124 - ERROR - [Veg kartering - habitatkaart 2021-2023.zip] Fout bij CKAN dataset/resource niveau voor org 'org-veg-kartering-habitatkaart-2021-2023' / dataset 'veg-kartering-habitatkaart-2021-2023': Bekijken dataset 'veg-kartering-habitatkaart-2021-2023' niet toegestaan.
+2025-03-31 14:59:57,124 - ERROR - [Veg kartering - habitatkaart 2021-2023.zip] FOUT tijdens verwerking: Bekijken dataset 'veg-kartering-habitatkaart-2021-2023' niet toegestaan.
+2025-03-31 14:59:57,124 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Opruimen staging area...
+2025-03-31 14:59:57,261 - INFO - --- [1/1] Einde verwerking ZIP: 'Veg kartering - habitatkaart 2021-2023.zip'. Status: MISLUKT. Duur: 1.29 sec. ---
+2025-03-31 14:59:57,262 - INFO - ==================================================
+2025-03-31 14:59:57,262 - INFO - --- Einde Data Pipeline Run ---
+2025-03-31 14:59:57,262 - INFO - Totaal aantal ZIPs gevonden: 1
+2025-03-31 14:59:57,262 - INFO - Totaal succesvol verwerkte ZIPs: 0
+2025-03-31 14:59:57,262 - INFO - Totaal aantal ZIPs met fouten: 1
+2025-03-31 14:59:57,262 - INFO - Totale duur van de run: 1.29 seconden.
+2025-03-31 14:59:57,262 - INFO - ==================================================
+2025-03-31 14:59:57,262 - INFO - Script uitvoering voltooid.
+2025-03-31 15:04:18,007 - WARNING - ----------------------------------------
+2025-03-31 15:04:18,007 - WARNING -  SECURITY WAARSCHUWING: API Key Beheer 
+2025-03-31 15:04:18,008 - WARNING -  Hardcodeer API keys NOOIT in scripts voor productie.
+2025-03-31 15:04:18,008 - WARNING -  Gebruik environment variables of een secrets manager.
+2025-03-31 15:04:18,008 - WARNING - ----------------------------------------
+2025-03-31 15:04:18,008 - WARNING - !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+2025-03-31 15:04:18,008 - WARNING -  BEHAVIOUR WAARSCHUWING:
+2025-03-31 15:04:18,008 - WARNING -  'create_organizations' = True. Dit vereist SYSADMIN rechten
+2025-03-31 15:04:18,008 - WARNING -  voor de gebruikte API key om organisaties aan te maken.
+2025-03-31 15:04:18,008 - WARNING - !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+2025-03-31 15:04:18,008 - INFO - Configuratie succesvol geladen van: C:\Users\gurelb\Documents\GitHub\MetaData\config.ini
+2025-03-31 15:04:47,765 - WARNING - ----------------------------------------
+2025-03-31 15:04:47,765 - WARNING -  SECURITY WAARSCHUWING: API Key Beheer 
+2025-03-31 15:04:47,765 - WARNING -  Hardcodeer API keys NOOIT in scripts voor productie.
+2025-03-31 15:04:47,765 - WARNING -  Gebruik environment variables of een secrets manager.
+2025-03-31 15:04:47,765 - WARNING - ----------------------------------------
+2025-03-31 15:04:47,765 - WARNING - !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+2025-03-31 15:04:47,765 - WARNING -  BEHAVIOUR WAARSCHUWING:
+2025-03-31 15:04:47,765 - WARNING -  'create_organizations' = True. Dit vereist SYSADMIN rechten
+2025-03-31 15:04:47,765 - WARNING -  voor de gebruikte API key om organisaties aan te maken.
+2025-03-31 15:04:47,765 - WARNING - !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+2025-03-31 15:04:47,765 - INFO - Configuratie succesvol geladen van: C:\Users\gurelb\Documents\GitHub\MetaData\config.ini

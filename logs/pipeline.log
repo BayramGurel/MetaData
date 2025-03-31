@@ -1,0 +1,187 @@
+2025-03-31 14:23:21 - INFO     - [PipelineOOP:108] - Logging geïnitialiseerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:23:22 - ERROR    - [PipelineOOP:148] - Netwerk/Request fout tijdens connectie test naar https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:23:22 - CRITICAL - [PipelineOOP:133] - CKAN Handler initialisatie mislukt: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:23:22 - CRITICAL - [PipelineOOP:687] - Kritieke pipeline initialisatie/uitvoeringsfout: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read.
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 142, in _test_connection
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 680, in <module>
+    pipeline = Pipeline(config)
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 452, in __init__
+    self.ckan_handler = CkanHandler(config.ckan_url, config.ckan_api_key)
+                        ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 130, in __init__
+    self._test_connection()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 149, in _test_connection
+    raise ConnectionError(f"CKAN connectie test mislukt (netwerk): {e}") from e
+ConnectionError: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:24:08 - INFO     - [PipelineOOP:108] - Logging geïnitialiseerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:24:08 - ERROR    - [PipelineOOP:148] - Netwerk/Request fout tijdens connectie test naar https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read: Expecting value: line 1 column 1 (char 0)
+2025-03-31 14:24:08 - CRITICAL - [PipelineOOP:133] - CKAN Handler initialisatie mislukt: CKAN connectie test mislukt (netwerk): Expecting value: line 1 column 1 (char 0)
+2025-03-31 14:24:08 - CRITICAL - [PipelineOOP:687] - Kritieke pipeline initialisatie/uitvoeringsfout: CKAN connectie test mislukt (netwerk): Expecting value: line 1 column 1 (char 0).
+Traceback (most recent call last):
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\requests\models.py", line 974, in json
+    return complexjson.loads(self.text, **kwargs)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\simplejson\__init__.py", line 514, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\simplejson\decoder.py", line 386, in decode
+    obj, end = self.raw_decode(s)
+               ~~~~~~~~~~~~~~~^^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\simplejson\decoder.py", line 416, in raw_decode
+    return self.scan_once(s, idx=_w(s, idx).end())
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+simplejson.errors.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 143, in _test_connection
+    json_response = response.json()
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\requests\models.py", line 978, in json
+    raise RequestsJSONDecodeError(e.msg, e.doc, e.pos)
+requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 680, in <module>
+    pipeline = Pipeline(config)
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 452, in __init__
+    self.ckan_handler = CkanHandler(config.ckan_url, config.ckan_api_key)
+                        ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 130, in __init__
+    self._test_connection()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 149, in _test_connection
+    raise ConnectionError(f"CKAN connectie test mislukt (netwerk): {e}") from e
+ConnectionError: CKAN connectie test mislukt (netwerk): Expecting value: line 1 column 1 (char 0)
+2025-03-31 14:24:25 - INFO     - [PipelineOOP:108] - Logging geïnitialiseerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:24:27 - ERROR    - [PipelineOOP:148] - Netwerk/Request fout tijdens connectie test naar https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:24:27 - CRITICAL - [PipelineOOP:133] - CKAN Handler initialisatie mislukt: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:24:27 - CRITICAL - [PipelineOOP:687] - Kritieke pipeline initialisatie/uitvoeringsfout: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read.
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 142, in _test_connection
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 680, in <module>
+    pipeline = Pipeline(config)
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 452, in __init__
+    self.ckan_handler = CkanHandler(config.ckan_url, config.ckan_api_key)
+                        ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 130, in __init__
+    self._test_connection()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 149, in _test_connection
+    raise ConnectionError(f"CKAN connectie test mislukt (netwerk): {e}") from e
+ConnectionError: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:24:47 - INFO     - [PipelineOOP:108] - Logging geïnitialiseerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:24:47 - ERROR    - [PipelineOOP:148] - Netwerk/Request fout tijdens connectie test naar https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:24:47 - CRITICAL - [PipelineOOP:133] - CKAN Handler initialisatie mislukt: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:24:47 - CRITICAL - [PipelineOOP:687] - Kritieke pipeline initialisatie/uitvoeringsfout: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read.
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 142, in _test_connection
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 680, in <module>
+    pipeline = Pipeline(config)
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 452, in __init__
+    self.ckan_handler = CkanHandler(config.ckan_url, config.ckan_api_key)
+                        ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 130, in __init__
+    self._test_connection()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 149, in _test_connection
+    raise ConnectionError(f"CKAN connectie test mislukt (netwerk): {e}") from e
+ConnectionError: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:25:08 - INFO     - [PipelineOOP:108] - Logging geïnitialiseerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:25:08 - ERROR    - [PipelineOOP:148] - Netwerk/Request fout tijdens connectie test naar https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:25:08 - CRITICAL - [PipelineOOP:133] - CKAN Handler initialisatie mislukt: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:25:08 - CRITICAL - [PipelineOOP:687] - Kritieke pipeline initialisatie/uitvoeringsfout: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read.
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 142, in _test_connection
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 680, in <module>
+    pipeline = Pipeline(config)
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 452, in __init__
+    self.ckan_handler = CkanHandler(config.ckan_url, config.ckan_api_key)
+                        ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 130, in __init__
+    self._test_connection()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 149, in _test_connection
+    raise ConnectionError(f"CKAN connectie test mislukt (netwerk): {e}") from e
+ConnectionError: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:25:13 - INFO     - [PipelineOOP:108] - Logging geïnitialiseerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:25:13 - ERROR    - [PipelineOOP:148] - Netwerk/Request fout tijdens connectie test naar https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:25:13 - CRITICAL - [PipelineOOP:133] - CKAN Handler initialisatie mislukt: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:25:13 - CRITICAL - [PipelineOOP:687] - Kritieke pipeline initialisatie/uitvoeringsfout: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read.
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 142, in _test_connection
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\AppData\Local\miniconda3\envs\env\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 680, in <module>
+    pipeline = Pipeline(config)
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 452, in __init__
+    self.ckan_handler = CkanHandler(config.ckan_url, config.ckan_api_key)
+                        ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 130, in __init__
+    self._test_connection()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\gurelb\Documents\GitHub\MetaData\pipeline.py", line 149, in _test_connection
+    raise ConnectionError(f"CKAN connectie test mislukt (netwerk): {e}") from e
+ConnectionError: CKAN connectie test mislukt (netwerk): 400 Client Error: BAD REQUEST for url: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/3/action/site_read
+2025-03-31 14:52:02 - INFO - [__main__:168] - Logging geconfigureerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:52:02 - ERROR - [__main__:222] - CKAN connectie test mislukt: 'bool' object has no attribute 'post'
+2025-03-31 14:52:07 - ERROR - [__main__:222] - CKAN connectie test mislukt: 'bool' object has no attribute 'post'
+2025-03-31 14:52:12 - ERROR - [__main__:222] - CKAN connectie test mislukt: 'bool' object has no attribute 'post'
+2025-03-31 14:52:12 - CRITICAL - [__main__:209] - Kon geen verbinding maken of authenticeren met CKAN op https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev: CKAN connectie test mislukt: 'bool' object has no attribute 'post'
+2025-03-31 14:52:12 - CRITICAL - [__main__:721] - Pipeline initialisatie mislukt: Kan geen verbinding maken met CKAN. Fout: CKAN connectie/authenticatie mislukt: CKAN connectie test mislukt: 'bool' object has no attribute 'post'
+2025-03-31 14:52:12 - CRITICAL - [__main__:1098] - Kritieke CKAN fout: CKAN connectie/authenticatie mislukt: CKAN connectie test mislukt: 'bool' object has no attribute 'post'. Pipeline stopt.
+2025-03-31 15:04:18 - INFO     - [__main__:174] - Logging geïnitialiseerd. Niveau: INFO. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 15:04:18 - CRITICAL - [__main__:201] - Kon geen verbinding maken of site lezen op CKAN https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 400, '"Bad request - Action name not known: site_read"']
+2025-03-31 15:04:18 - CRITICAL - [__main__:858] - Kritieke fout: CKAN connectie/validatie mislukt: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 400, '"Bad request - Action name not known: site_read"']. Pipeline stopt.
+2025-03-31 15:04:18 - INFO     - [__main__:869] - Script uitvoering voltooid met exit code 1.
+2025-03-31 15:04:47 - INFO     - [__main__:174] - Logging geïnitialiseerd. Niveau: INFO. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 15:04:48 - CRITICAL - [__main__:201] - Kon geen verbinding maken of site lezen op CKAN https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 400, '"Bad request - Action name not known: site_read"']
+2025-03-31 15:04:48 - CRITICAL - [__main__:858] - Kritieke fout: CKAN connectie/validatie mislukt: ['https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev/api/action/site_read', 400, '"Bad request - Action name not known: site_read"']. Pipeline stopt.
+2025-03-31 15:04:48 - INFO     - [__main__:869] - Script uitvoering voltooid met exit code 1.
