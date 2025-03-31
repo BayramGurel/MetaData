@@ -1,0 +1,56 @@
+2025-03-31 14:15:15,573 - WARNING - ==============================
+2025-03-31 14:15:15,573 - WARNING - WAARSCHUWING: Hardcodeer API keys NOOIT in scripts voor productie of versiebeheer.
+2025-03-31 14:15:15,573 - WARNING - Gebruik environment variables of een secrets manager.
+2025-03-31 14:15:15,574 - WARNING - WAARSCHUWING: 'create_organizations' staat op True. Dit vereist sysadmin rechten voor de API key!
+2025-03-31 14:15:15,574 - WARNING - ==============================
+2025-03-31 14:15:15,574 - INFO - Logging geïnitialiseerd. Logbestand: C:\Users\gurelb\Documents\GitHub\MetaData\logs\pipeline.log
+2025-03-31 14:15:15,574 - INFO - CKAN Handler geïnitialiseerd voor URL: https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev
+2025-03-31 14:15:15,574 - INFO - Pipeline geïnitialiseerd.
+2025-03-31 14:15:15,574 - INFO - Automatisch organisaties aanmaken: True
+2025-03-31 14:15:15,574 - INFO - ==================================================
+2025-03-31 14:15:15,575 - INFO - --- Start Data Pipeline Run (OOP Version) ---
+2025-03-31 14:15:15,575 - INFO - Configuratie geladen van: C:\Users\gurelb\Documents\GitHub\MetaData\config.ini
+2025-03-31 14:15:15,575 - INFO - Bron: 'C:\Users\gurelb\Downloads\datawarehouse', Staging: 'C:\Users\gurelb\Downloads\staging'
+2025-03-31 14:15:15,575 - INFO - CKAN: 'https://orange-fiesta-jw6wwxvv69524v4-5000.app.github.dev'
+2025-03-31 14:15:15,575 - INFO - Organisaties automatisch aanmaken: True (Vereist sysadmin!)
+2025-03-31 14:15:15,575 - INFO - Verplaats verwerkt: False
+2025-03-31 14:15:15,575 - INFO - ==================================================
+2025-03-31 14:15:15,575 - INFO - Zoeken naar input ZIPs in: C:\Users\gurelb\Downloads\datawarehouse
+2025-03-31 14:15:15,575 - INFO - 1 input ZIP(s) gevonden.
+2025-03-31 14:15:15,575 - INFO - Start verwerking van 1 ZIP bestand(en)...
+2025-03-31 14:15:15,575 - INFO - --- [1/1] Start verwerking ZIP: 'Veg kartering - habitatkaart 2021-2023.zip' ---
+2025-03-31 14:15:15,576 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Kopiëren naar staging...
+2025-03-31 14:15:15,590 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Gekopieerd naar 'Veg kartering - habitatkaart 2021-2023_1743423315.zip'
+2025-03-31 14:15:15,590 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Start uitpakken naar 'extracted_Veg kartering - habitatkaart 2021-2023_1743423315'
+2025-03-31 14:15:15,861 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Uitpakken voltooid. 3 bestanden gevonden.
+2025-03-31 14:15:15,862 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Alle 3 uitgepakte bestanden worden meegenomen (geen filter).
+2025-03-31 14:15:15,862 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Start CKAN publicatie...
+2025-03-31 14:15:15,862 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Doel Organisatie ID (met prefix): 'org-veg-kartering---habitatkaart-2021-2023', Titel: 'Veg Kartering   Habitatkaart 2021 2023'
+2025-03-31 14:15:15,862 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Doel Dataset ID: 'veg-kartering---habitatkaart-2021-2023', Titel: 'Veg Kartering   Habitatkaart 2021 2023'
+2025-03-31 14:15:16,205 - INFO - Organisatie 'org-veg-kartering---habitatkaart-2021-2023' niet gevonden in CKAN.
+2025-03-31 14:15:16,205 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Organisatie 'org-veg-kartering---habitatkaart-2021-2023' niet gevonden.
+2025-03-31 14:15:16,205 - WARNING - [Veg kartering - habitatkaart 2021-2023.zip] Poging tot automatisch aanmaken organisatie 'org-veg-kartering---habitatkaart-2021-2023'...
+2025-03-31 14:15:16,205 - INFO - Poging tot aanmaken nieuwe organisatie ID='org-veg-kartering---habitatkaart-2021-2023', Titel='Veg Kartering   Habitatkaart 2021 2023'...
+2025-03-31 14:15:16,597 - INFO - Organisatie 'org-veg-kartering---habitatkaart-2021-2023' (ID: f9d5bad1-eff1-4be4-856d-ebf010b1631e) succesvol aangemaakt.
+2025-03-31 14:15:16,597 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Gebruiken Organisatie ID: 'f9d5bad1-eff1-4be4-856d-ebf010b1631e' (Naam: 'org-veg-kartering---habitatkaart-2021-2023')
+2025-03-31 14:15:16,923 - INFO - Dataset 'veg-kartering---habitatkaart-2021-2023' bestaat niet. Poging tot aanmaken...
+2025-03-31 14:15:17,630 - INFO - Dataset 'veg-kartering---habitatkaart-2021-2023' (ID: 847b49f9-81cf-4c7d-95e4-4d5de862cd1a) succesvol aangemaakt.
+2025-03-31 14:15:17,804 - INFO - Aanmaken resource 'PZH_WestduinparkEnWapendal_2023_HabitatRapport.docx' voor package ID '847b49f9-81cf-4c7d-95e4-4d5de862cd1a'...
+2025-03-31 14:15:17,823 - ERROR - Algemene fout bij resource_create resource 'PZH_WestduinparkEnWapendal_2023_HabitatRapport.docx': Object of type BufferedReader is not JSON serializable
+2025-03-31 14:15:17,823 - ERROR - [Veg kartering - habitatkaart 2021-2023.zip] Kon resource 'PZH_WestduinparkEnWapendal_2023_HabitatRapport.docx' niet verwerken: Object of type BufferedReader is not JSON serializable
+2025-03-31 14:15:17,823 - INFO - Aanmaken resource 'PZH_WestduinparkEnWapendal_2023_HabitatRapport.pdf' voor package ID '847b49f9-81cf-4c7d-95e4-4d5de862cd1a'...
+2025-03-31 14:15:18,792 - ERROR - Algemene fout bij resource_create resource 'PZH_WestduinparkEnWapendal_2023_HabitatRapport.pdf': Object of type BufferedReader is not JSON serializable
+2025-03-31 14:15:18,792 - ERROR - [Veg kartering - habitatkaart 2021-2023.zip] Kon resource 'PZH_WestduinparkEnWapendal_2023_HabitatRapport.pdf' niet verwerken: Object of type BufferedReader is not JSON serializable
+2025-03-31 14:15:18,792 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] CKAN resource verwerking voltooid. Succes: 0, Fouten: 2.
+2025-03-31 14:15:18,792 - ERROR - [Veg kartering - habitatkaart 2021-2023.zip] Fout bij CKAN organisatie/dataset niveau: 2 resource(s) mislukt voor ZIP 'Veg kartering - habitatkaart 2021-2023.zip'.
+2025-03-31 14:15:18,793 - ERROR - [Veg kartering - habitatkaart 2021-2023.zip] FOUT tijdens verwerking: 2 resource(s) mislukt voor ZIP 'Veg kartering - habitatkaart 2021-2023.zip'.
+2025-03-31 14:15:18,793 - INFO - [Veg kartering - habitatkaart 2021-2023.zip] Opruimen staging area...
+2025-03-31 14:15:18,837 - INFO - --- [1/1] Einde verwerking ZIP: 'Veg kartering - habitatkaart 2021-2023.zip'. Status: MISLUKT. Duur: 3.26 sec. ---
+2025-03-31 14:15:18,837 - INFO - ==================================================
+2025-03-31 14:15:18,837 - INFO - --- Einde Data Pipeline Run ---
+2025-03-31 14:15:18,837 - INFO - Totaal aantal ZIPs gevonden: 1
+2025-03-31 14:15:18,837 - INFO - Totaal succesvol verwerkte ZIPs: 0
+2025-03-31 14:15:18,837 - INFO - Totaal aantal ZIPs met fouten: 1
+2025-03-31 14:15:18,837 - INFO - Totale duur van de run: 3.26 seconden.
+2025-03-31 14:15:18,837 - INFO - ==================================================
+2025-03-31 14:15:18,837 - INFO - Script uitvoering voltooid.

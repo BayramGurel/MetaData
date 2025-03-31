@@ -455,116 +455,112 @@ class Pipeline:
 
     # *** AANGEPASTE _publish_to_ckan METHODE ***
     def _publish_to_ckan(self, original_zip_name: str, extract_subdir: Path, files_to_upload: List[Path]):
-        """Bepaalt organisatie, checkt/maakt aan (met fallback), en publiceert bestanden."""
+        """Bepaalt organisatie (met prefix), checkt/maakt aan, en publiceert bestanden."""
         logger.info(f"[{original_zip_name}] Start CKAN publicatie...")
 
         if not files_to_upload:
             logger.warning(f"[{original_zip_name}] Geen bestanden om naar CKAN te publiceren.")
             return
 
-        # Stap 1: Leid organisatie en dataset namen af
+        # Stap 1: Leid basis ID en titels af
         base_name = Path(original_zip_name).stem
-        target_org_id = ''.join(c if c.isalnum() else '-' for c in base_name).lower().strip('-')
-        dataset_id = target_org_id
-        target_org_title = base_name.replace('_', ' ').replace('-', ' ').title()
-        dataset_title = target_org_title
+        base_id = ''.join(c if c.isalnum() else '-' for c in base_name).lower().strip('-')
+        base_title = base_name.replace('_', ' ').replace('-', ' ').title()
 
-        if not target_org_id:
-            timestamp_id = f"org-or-dataset-{int(time.time())}"
-            logger.warning(f"[{original_zip_name}] Kon geen geldige org/dataset ID afleiden, gebruik: '{timestamp_id}'")
-            target_org_id = timestamp_id
-            dataset_id = timestamp_id
+        # --- NIEUW: Voeg prefix toe voor ORG ID ---
+        org_prefix = "org-"  # Voorvoegsel om conflicten te vermijden
+        target_org_id = f"{org_prefix}{base_id}"
+        target_org_title = base_title  # Titel mag hetzelfde blijven
+        # --- EINDE NIEUW ---
+
+        # Dataset ID blijft gebaseerd op de originele base_id (of pas aan indien gewenst)
+        dataset_id = base_id
+        dataset_title = base_title
+
+        # Voorkom lege ID's
+        if not base_id:  # Check de basis ID voor leegte
+            timestamp_id = f"item-{int(time.time())}"
+            logger.warning(f"[{original_zip_name}] Kon geen geldige basis ID afleiden, gebruik: '{timestamp_id}'")
+            target_org_id = f"{org_prefix}{timestamp_id}"  # Org krijgt prefix + timestamp
+            dataset_id = timestamp_id  # Dataset krijgt timestamp
             if not target_org_title: target_org_title = f"Organisatie {timestamp_id}"
             if not dataset_title: dataset_title = f"Dataset {timestamp_id}"
+        elif not target_org_id.startswith(org_prefix):  # Zorg dat prefix er altijd is
+            target_org_id = f"{org_prefix}{base_id}"
 
-        logger.info(f"[{original_zip_name}] Doel Organisatie ID: '{target_org_id}', Titel: '{target_org_title}'")
+        logger.info(
+            f"[{original_zip_name}] Doel Organisatie ID (met prefix): '{target_org_id}', Titel: '{target_org_title}'")
         logger.info(f"[{original_zip_name}] Doel Dataset ID: '{dataset_id}', Titel: '{dataset_title}'")
 
         organization = None
         owner_org_id = None
 
         try:
-            # Stap 2: Probeer organisatie te vinden of aan te maken
+            # Stap 2: Zoek of maak de organisatie aan (logica blijft verder hetzelfde, maar gebruikt nu target_org_id met prefix)
             organization_found_or_created = False
             try:
-                # Eerste poging: check of organisatie bestaat
+                # Eerste poging: check of organisatie (met prefix) bestaat
                 organization = self.ckan_handler.check_organization_exists(target_org_id)
                 owner_org_id = organization['id']
                 organization_found_or_created = True
 
             except FileNotFoundError:
-                # Bestaat niet: Probeer aan te maken als toegestaan
                 logger.info(f"[{original_zip_name}] Organisatie '{target_org_id}' niet gevonden.")
                 if self.config.create_organizations:
                     logger.warning(
                         f"[{original_zip_name}] Poging tot automatisch aanmaken organisatie '{target_org_id}'...")
                     try:
+                        # Gebruik target_org_title voor de leesbare naam
                         organization = self.ckan_handler.create_organization(target_org_id, target_org_title)
                         owner_org_id = organization['id']
                         organization_found_or_created = True
                     except (PermissionError, ValueError, ConnectionError) as create_err:
-                        # Vang fouten specifiek tijdens het aanmaken
                         logger.error(
                             f"[{original_zip_name}] Aanmaken organisatie '{target_org_id}' mislukt: {create_err}")
-                        raise create_err  # Gooi opnieuw op om deze ZIP te stoppen
+                        raise create_err
                 else:
-                    # Bestaat niet en mag niet aanmaken
                     logger.error(
                         f"[{original_zip_name}] Organisatie '{target_org_id}' niet gevonden en 'create_organizations' staat uit.")
                     raise FileNotFoundError(
                         f"Doel organisatie '{target_org_id}' niet gevonden en aanmaken is uitgeschakeld.")
 
             except PermissionError as pe:
-                # ** NIEUWE LOGICA: ** Kan organisatie niet LEZEN.
-                # Als create_organizations AAN staat, proberen we toch aan te maken.
-                # Dit vangt de huidige fout op, ervan uitgaande dat 'create' wel mag.
                 logger.warning(
                     f"[{original_zip_name}] Kon organisatie '{target_org_id}' niet lezen (permissiefout: {pe}).")
                 if self.config.create_organizations:
                     logger.warning(
                         f"[{original_zip_name}] 'create_organizations' staat aan, poging tot aanmaken organisatie '{target_org_id}' desondanks...")
                     try:
+                        # Gebruik target_org_title
                         organization = self.ckan_handler.create_organization(target_org_id, target_org_title)
                         owner_org_id = organization['id']
                         organization_found_or_created = True
                     except ValidationError as ve:
-                        # Specifiek validatiefout bij aanmaken (bv. bestaat toch al maar is onleesbaar?)
                         error_details = ve.error_dict if hasattr(ve, 'error_dict') else str(ve)
-                        # Check of het een 'already exists' fout is
-                        if 'name' in error_details and any('already exists' in msg for msg in error_details['name']):
-                            logger.error(
-                                f"[{original_zip_name}] Aanmaken mislukt: Organisatie '{target_org_id}' bestaat waarschijnlijk al, maar is niet leesbaar met deze API key. Kan niet doorgaan.")
-                            raise PermissionError(
-                                f"Organisatie '{target_org_id}' bestaat al maar is niet leesbaar.") from ve
-                        else:
-                            logger.error(
-                                f"[{original_zip_name}] Validatiefout bij aanmaken organisatie '{target_org_id}' na leesfout: {error_details}")
-                            raise ValueError(f"Validatiefout bij aanmaken organisatie: {error_details}") from ve
+                        # Hier zou de "already exists" fout nu minder waarschijnlijk moeten zijn door de prefix
+                        logger.error(
+                            f"[{original_zip_name}] Validatiefout bij aanmaken organisatie '{target_org_id}' na leesfout: {error_details}")
+                        raise ValueError(f"Validatiefout bij aanmaken organisatie: {error_details}") from ve
                     except (PermissionError, ConnectionError) as create_err:
-                        # Andere fouten bij aanmaken (bv. toch geen create rechten ondanks .ini?)
                         logger.error(
                             f"[{original_zip_name}] Aanmaken organisatie '{target_org_id}' mislukt na leesfout: {create_err}")
                         raise create_err
                 else:
-                    # Kon niet lezen en mag niet aanmaken
                     logger.error(
                         f"[{original_zip_name}] Kan organisatie '{target_org_id}' niet lezen en 'create_organizations' staat uit.")
-                    raise pe  # Gooi oorspronkelijke PermissionError opnieuw op
+                    raise pe
 
             except ConnectionError as ce:
-                # Connectiefout tijdens check
                 logger.error(f"[{original_zip_name}] Fout bij controleren organisatie '{target_org_id}': {ce}")
                 raise ce
 
-            # Als we hier zijn zonder fout, MOETEN we een owner_org_id hebben
             if not organization_found_or_created or not owner_org_id:
-                # Veiligheidscheck
                 raise ValueError(
                     f"[{original_zip_name}] Kritieke fout: Kon geen geldige organisatie ID bepalen voor '{target_org_id}'.")
 
-            logger.info(f"[{original_zip_name}] Gebruiken Organisatie ID: '{owner_org_id}'")
+            logger.info(f"[{original_zip_name}] Gebruiken Organisatie ID: '{owner_org_id}' (Naam: '{target_org_id}')")
 
-            # Stap 3: Get or Create Dataset (blijft hetzelfde)
+            # Stap 3: Get or Create Dataset (blijft dataset_id zonder prefix gebruiken)
             package = self.ckan_handler.get_or_create_dataset(dataset_id, dataset_title, owner_org_id,
                                                               original_zip_name)
             package_id = package['id']
@@ -597,11 +593,9 @@ class Pipeline:
                 raise ConnectionError(f"{failed_resource_uploads} resource(s) mislukt voor ZIP '{original_zip_name}'.")
 
         except (FileNotFoundError, ValueError, PermissionError, ConnectionError) as e:
-            # Vang alle fouten die hierboven zijn opgeworpen
             logger.error(f"[{original_zip_name}] Fout bij CKAN organisatie/dataset niveau: {e}")
-            raise  # Gooi opnieuw op zodat _process_single_zip faalt
+            raise
         except Exception as e:
-            # Vang andere onverwachte fouten
             logger.error(f"[{original_zip_name}] Onverwachte fout tijdens CKAN publicatie: {e}")
             raise
 
