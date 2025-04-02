@@ -1,14 +1,13 @@
 // Save as: src/ckan/CkanHandler.java
-package ckan; // Using package name from your snippet
+package client; // Using package name from your snippet
 
 // Using imports from your snippet - Recommend standardizing paths
-import ckan.CkanExceptions.*;
+import client.CkanExceptions.*;
 import util.LoggingUtil; // Assuming LoggingUtil is in 'util' package
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.DeserializationFeature; // Example import if needed
 // import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule; // Example import if needed
 
 import org.slf4j.Logger;

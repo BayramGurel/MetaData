@@ -1,10 +1,8 @@
 // Save as: src/ckan/CkanExceptions.java
-package ckan; // Using package name from your snippet
+package client; // Using package name from your snippet
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Container class for CKAN client-related custom exceptions.
