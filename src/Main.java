@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-// import java.util.Objects; // <-- FIX: Removed unused import
 
 /**
  * Main entry point for the CKAN Data Pipeline application.
@@ -37,7 +36,7 @@ public class Main {
 
         try {
             // Determine config file path (default or from args)
-            String configArg = (args.length > 0) ? args[0] : "config.properties";
+            String configArg = (args.length > 0) ? args[0] : "src/config.properties";
             configFilePath = Paths.get(configArg).toAbsolutePath().normalize();
             logger.info("Using configuration file path: {}", configFilePath);
 
