@@ -1,8 +1,6 @@
 // Save as: src/processing/ZipProcessor.java
-// FIX: Standardized package name
 package processing;
 
-// FIX: Updated imports for assumed new locations
 import config.ConfigLoader;
 import util.LoggingUtil;
 
@@ -16,8 +14,8 @@ import java.io.OutputStream;
 import java.nio.file.*;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
-import java.time.ZoneOffset; // Needed for timestamp formatting
-import java.time.format.DateTimeFormatter; // Needed for timestamp formatting
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,16 +23,16 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
-import java.util.Objects; // For null checks
+import java.util.Objects;
 
 /**
  * Handles staging, extraction, filtering, and cleanup/processing of source ZIP files.
  * Uses configuration from ConfigLoader to determine behavior.
+ * This class is final as it's not designed for extension.
  */
-public class ZipProcessor {
+public final class ZipProcessor { // Made class final
 
     private static final Logger logger = LoggingUtil.getLogger(ZipProcessor.class);
-    // FIX: Formatter for unique timestamp suffix in moveToProcessed
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS").withZone(ZoneOffset.UTC);
 
     private final Path sourceZipPath;
@@ -42,8 +40,9 @@ public class ZipProcessor {
     private final String originalName;
     private final String logPrefix; // For logging context [zipfilename]
 
-    private Path stagedZipPath; // Path where the zip is copied in staging
-    private Path extractSubdir; // Directory where contents are extracted
+    // Staging locations are determined at construction and are fixed for this instance
+    private final Path stagedZipPath; // Path where the zip is copied in staging
+    private final Path extractSubdir; // Directory where contents are extracted
 
 
     /**
@@ -51,7 +50,7 @@ public class ZipProcessor {
      * @param sourceZipPath The path to the source ZIP file.
      * @param config The application configuration.
      * @throws NullPointerException if sourceZipPath or config is null.
-     * @throws RuntimeException if the staging directory cannot be created.
+     * @throws RuntimeException if the staging directory cannot be created or initial paths are invalid.
      */
     public ZipProcessor(Path sourceZipPath, ConfigLoader config) {
         this.sourceZipPath = Objects.requireNonNull(sourceZipPath, "sourceZipPath cannot be null");
@@ -59,33 +58,40 @@ public class ZipProcessor {
         this.originalName = sourceZipPath.getFileName().toString();
         this.logPrefix = "[" + this.originalName + "] ";
 
-        // Define unique staging paths using timestamp
-        long timestamp = Instant.now().toEpochMilli();
-        // FIX: Replaced Guava file name splitting with manual implementation
-        String baseName = getBaseName(originalName);
-        String extension = getExtension(originalName);
-        String uniqueSuffix = baseName + "_" + timestamp;
+        // Temporary variables for path construction before assigning to final fields
+        Path tempStagedZipPath;
+        Path tempExtractSubdir;
 
-        // Ensure staging dir exists before resolving paths into it
         try {
-            // Ensure staging dir is absolute before resolving into it
+            // Define unique staging paths using timestamp
+            long timestamp = Instant.now().toEpochMilli();
+            String baseName = getBaseName(originalName);
+            String extension = getExtension(originalName);
+            String uniqueSuffix = baseName + "_" + timestamp;
+
+            // Ensure staging dir exists and is absolute before resolving paths into it
             Path stagingDirAbsolute = config.getStagingDir().toAbsolutePath();
             Files.createDirectories(stagingDirAbsolute);
 
             // Resolve paths within the absolute staging directory
-            this.stagedZipPath = stagingDirAbsolute.resolve(uniqueSuffix + (extension.isEmpty() ? "" : "." + extension));
-            this.extractSubdir = stagingDirAbsolute.resolve("extracted_" + uniqueSuffix);
+            tempStagedZipPath = stagingDirAbsolute.resolve(uniqueSuffix + (extension.isEmpty() ? "" : "." + extension));
+            tempExtractSubdir = stagingDirAbsolute.resolve("extracted_" + uniqueSuffix);
 
-            logger.debug("{}Initialized ZipProcessor. Staged path: {}, Extract dir: {}", logPrefix, stagedZipPath, extractSubdir);
+            logger.debug("{}Initialized ZipProcessor. Staged path: {}, Extract dir: {}", logPrefix, tempStagedZipPath, tempExtractSubdir);
 
         } catch (IOException e) {
             // This is critical - cannot proceed without staging dir
             logger.error("{}FATAL: Could not create staging directory: {}", logPrefix, config.getStagingDir(), e);
             throw new RuntimeException("Failed to create staging directory " + config.getStagingDir(), e);
         } catch (InvalidPathException e) {
-            logger.error("{}FATAL: Invalid staging path derived. Base: {}, UniqueSuffix: {}, Ext: {}", logPrefix, baseName, uniqueSuffix, extension, e);
+            String derivedStagingPath = config.getStagingDir().toString() + "/" + getBaseName(originalName) + "_<ts>" + "." + getExtension(originalName); // Approximate path for logging
+            logger.error("{}FATAL: Invalid staging path derived. Attempted path structure like: {}", logPrefix, derivedStagingPath, e);
             throw new RuntimeException("Invalid path constructed for staging: " + e.getMessage(), e);
         }
+
+        // Assign to final fields after successful creation
+        this.stagedZipPath = tempStagedZipPath;
+        this.extractSubdir = tempExtractSubdir;
     }
 
     /**
@@ -127,8 +133,9 @@ public class ZipProcessor {
      * @throws IOException If the staged ZIP is not found/readable, is corrupt, or extraction fails.
      */
     public List<Path> extract() throws IOException {
-        if (stagedZipPath == null || !Files.isReadable(stagedZipPath)) {
-            throw new FileNotFoundException(logPrefix + "Staged ZIP file not found or not readable for extraction: " + (stagedZipPath != null ? stagedZipPath : "null"));
+        // stagedZipPath is final, so no null check needed after constructor succeeds
+        if (!Files.isReadable(stagedZipPath)) {
+            throw new FileNotFoundException(logPrefix + "Staged ZIP file not readable for extraction: " + stagedZipPath);
         }
 
         logger.info("{}Starting extraction to '{}'", logPrefix, config.getStagingDir().relativize(extractSubdir));
@@ -139,62 +146,55 @@ public class ZipProcessor {
             Files.createDirectories(extractSubdir); // Ensure extraction target exists
 
             // Use ZipFile for better handling (random access, entry list)
-            // Ensure we use the Path object converted to File for ZipFile constructor
             try (ZipFile zipFile = new ZipFile(stagedZipPath.toFile())) {
                 var entries = zipFile.entries(); // Returns Enumeration<? extends ZipEntry>
                 while (entries.hasMoreElements()) {
                     ZipEntry entry = entries.nextElement();
-                    // Resolve entry name against extraction dir, then normalize
                     Path entryDestination = extractSubdir.resolve(entry.getName()).normalize();
 
                     // **Security:** Prevent path traversal attacks
-                    // Check if the normalized destination path is still within the extraction directory
                     if (!entryDestination.startsWith(extractSubdir)) {
                         logger.error("{}SECURITY RISK: ZIP entry attempted path traversal: '{}'. Skipping entry.", logPrefix, entry.getName());
-                        continue; // Skip this potentially malicious entry
+                        continue;
                     }
 
                     if (entry.isDirectory()) {
                         Files.createDirectories(entryDestination);
                     } else {
-                        // Ensure parent directory exists for the file before writing
                         Path parentDir = entryDestination.getParent();
-                        if (parentDir != null) { // Check if parent is not null (e.g., file in root of zip)
+                        if (parentDir != null) {
                             Files.createDirectories(parentDir);
                         }
-                        // Extract the file content using try-with-resources
                         try (InputStream in = zipFile.getInputStream(entry);
-                             OutputStream out = Files.newOutputStream(entryDestination)) { // Default options: CREATE, TRUNCATE_EXISTING
-                            in.transferTo(out); // Efficient stream copying (Java 9+)
+                             OutputStream out = Files.newOutputStream(entryDestination)) {
+                            in.transferTo(out);
                         }
                         extractedFilesAll.add(entryDestination);
                     }
                 }
-            } // ZipFile closed automatically via try-with-resources
+            } // ZipFile closed automatically
 
             logger.info("{}Extraction complete. {} total item(s) extracted.", logPrefix, extractedFilesAll.size());
 
             // Filter extracted files based on configured relevant extensions
-            final List<String> relevantExtensions = config.getRelevantExtensions(); // Assumes list is lowercase
-            if (relevantExtensions != null && !relevantExtensions.isEmpty()) {
+            final List<String> relevantExtensions = config.getRelevantExtensions();
+            if (!relevantExtensions.isEmpty()) { // getRelevantExtensions returns unmodifiable emptyList if null/empty
                 filesToUpload = extractedFilesAll.stream()
-                        .filter(Files::isRegularFile) // Process only files
+                        .filter(Files::isRegularFile)
                         .filter(f -> {
                             String fileNameLower = f.getFileName().toString().toLowerCase();
-                            // Check if file name ends with any configured relevant extension
                             return relevantExtensions.stream().anyMatch(fileNameLower::endsWith);
                         })
                         .collect(Collectors.toList());
                 logger.info("{} {} file(s) selected for upload based on extensions: {}", logPrefix, filesToUpload.size(), relevantExtensions);
             } else {
-                // If no extensions are specified, consider all extracted regular files
                 filesToUpload = extractedFilesAll.stream()
                         .filter(Files::isRegularFile)
                         .collect(Collectors.toList());
                 logger.info("{}All {} extracted regular file(s) will be considered for upload (no extension filter specified).", logPrefix, filesToUpload.size());
             }
 
-            // Handle nested ZIPs exclusion (extraction of nested ZIPs is NOT implemented here)
+            // Handle nested ZIPs exclusion
             if (!config.isExtractNestedZips()) {
                 int originalCount = filesToUpload.size();
                 filesToUpload.removeIf(f -> f.getFileName().toString().toLowerCase().endsWith(".zip"));
@@ -203,7 +203,6 @@ public class ZipProcessor {
                     logger.debug("{} {} nested .zip file(s) excluded from upload list as '{}' is false.", logPrefix, removedCount, "ZipHandling.extract_nested_zips");
                 }
             } else {
-                // Warn if nested extraction enabled but not implemented
                 boolean nestedZipsPresent = filesToUpload.stream()
                         .anyMatch(f -> f.getFileName().toString().toLowerCase().endsWith(".zip"));
                 if (nestedZipsPresent) {
@@ -235,35 +234,28 @@ public class ZipProcessor {
     public void cleanupStaging() {
         logger.info("{}Cleaning up staging area...", logPrefix);
 
-        // Delete staged ZIP file
-        if (stagedZipPath != null) { // Check if path variable itself is null
-            try {
-                boolean deleted = Files.deleteIfExists(stagedZipPath);
-                if (deleted) {
-                    logger.debug("{}Deleted staged ZIP: '{}'", logPrefix, stagedZipPath.getFileName());
-                } else {
-                    logger.debug("{}Staged ZIP not found, nothing to delete at: {}", logPrefix, stagedZipPath);
-                }
-            } catch (IOException e) {
-                logger.warn("{}Could not delete staged ZIP '{}': {}", logPrefix, stagedZipPath.getFileName(), e.getMessage(), e);
-            } catch (SecurityException e) {
-                logger.warn("{}Permission error deleting staged ZIP '{}': {}", logPrefix, stagedZipPath.getFileName(), e.getMessage(), e);
+        // Delete staged ZIP file (stagedZipPath is final, non-null)
+        try {
+            boolean deleted = Files.deleteIfExists(stagedZipPath);
+            if (deleted) {
+                logger.debug("{}Deleted staged ZIP: '{}'", logPrefix, stagedZipPath.getFileName());
+            } else {
+                // Should generally exist if stage() succeeded, but log if not found
+                logger.debug("{}Staged ZIP not found, nothing to delete at: {}", logPrefix, stagedZipPath);
             }
-        } else {
-            logger.warn("{}Staged ZIP path variable is null, cannot clean up.", logPrefix);
+        } catch (IOException e) {
+            logger.warn("{}Could not delete staged ZIP '{}': {}", logPrefix, stagedZipPath.getFileName(), e.getMessage(), e);
+        } catch (SecurityException e) {
+            logger.warn("{}Permission error deleting staged ZIP '{}': {}", logPrefix, stagedZipPath.getFileName(), e.getMessage(), e);
         }
 
-        // Delete extraction directory using the helper method
+        // Delete extraction directory using the helper method (extractSubdir is final, non-null)
         safeRemoveDir(extractSubdir);
     }
 
     // Safely remove a directory, ensuring it's within the staging area
     private void safeRemoveDir(Path dirToRemove) {
-        if (dirToRemove == null) {
-            logger.debug("{}Extraction directory path variable is null, nothing to remove.", logPrefix);
-            return;
-        }
-        // Use try-exists for safety, avoid extra Files.exists check if dirToRemove is null
+        // dirToRemove is final field, assigned in constructor, no null check needed here
         try {
             if (!Files.exists(dirToRemove)) {
                 logger.debug("{}Extraction directory '{}' not found, nothing to remove.", logPrefix, dirToRemove.getFileName());
@@ -274,23 +266,21 @@ public class ZipProcessor {
             return; // Can't check, can't delete safely
         }
 
-
         if (Files.isDirectory(dirToRemove)) {
             // **Security/Safety Check:** Ensure the directory is inside the staging directory before deleting
             Path stagingRoot = config.getStagingDir().toAbsolutePath().normalize();
             Path dirToRemoveAbsolute = dirToRemove.toAbsolutePath().normalize();
 
-            if (dirToRemoveAbsolute.startsWith(stagingRoot) && !dirToRemoveAbsolute.equals(stagingRoot)) { // Don't delete staging root itself
+            if (dirToRemoveAbsolute.startsWith(stagingRoot) && !dirToRemoveAbsolute.equals(stagingRoot)) {
                 try {
                     // Use Apache Commons IO for robust recursive delete
                     logger.debug("{}Attempting to remove directory recursively: '{}'", logPrefix, dirToRemove);
-                    FileUtils.deleteDirectory(dirToRemove.toFile());
+                    FileUtils.deleteDirectory(dirToRemove.toFile()); // Requires commons-io dependency
                     logger.debug("{}Removed extraction directory: '{}'", logPrefix, dirToRemove.getFileName());
                 } catch (IOException e) {
                     logger.warn("{}Could not remove extraction directory '{}': {}", logPrefix, dirToRemove.getFileName(), e.getMessage(), e);
                 } catch (IllegalArgumentException e) {
-                    // FileUtils.deleteDirectory throws this if path is not a directory (should be caught by isDirectory check)
-                    logger.error("{}Path '{}' is not a directory, cannot remove recursively (should not happen here): {}", logPrefix, dirToRemove.getFileName(), e.getMessage());
+                    logger.error("{}Path '{}' is not a directory, cannot remove recursively (FileUtils error): {}", logPrefix, dirToRemove.getFileName(), e.getMessage());
                 } catch (SecurityException e) {
                     logger.warn("{}Permission error removing directory '{}': {}", logPrefix, dirToRemove.getFileName(), e.getMessage(), e);
                 }
@@ -299,7 +289,6 @@ public class ZipProcessor {
                         logPrefix, dirToRemoveAbsolute, stagingRoot);
             }
         } else {
-            // Path exists but is not a directory
             logger.warn("{}Path '{}' exists but is not a directory, cannot remove as directory.", logPrefix, dirToRemove.getFileName());
         }
     }
@@ -320,26 +309,22 @@ public class ZipProcessor {
             return;
         }
 
-        // Check if source file still exists (it might have been deleted manually or failed staging)
-        if (!Files.isReadable(sourceZipPath)) { // Check readability as well
+        if (!Files.isReadable(sourceZipPath)) {
             logger.warn("{}Source file '{}' no longer exists or is not readable. Cannot move to processed.", logPrefix, sourceZipPath);
-            // Consider if this should be an error/exception depending on workflow needs
             return;
         }
 
-        // Ensure target dir is absolute for resolving
         Path targetProcessedDirAbsolute = targetProcessedDir.toAbsolutePath();
         logger.info("{}Moving original file '{}' to processed directory: {}", logPrefix, sourceZipPath.getFileName(), targetProcessedDirAbsolute);
 
         try {
-            Files.createDirectories(targetProcessedDirAbsolute); // Ensure target dir exists
+            Files.createDirectories(targetProcessedDirAbsolute);
 
-            // FIX: Replaced Guava with manual implementation
             String baseName = getBaseName(originalName);
             String extension = getExtension(originalName);
             Path destinationPath = targetProcessedDirAbsolute.resolve(originalName);
 
-            // Handle potential naming conflicts by appending a timestamp
+            // Handle potential naming conflicts
             if (Files.exists(destinationPath)) {
                 String timestampSuffix = TIMESTAMP_FORMATTER.format(Instant.now());
                 String newName = String.format("%s_%s%s", baseName, timestampSuffix, (extension.isEmpty() ? "" : "." + extension));
@@ -355,27 +340,22 @@ public class ZipProcessor {
             } catch (AtomicMoveNotSupportedException e) {
                 logger.warn("{}Atomic move not supported (likely cross-filesystem). Attempting standard move.", logPrefix);
                 try {
-                    // Standard move - Ensure REPLACE_EXISTING is NOT used unless intended overwrite
-                    // Our conflict handling above should prevent needing REPLACE_EXISTING here.
                     logger.debug("{}Attempting standard move: '{}' -> '{}'", logPrefix, sourceZipPath, destinationPath);
                     Files.move(sourceZipPath, destinationPath);
                     logger.info("{}Original file successfully moved (non-atomically) to '{}'.", logPrefix, destinationPath);
                 } catch (IOException moveEx) {
                     logger.error("{}Error moving file (non-atomic fallback) to processed directory: {}. File remains in source directory.", logPrefix, moveEx.getMessage(), moveEx);
-                    throw moveEx; // Re-throw the exception to indicate move failure
+                    throw moveEx;
                 }
             } catch (IOException moveEx) {
-                // Catch other IO errors during atomic move attempt
                 logger.error("{}Error moving file (atomic attempt) to processed directory: {}. File remains in source directory.", logPrefix, moveEx.getMessage(), moveEx);
                 throw moveEx;
             }
         } catch (IOException e) {
-            // Catch errors from createDirectories or general move issues
             logger.error("{}Error preparing move to processed directory '{}': {}. File remains in source directory.", logPrefix, targetProcessedDirAbsolute, e.getMessage(), e);
-            throw e; // Re-throw the exception
+            throw e;
         } catch (SecurityException e) {
             logger.error("{}Permission error during move to processed directory '{}': {}. File remains in source directory.", logPrefix, targetProcessedDirAbsolute, e.getMessage(), e);
-            // Wrap in IOException? Or let SecurityException propagate? Let's wrap for consistency.
             throw new IOException("Permission error moving file to processed directory: " + e.getMessage(), e);
         }
     }
@@ -385,17 +365,11 @@ public class ZipProcessor {
     public Path getExtractSubdir() { return extractSubdir; }
     public String getLogPrefix() { return logPrefix; }
 
-    // --- Helper Methods for Filename Splitting (Replaces Guava) ---
+    // --- Helper Methods for Filename Splitting (Unchanged) ---
 
-    /**
-     * Gets the base name of a file (name without extension).
-     * @param filename The full filename.
-     * @return The base name, or the full filename if no extension is found.
-     */
     private static String getBaseName(String filename) {
         if (filename == null) return "";
         int dotIndex = filename.lastIndexOf('.');
-        // Handle cases: no dot, dot at start (.bashrc), dot at end (archive.)
         if (dotIndex <= 0) {
             return filename;
         } else {
@@ -403,19 +377,13 @@ public class ZipProcessor {
         }
     }
 
-    /**
-     * Gets the file extension (without the dot).
-     * @param filename The full filename.
-     * @return The extension (lowercase), or an empty string if no extension is found.
-     */
     private static String getExtension(String filename) {
         if (filename == null) return "";
         int dotIndex = filename.lastIndexOf('.');
-        // Handle cases: no dot, dot at start (.bashrc), dot at end (archive.)
         if (dotIndex <= 0 || dotIndex == filename.length() - 1) {
             return "";
         } else {
-            return filename.substring(dotIndex + 1).toLowerCase(); // Return lowercase extension
+            return filename.substring(dotIndex + 1).toLowerCase();
         }
     }
 }
