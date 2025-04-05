@@ -205,32 +205,25 @@ public final class CkanHandler { // Made class final
             long durationMillis = Duration.ofNanos(System.nanoTime() - requestStartTime).toMillis();
             logger.info("CKAN call '{}' completed with status {} in {} ms", action, response.statusCode(), durationMillis);
 
-            return handleResponse(response, action, responseTypeRef);
+            return handleResponse(response, action, responseTypeRef); // Throws CkanException
 
         } catch (JsonProcessingException e) {
-            // Error serializing JSON request body
             throw new CkanException("Internal error: Failed to create JSON request for " + action, e);
-        } catch (IOException e) {
-            // Network errors, DNS errors, connection refused, etc.
+        } catch (IOException e) { // Catches genuine network/IO errors from httpClient.send()
             logger.error("Connection or I/O error during CKAN request for action {}: {}", action, e.getMessage(), e);
             if (e.getCause() instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
-                logger.warn("CKAN request thread interrupted for action: {}", action);
-                // Fall through to throw CkanConnectionException below
+                logger.warn("CKAN request thread interrupted via IOException for action: {}", action);
             }
+            // Wrap **only genuine IOExceptions** in CkanConnectionException
             throw new CkanConnectionException("Communication error with CKAN for action " + action + ": " + e.getMessage(), e);
         } catch (InterruptedException e) {
-            // Thread interrupted while waiting for response
             Thread.currentThread().interrupt();
             logger.warn("CKAN request thread interrupted for action: {}", action);
             throw new CkanConnectionException("CKAN request interrupted for action " + action, e);
-        }
-        // Catch RuntimeException from the lambda, if needed, although HttpClient might wrap it
-        catch (RuntimeException e) {
-            logger.error("Runtime error during CKAN request setup (potentially from stream supplier) for action {}: {}", action, e.getMessage(), e);
-            // Decide how to handle - maybe wrap in CkanException or let it propagate
-            // Wrapping might hide the original cause slightly but fits the exception hierarchy
-            throw new CkanException("Internal setup error during request for action " + action + ": " + e.getMessage(), e);
+        } catch (RuntimeException e) { // Catch runtime from lambda or elsewhere
+            logger.error("Runtime error during CKAN request setup/execution for action {}: {}", action, e.getMessage(), e);
+            throw new CkanException("Internal setup/runtime error during request for action " + action + ": " + e.getMessage(), e);
         }
     }
 

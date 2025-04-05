@@ -187,12 +187,9 @@ public final class ConfigLoader { // Made class final
     private String getRequiredProperty(String key) throws IllegalArgumentException {
         String value = properties.getProperty(key);
         if (value == null) return null;
-
         int commentIndex = value.indexOf('#');
-        if (commentIndex != -1) {
-            value = value.substring(0, commentIndex);
-        }
-        return value.trim();
+        String cleanedValue = (commentIndex != -1) ? value.substring(0, commentIndex) : value;
+        return cleanedValue.trim();
     }
 
     private Path resolvePathProperty(String value) throws InvalidPathException {

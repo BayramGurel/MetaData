@@ -309,6 +309,7 @@ public final class Pipeline { // Made class final
 
         // Replace common separators with space
         String title = baseName.replace('_', ' ').replace('-', ' ');
+        title = title.replaceAll("\\s+", " ").trim(); // Add this line
 
         // Basic Title Casing: Capitalize the first letter of each word.
         // Uses Java 8 compatible loop instead of Java 9+ replaceAll lambda.
