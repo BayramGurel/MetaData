@@ -501,7 +501,9 @@ public final class Pipeline { // Made class final
         logger.info("Total ZIPs found: {}", totalFilesFound);
         logger.info("Successful ZIPs : {}", totalProcessedZips);
         logger.info("Failed ZIPs     : {}", totalErrorZips);
-        logger.info("Total Duration  : {:.3f} seconds.", runDuration.toMillis() / 1000.0);
+        // Calculate and format duration before logging
+        double durationSeconds = runDuration.toMillis() / 1000.0;
+        logger.info("Total Duration  : {} seconds.", String.format("%.3f", durationSeconds));
         logger.info("==================================================");
     }
 

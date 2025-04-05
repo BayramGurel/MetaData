@@ -186,8 +186,11 @@ public final class ConfigLoader { // Made class final
 
     private String getRequiredProperty(String key) throws IllegalArgumentException {
         String value = properties.getProperty(key);
-        if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(String.format("Missing required configuration key: '%s'", key));
+        if (value == null) return null;
+
+        int commentIndex = value.indexOf('#');
+        if (commentIndex != -1) {
+            value = value.substring(0, commentIndex);
         }
         return value.trim();
     }
