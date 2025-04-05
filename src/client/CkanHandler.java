@@ -16,6 +16,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
+// import java.io.UncheckedIOException; // Alternative for wrapping IOException
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
@@ -152,10 +153,19 @@ public final class CkanHandler { // Made class final
                     String boundary = "Boundary-" + UUID.randomUUID().toString();
                     requestBuilder.header("Content-Type", "multipart/form-data; boundary=" + boundary);
 
-                    // Use a supplier for the InputStream for the body publisher
-                    // This allows the HTTP client to potentially retry requests by getting a new stream
+                    // FIX 1: Handle potential IOException from buildMultipartStream inside the lambda
                     HttpRequest.BodyPublisher multipartBodyPublisher = HttpRequest.BodyPublishers.ofInputStream(
-() -> buildMultipartStream(boundary, data, uploadFieldName, fileToUpload)
+                            () -> {
+                                try {
+                                    // buildMultipartStream is declared with 'throws IOException'
+                                    return buildMultipartStream(boundary, data, uploadFieldName, fileToUpload);
+                                } catch (IOException e) {
+                                    // Wrap the checked IOException in an unchecked exception
+                                    logger.error("Failed to prepare multipart input stream for action {}: {}", action, e.getMessage(), e);
+                                    throw new RuntimeException("Failed to build multipart input stream: " + e.getMessage(), e);
+                                    // Alternatively use: throw new java.io.UncheckedIOException(e);
+                                }
+                            }
                     );
 
                     request = requestBuilder.uri(uri).POST(multipartBodyPublisher).build();
@@ -215,10 +225,18 @@ public final class CkanHandler { // Made class final
             logger.warn("CKAN request thread interrupted for action: {}", action);
             throw new CkanConnectionException("CKAN request interrupted for action " + action, e);
         }
+        // Catch RuntimeException from the lambda, if needed, although HttpClient might wrap it
+        catch (RuntimeException e) {
+            logger.error("Runtime error during CKAN request setup (potentially from stream supplier) for action {}: {}", action, e.getMessage(), e);
+            // Decide how to handle - maybe wrap in CkanException or let it propagate
+            // Wrapping might hide the original cause slightly but fits the exception hierarchy
+            throw new CkanException("Internal setup error during request for action " + action + ": " + e.getMessage(), e);
+        }
     }
 
 
     // Helper method to build the multipart InputStream for streaming uploads
+    // Declares throws IOException as it uses file operations
     private InputStream buildMultipartStream(String boundary, Map<String, Object> textParts, String fileFieldName, Path filePath) throws IOException {
         List<InputStream> streams = new ArrayList<>();
         byte[] boundaryBytes = ("--" + boundary + CRLF).getBytes(StandardCharsets.UTF_8);
@@ -244,13 +262,14 @@ public final class CkanHandler { // Made class final
         // Add file part
         streams.add(new ByteArrayInputStream(boundaryBytes)); // File part boundary
         String fileName = filePath.getFileName().toString();
+        // probeContentType can throw IOException
         String mimeType = Files.probeContentType(filePath);
         mimeType = (mimeType == null) ? "application/octet-stream" : mimeType;
         String fileHeader = String.format("Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"%s", fileFieldName, fileName, CRLF);
         fileHeader += String.format("Content-Type: %s%s%s", mimeType, CRLF, CRLF);
         streams.add(new ByteArrayInputStream(fileHeader.getBytes(StandardCharsets.UTF_8))); // File part headers
 
-        // Add the actual file stream - THIS IS THE KEY for streaming
+        // Add the actual file stream - Files.newInputStream can throw IOException
         streams.add(Files.newInputStream(filePath)); // The file content stream itself
         streams.add(new ByteArrayInputStream(crlfBytes)); // CRLF after file content
 
@@ -258,7 +277,6 @@ public final class CkanHandler { // Made class final
         streams.add(new ByteArrayInputStream(finalBoundaryBytes));
 
         // Chain all the streams together using SequenceInputStream
-        // Start with an empty stream to simplify the loop
         InputStream resultStream = new ByteArrayInputStream(new byte[0]);
         for (InputStream stream : streams) {
             resultStream = new SequenceInputStream(resultStream, stream);
@@ -425,7 +443,7 @@ public final class CkanHandler { // Made class final
     }
 
 
-    // --- Public CKAN Interaction Methods (Unchanged - rely on updated internal methods) ---
+    // --- Public CKAN Interaction Methods ---
 
     /** Checks if an organization exists in CKAN. */
     public Optional<Map<String, Object>> checkOrganizationExists(String orgIdOrName) throws CkanException, IOException {
@@ -474,9 +492,11 @@ public final class CkanHandler { // Made class final
                 // Use package_patch for partial updates (package_update replaces all fields)
                 sendRequest(ACTION_PACKAGE_PATCH, patchData, "POST", new TypeReference<Map<String, Object>>() {}); // Response often contains full package, map if needed
                 logger.debug("Updated notes for dataset '{}'.", datasetId);
-            } catch (IOException | CkanException patchErr) {
-                // Log warning but continue, failure to update notes shouldn't stop the process
-                logger.warn("Could not update metadata (notes) for existing dataset '{}': {}. Continuing.", datasetId, patchErr.getMessage(), patchErr);
+                // FIX 2: Use separate catch blocks for disjoint exception handling
+            } catch (CkanException patchErr) { // Catch specific CKAN errors first
+                logger.warn("Could not update metadata (notes) for existing dataset '{}' via CKAN API: {}. Continuing.", datasetId, patchErr.getMessage(), patchErr);
+            } catch (IOException patchErr) { // Catch broader IO errors (network, etc.)
+                logger.warn("Could not update metadata (notes) for existing dataset '{}' due to IO error: {}. Continuing.", datasetId, patchErr.getMessage(), patchErr);
             }
             return existingPackage;
 
@@ -534,7 +554,7 @@ public final class CkanHandler { // Made class final
         }
     }
 
-    /** Uploads a file as a new resource or updates an existing resource if existingResourceId is provided. */
+    /** Uploads a file as a new resource or updates an existing resource if existingResourceId is provided. Uses streaming for large files. */
     public Map<String, Object> uploadOrUpdateResource(String packageId, Path filePath, String resourceName, String description, String format, String existingResourceId) throws CkanException, IOException {
         boolean isUpdate = (existingResourceId != null && !existingResourceId.isBlank());
         String action = isUpdate ? ACTION_RESOURCE_UPDATE : ACTION_RESOURCE_CREATE;
@@ -564,8 +584,4 @@ public final class CkanHandler { // Made class final
         return result; // Return the CKAN response (usually details of the created/updated resource)
     }
 
-    // CkanUnexpectedNullResultException definition remains the same, local to this class usage context if preferred
-    // Alternatively keep it in CkanExceptions.java as before. Keeping it there is likely cleaner.
-    // If kept here, it should be static.
-    // public static final class CkanUnexpectedNullResultException extends CkanException { public CkanUnexpectedNullResultException(String message) { super(message); } }
 }

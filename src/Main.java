@@ -1,5 +1,3 @@
-// Save as: src/Main.java
-
 import config.ConfigLoader;
 import pipeline.Pipeline;
 import util.LoggingUtil;
@@ -9,7 +7,7 @@ import org.slf4j.Logger;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Objects; // Make sure Objects is imported if needed elsewhere
+// import java.util.Objects; // <-- FIX: Removed unused import
 
 /**
  * Main entry point for the CKAN Data Pipeline application.
@@ -23,10 +21,9 @@ public class Main {
 
     public static void main(String[] args) {
 
-        // FIX: Removed call to LoggingUtil.setupBasicLogging() as the method was removed.
-        // Logging initialization now relies entirely on the SLF4J binding finding
+        // Logging initialization relies entirely on the SLF4J binding finding
         // its configuration file (e.g., logback.xml, logging.properties) on the classpath.
-        // Ensure such a configuration file exists in src/main/resources.
+        // Ensure such a configuration file exists (e.g., in src/main/resources).
 
         logger.info("==================================================");
         logger.info("Starting CKAN Data Pipeline application...");
@@ -49,7 +46,7 @@ public class Main {
             config = new ConfigLoader(configFilePath);
 
             logger.info("Configuration loaded successfully.");
-            // Assumes getExecutionDir() getter exists in ConfigLoader
+            // NOTE: This relies on getExecutionDir() being added to ConfigLoader as per TODO
             logger.info("Effective execution directory: {}", config.getExecutionDir());
 
             // 2. Initialize Pipeline
@@ -76,17 +73,23 @@ public class Main {
             System.err.println("\nFATAL: An unexpected error occurred. Check logs for details.");
             System.err.println("Error Type: " + e.getClass().getName());
             System.err.println("Error Message: " + e.getMessage());
-            if (configFilePath != null) { System.err.println("Config file used: " + configFilePath); }
-            else if (args.length > 0) { System.err.println("Config file argument: " + args[0]); }
-            else { System.err.println("Config file: config.properties (default)"); }
+            // Provide context about the config file used
+            if (configFilePath != null) {
+                System.err.println("Config file used: " + configFilePath);
+            } else if (args.length > 0) {
+                System.err.println("Config file argument: " + args[0]);
+            } else {
+                System.err.println("Config file: config.properties (default)");
+            }
             logger.info("==================================================");
             System.exit(1); // General error exit code
         }
     }
-    // --- TODO: Ensure ConfigLoader.java has ---
+    // --- TODO: Ensure ConfigLoader.java has the getExecutionDir() method ---
     /*
+    // Add this public getter method to your ConfigLoader.java class:
     public Path getExecutionDir() {
-        return executionDir;
+        return executionDir; // Assuming 'executionDir' is the instance field holding the path
     }
     */
-}
+} // End of Main class
