@@ -5,26 +5,42 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.yourcompany</groupId>
-    <artifactId>your-project-name</artifactId>
-    <version>1.0.0-SNAPSHOT</version> <name>Your Project Name</name>
-    <description>A brief description of your project.</description>
+    <artifactId>metadata-extractor-example</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <name>Metadata Extractor Example</name>
+    <description>An example project demonstrating metadata extraction with Apache Tika.</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <java.version>21</java.version>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <java.version>17</java.version> <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
 
-        <jackson.version>2.17.0</jackson.version> <commons-io.version>2.16.1</commons-io.version> <guava.version>33.1.0-jre</guava.version>   <slf4j.version>2.0.13</slf4j.version>      <junit.jupiter.version>5.10.2</junit.jupiter.version> <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <tika.version>2.9.2</tika.version> <jackson.version>2.17.0</jackson.version>
+        <commons-io.version>2.16.1</commons-io.version>
+        <guava.version>33.1.0-jre</guava.version>
+        <slf4j.version>2.0.13</slf4j.version>
+        <junit.jupiter.version>5.10.2</junit.jupiter.version>
+
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
         <maven-jar-plugin.version>3.4.1</maven-jar-plugin.version>
-
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.apache.tika</groupId>
+                <artifactId>tika-core</artifactId>
+                <version>${tika.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tika</groupId>
+                <artifactId>tika-parsers-standard-package</artifactId>
+                <version>${tika.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
@@ -47,9 +63,9 @@
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-jdk14</artifactId>
-                <version>${slf4j.version}</version>
+                <artifactId>slf4j-jdk14</artifactId> <version>${slf4j.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-api</artifactId>
@@ -67,6 +83,24 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-parsers-standard-package</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-langdetect-optimaize</artifactId>
+            <version>2.9.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
+            <scope>runtime</scope> </dependency>
+        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
@@ -82,10 +116,7 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-jdk14</artifactId>
-        </dependency>
+
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
