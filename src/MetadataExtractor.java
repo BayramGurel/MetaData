@@ -1,3 +1,4 @@
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.tika.exception.TikaException;
@@ -11,15 +12,13 @@ import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.Parser;
 import org.apache.tika.sax.BodyContentHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -29,145 +28,241 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
+// --- Data Transfer Objects / Result Classes ---
 
 /**
- * Extracts metadata from files and formats it for CKAN resource creation.
- * This class is designed to be reusable and extensible, following object-oriented principles.
+ * Represents the successfully extracted and formatted metadata for a single resource.
+ * Uses a Map internally for flexibility but provides a dedicated class structure.
  */
-public class MetadataExtractor {
+class CkanResource {
+    private final Map<String, Object> data;
 
-    private static final Logger logger = LoggerFactory.getLogger(MetadataExtractor.class);
+    public CkanResource(Map<String, Object> data) {
+        this.data = Collections.unmodifiableMap(new HashMap<>(data)); // Make immutable copy
+    }
 
-    // Constants for frequently used values
+    public Map<String, Object> getData() {
+        return data;
+    }
+    // Add getters for specific fields if needed
+}
+
+/**
+ * Represents an error encountered during processing a specific source entry.
+ */
+class ProcessingError {
+    private final String source;
+    private final String error;
+
+    public ProcessingError(String source, String error) {
+        this.source = source;
+        this.error = error;
+    }
+
+    public String getSource() { return source; }
+    public String getError() { return error; }
+
+    // Convert to Map for easy serialization if needed, though ObjectMapper handles POJOs
+    public Map<String, String> toMap() {
+        return Map.of("source", source, "error", error);
+    }
+}
+
+/**
+ * Represents a file/entry that was ignored based on filtering rules.
+ */
+class IgnoredEntry {
+    private final String source;
+    private final String reason;
+
+    public IgnoredEntry(String source, String reason) {
+        this.source = source;
+        this.reason = reason;
+    }
+
+    public String getSource() { return source; }
+    public String getReason() { return reason; }
+
+    public Map<String, String> toMap() {
+        return Map.of("source", source, "reason", reason);
+    }
+}
+
+/**
+ * Encapsulates the overall result of a processing operation.
+ */
+class ProcessingReport {
+    private final List<CkanResource> results;
+    private final List<ProcessingError> errors;
+    private final List<IgnoredEntry> ignored;
+
+    public ProcessingReport(List<CkanResource> results, List<ProcessingError> errors, List<IgnoredEntry> ignored) {
+        // Use unmodifiable lists to ensure the report itself is immutable after creation
+        this.results = Collections.unmodifiableList(new ArrayList<>(results));
+        this.errors = Collections.unmodifiableList(new ArrayList<>(errors));
+        this.ignored = Collections.unmodifiableList(new ArrayList<>(ignored));
+    }
+
+    public List<CkanResource> getResults() { return results; }
+    public List<ProcessingError> getErrors() { return errors; }
+    public List<IgnoredEntry> getIgnored() { return ignored; }
+}
+
+
+// --- Interfaces for Components ---
+
+/**
+ * Interface for determining if a file/entry is relevant for processing.
+ */
+interface IFileTypeFilter {
+    boolean isFileTypeRelevant(String entryName);
+}
+
+/**
+ * Interface for extracting metadata and text content from an input stream.
+ */
+interface IMetadataProvider {
+    /** Represents combined metadata and text */
+    class ExtractionOutput {
+        final Metadata metadata;
+        final String text;
+        ExtractionOutput(Metadata m, String t) { this.metadata = m; this.text = t; }
+    }
+    ExtractionOutput extract(InputStream inputStream, int maxTextLength) throws IOException, TikaException, SAXException;
+}
+
+/**
+ * Interface for formatting extracted metadata into a CKAN resource structure.
+ */
+interface ICkanResourceFormatter {
+    CkanResource format(String entryName, Metadata metadata, String text, String sourceIdentifier);
+}
+
+/**
+ * Interface for processing a source (file or archive).
+ */
+interface ISourceProcessor {
+    void processSource(Path sourcePath, String containerPath, List<CkanResource> results, List<ProcessingError> errors, List<IgnoredEntry> ignored) throws IOException;
+}
+
+
+// --- Default Implementations ---
+
+/**
+ * Default implementation using file extensions, prefixes, and names.
+ */
+class DefaultFileTypeFilter implements IFileTypeFilter {
+    private static final Set<String> IGNORED_EXTENSIONS = Set.of(
+            ".ds_store", "thumbs.db", ".tmp", ".bak", ".lock",
+            ".freelist", ".gdbindexes", ".gdbtablx", ".atx", ".spx", ".horizon", // ESRI GDB internals
+            ".cdx", ".fpt" // dBase/FoxPro/Turboveg index/memo files (keep .dbf)
+    );
+    private static final List<String> IGNORED_PREFIXES = List.of("~", "._");
+    private static final List<String> IGNORED_FILENAMES = List.of("gdb");
+
+    @Override
+    public boolean isFileTypeRelevant(String entryName) {
+        if (entryName == null || entryName.isEmpty()) {
+            return false;
+        }
+        String filename = getFilenameFromEntry(entryName).toLowerCase();
+        if (filename.isEmpty()) return false; // Ignore entries that resolve to empty filename
+
+        for (String prefix : IGNORED_PREFIXES) {
+            if (filename.startsWith(prefix)) return false;
+        }
+        if (IGNORED_FILENAMES.contains(filename)) return false;
+
+        int lastDot = filename.lastIndexOf('.');
+        if (lastDot > 0 && lastDot < filename.length() - 1) {
+            String extension = filename.substring(lastDot);
+            if (IGNORED_EXTENSIONS.contains(extension)) return false;
+        } else if (lastDot == -1 && IGNORED_FILENAMES.contains(filename)) {
+            return false; // Handle case like 'gdb' with no extension
+        }
+
+        return true; // Relevant if no ignore rule matched
+    }
+
+    private String getFilenameFromEntry(String entryName) {
+        if (entryName == null) return "";
+        String normalizedName = entryName.replace('\\', '/');
+        int lastSlash = normalizedName.lastIndexOf('/');
+        return (lastSlash >= 0) ? normalizedName.substring(lastSlash + 1) : normalizedName;
+    }
+}
+
+/**
+ * Default implementation using Apache Tika.
+ */
+class TikaMetadataProvider implements IMetadataProvider {
+    private final Parser tikaParser;
+
+    public TikaMetadataProvider() {
+        this.tikaParser = new AutoDetectParser(); // Initialize Tika parser
+    }
+
+    public TikaMetadataProvider(Parser parser) {
+        this.tikaParser = Objects.requireNonNull(parser, "Tika Parser cannot be null");
+    }
+
+    @Override
+    public ExtractionOutput extract(InputStream inputStream, int maxTextLength) throws IOException, TikaException, SAXException {
+        BodyContentHandler handler = new BodyContentHandler(maxTextLength);
+        Metadata metadata = new Metadata();
+        ParseContext context = new ParseContext();
+        try {
+            tikaParser.parse(inputStream, handler, metadata, context);
+        } catch (Exception e) {
+            // Consider logging here if a logging framework was used
+            System.err.println("Error during Tika parsing: " + e.getMessage());
+            if (e instanceof TikaException) throw (TikaException) e;
+            if (e instanceof SAXException) throw (SAXException) e;
+            if (e instanceof IOException) throw (IOException) e;
+            throw new TikaException("Tika parsing failed unexpectedly", e);
+        }
+        return new ExtractionOutput(metadata, handler.toString());
+    }
+}
+
+/**
+ * Default implementation formatting data for CKAN.
+ */
+class DefaultCkanResourceFormatter implements ICkanResourceFormatter {
+
     private static final DateTimeFormatter ISO8601_FORMATTER = DateTimeFormatter.ISO_INSTANT;
     private static final String PLACEHOLDER_URI = "urn:placeholder:vervang-mij";
     private static final Pattern TITLE_PREFIX_PATTERN = Pattern.compile(
             "^(Microsoft Word - |Microsoft Excel - |PowerPoint Presentation - |Adobe Acrobat - )",
             Pattern.CASE_INSENSITIVE);
-    private static final int MAX_TEXT_SAMPLE_LENGTH = 10000; // Define a constant for max text sample
+    private final LanguageDetector languageDetector; // Inject or initialize
 
-    private final LanguageDetector languageDetector;
-    private final ObjectMapper objectMapper; // Use a single ObjectMapper instance
-
-    /**
-     * Constructor for MetadataExtractor.  Initializes the language detector and ObjectMapper.
-     */
-    public MetadataExtractor() {
-        this.languageDetector = initializeLanguageDetector();
-        this.objectMapper = new ObjectMapper();
-        this.objectMapper.enable(SerializationFeature.INDENT_OUTPUT); // Configure ObjectMapper once
+    // Constructor allowing injection or default initialization
+    public DefaultCkanResourceFormatter(LanguageDetector languageDetector) {
+        this.languageDetector = languageDetector; // Can be null if detection disabled/failed
     }
 
-    /**
-     * Initializes the language detector.  Handles potential errors during initialization.
-     * @return The initialized LanguageDetector, or null if initialization fails.
-     */
-    private LanguageDetector initializeLanguageDetector() {
-        try {
-            return OptimaizeLangDetector.getDefaultLanguageDetector().loadModels();
-        } catch (IOException e) {
-            logger.warn("Language detection models not found or could not be loaded. Language detection is disabled. Error: {}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Main method for the MetadataExtractor.  Demonstrates usage by extracting metadata
-     * from a sample file and printing the JSON output.
-     * @param args Command line arguments (not used).
-     */
-    public static void main(String[] args) {
-        String filePath = "C:\\Users\\gurelb\\Downloads\\datawarehouse\\Veg kartering - habitatkaart 2021-2023\\Veg kartering - habitatkaart 2021-2023\\PZH_WestduinparkEnWapendal_2023_HabitatRapport.pdf"; // Replace with a valid file path
-        MetadataExtractor extractor = new MetadataExtractor();
-        try {
-            String jsonOutput = extractor.extractResourceMetadataToJson(filePath);
-            System.out.println(jsonOutput);
-        } catch (Exception e) {
-            logger.error("Error extracting metadata: {}", e.getMessage(), e); // Use SLF4J for logging
-        }
-    }
-
-    /**
-     * Extracts metadata from a file and returns it as a JSON string, formatted for CKAN.
-     * This is the primary entry point for using the class.
-     * @param filePath The path to the file to process.
-     * @return A JSON string representing the extracted metadata in CKAN format.
-     * @throws IOException If an error occurs while reading the file.
-     * @throws TikaException If Tika fails to parse the file.
-     * @throws SAXException If an error occurs during XML processing (unlikely with AutoDetectParser).
-     */
-    public String extractResourceMetadataToJson(String filePath) throws IOException, TikaException, SAXException {
-        Path path = Paths.get(filePath);
-        if (!Files.exists(path)) {
-            throw new IOException("File not found: " + filePath);
-        }
-        Metadata metadata = extractMetadata(path);
-        String text = extractText(path);
-        Map<String, Object> ckanResourceData = createCkanResourceData(path, metadata, text);
-        return objectMapper.writeValueAsString(ckanResourceData);
-    }
-
-    /**
-     * Extracts metadata from a file using Apache Tika.
-     * @param path The path to the file.
-     * @return A Metadata object containing the extracted metadata.
-     * @throws IOException If an error occurs while reading the file.
-     * @throws TikaException If Tika fails to parse the file.
-     * @throws SAXException If an error occurs during XML processing.
-     */
-    private Metadata extractMetadata(Path path) throws IOException, TikaException, SAXException {
-        Parser parser = new AutoDetectParser();
-        Metadata metadata = new Metadata();
-        try (InputStream stream = Files.newInputStream(path)) {
-            parser.parse(stream, new BodyContentHandler(-1), metadata, new ParseContext());
-        }
-        return metadata;
-    }
-
-    /**
-     * Extracts text content from a file using Apache Tika.
-     * @param path The path to the file.
-     * @return The extracted text content.
-     * @throws IOException If an error occurs while reading the file.
-     * @throws TikaException If Tika fails to parse the file.
-     * @throws SAXException If an error occurs during XML processing.
-     */
-    private String extractText(Path path) throws IOException, TikaException, SAXException {
-        Parser parser = new AutoDetectParser();
-        BodyContentHandler handler = new BodyContentHandler(-1);
-        Metadata textMetadata = new Metadata(); // Not strictly needed, but good practice
-        try (InputStream stream = Files.newInputStream(path)) {
-            parser.parse(stream, handler, textMetadata, new ParseContext());
-        }
-        return handler.toString();
-    }
-
-    /**
-     * Creates a Map representing the CKAN Resource structure based on extracted metadata.
-     * Includes title cleaning.
-     * @param path The path object of the file being processed.
-     * @param metadata The extracted Tika metadata object.
-     * @param text The extracted text content (primarily used for language detection).
-     * @return A Map structured for a CKAN Resource API call (includes placeholders).
-     */
-    private Map<String, Object> createCkanResourceData(Path path, Metadata metadata, String text) {
+    @Override
+    public CkanResource format(String entryName, Metadata metadata, String text, String sourceIdentifier) {
         Map<String, Object> resourceData = new HashMap<>();
         List<Map<String, String>> extras = new ArrayList<>();
 
         // --- CKAN Resource Core Fields ---
-        resourceData.put("__comment_mandatory__", "package_id (CKAN Dataset ID) and url (Public File URL) MUST be provided externally.");
+        resourceData.put("__comment_mandatory__", "package_id and url MUST be provided externally.");
         resourceData.put("package_id", "PLACEHOLDER_-_NEEDS_PARENT_DATASET_ID_OR_NAME_FROM_CKAN");
         resourceData.put("url", "PLACEHOLDER_-_NEEDS_PUBLIC_URL_AFTER_UPLOAD_TO_CKAN_OR_SERVER");
 
-        // Resource Name: Extract title, clean it, then use filename as fallback.
         String originalTitle = getMetadataValue(metadata, TikaCoreProperties.TITLE);
         String cleanedTitle = cleanTitle(originalTitle);
-        resourceData.put("name", (cleanedTitle != null ? cleanedTitle : path.getFileName().toString()));
+        String resourceName = Optional.ofNullable(cleanedTitle)
+                .orElse(Optional.ofNullable(originalTitle)
+                        .orElse(getFilenameFromEntry(entryName)));
+        resourceData.put("name", resourceName);
+        resourceData.put("description", "PLACEHOLDER_-_Add_a_meaningful_summary_here.");
 
-        // Resource Description: Placeholder explaining manual input is usually needed.
-        resourceData.put("description", "PLACEHOLDER_-_Add_a_meaningful_summary_here._Automatic_extraction_is_not_feasible.");
-
-        // Format, created, last_modified
         String contentType = getMetadataValue(metadata, Metadata.CONTENT_TYPE);
         resourceData.put("format", mapContentTypeToSimpleFormat(contentType));
         formatIso8601DateTime(metadata.get(TikaCoreProperties.CREATED))
@@ -175,17 +270,18 @@ public class MetadataExtractor {
         formatIso8601DateTime(metadata.get(TikaCoreProperties.MODIFIED))
                 .ifPresent(d -> resourceData.put("last_modified", d));
 
-        // --- CKAN Extras (Key-Value Pairs) ---
-        // Add original (uncleaned) title to extras if it was present and cleaned
+        // --- CKAN Extras ---
+        addExtra(extras, "source_identifier", sourceIdentifier);
         if (originalTitle != null && !originalTitle.equals(cleanedTitle)) {
             addExtra(extras, "original_extracted_title", originalTitle);
         }
-
-        addExtra(extras, "original_filename", path.toString());
+        String originalEntryFilename = getFilenameFromEntry(entryName);
+        if (!originalEntryFilename.equals(resourceName)) {
+            addExtra(extras, "original_entry_name", originalEntryFilename);
+        }
         addExtra(extras, "creator", getMetadataValue(metadata, TikaCoreProperties.CREATOR));
-        // Add creator_tool (TikaCoreProperties) if different from the cleaned title derived value
         String creatorTool = getMetadataValue(metadata, TikaCoreProperties.CREATOR_TOOL);
-        if (creatorTool != null && !creatorTool.equalsIgnoreCase(originalTitle)) {
+        if (creatorTool != null) {
             addExtra(extras, "creator_tool", creatorTool);
         }
         addExtra(extras, "producer", getMetadataValue(metadata, "producer"));
@@ -195,7 +291,7 @@ public class MetadataExtractor {
         addExtra(extras, "pdf_version", getMetadataValue(metadata, "pdf:PDFVersion"));
         addExtra(extras, "page_count", getMetadataValue(metadata, "xmpTPg:NPages"));
 
-        detectLanguage(text)
+        detectLanguage(text, 10000) // Use constant or config for sample length
                 .filter(LanguageResult::isReasonablyCertain)
                 .ifPresentOrElse(
                         langResult -> addExtra(extras, "language_uri", mapLanguageCodeToNalUri(langResult.getLanguage())),
@@ -204,12 +300,9 @@ public class MetadataExtractor {
 
         resourceData.put("extras", extras);
 
-        // --- Hints for Parent Dataset ---
+        // --- Dataset Hints ---
         Map<String, Object> datasetHints = new HashMap<>();
-        // Use the CLEANED title as the suggestion for the dataset title
-        if (cleanedTitle != null) {
-            datasetHints.put("potential_dataset_title_suggestion", cleanedTitle);
-        }
+        datasetHints.put("potential_dataset_title_suggestion", resourceName);
         String[] subjects = metadata.getValues(DublinCore.SUBJECT);
         if (subjects != null && subjects.length > 0) {
             datasetHints.put("potential_dataset_tags", Arrays.stream(subjects)
@@ -221,236 +314,378 @@ public class MetadataExtractor {
         resourceData.put("__comment_dataset_hints__", "These fields might help populate the parent Dataset");
         resourceData.put("dataset_hints", datasetHints);
 
-        return resourceData;
+        return new CkanResource(resourceData);
     }
 
-    /**
-     * Cleans a potential title string extracted from metadata.
-     * Removes common application prefixes and replaces underscores with spaces.
-     * @param title The raw title string.
-     * @return The cleaned title string, or null if the input was null/empty.
-     */
+    // --- Helper methods specific to formatting ---
+    private String getFilenameFromEntry(String entryName) {
+        if (entryName == null) return "";
+        String normalizedName = entryName.replace('\\', '/');
+        int lastSlash = normalizedName.lastIndexOf('/');
+        return (lastSlash >= 0) ? normalizedName.substring(lastSlash + 1) : normalizedName;
+    }
     private String cleanTitle(String title) {
-        if (title == null || title.trim().isEmpty()) {
-            return null;
-        }
-        String cleaned = title;
-        // Remove known prefixes using regex (case-insensitive)
-        cleaned = TITLE_PREFIX_PATTERN.matcher(cleaned).replaceFirst("");
-        // Replace underscores with spaces
+        if (title == null || title.trim().isEmpty()) return null;
+        String cleaned = TITLE_PREFIX_PATTERN.matcher(title).replaceFirst("");
         cleaned = cleaned.replace('_', ' ');
-        // Replace multiple spaces with a single space
         cleaned = cleaned.replaceAll("\\s+", " ").trim();
-
         return cleaned.isEmpty() ? null : cleaned;
     }
-
-    /**
-     * Adds a key-value pair to the 'extras' list, if the value is not null or empty.
-     * @param extras The list of extra metadata key-value pairs.
-     * @param key The key of the extra metadata.
-     * @param value The value of the extra metadata.
-     */
     private void addExtra(List<Map<String, String>> extras, String key, String value) {
         if (value != null && !value.trim().isEmpty()) {
-            Map<String, String> extra = new HashMap<>();
-            extra.put("key", key);
-            extra.put("value", value.trim());
-            extras.add(extra);
+            extras.add(Map.of("key", key, "value", value.trim()));
         }
     }
-
-    /**
-     * Retrieves a metadata value from the Metadata object, handling null and empty values.
-     * @param metadata The Metadata object.
-     * @param property The Tika Property to retrieve.
-     * @return The trimmed metadata value, or null if the property is not set or empty.
-     */
     private String getMetadataValue(Metadata metadata, org.apache.tika.metadata.Property property) {
         String value = metadata.get(property);
         return (value != null && !value.trim().isEmpty()) ? value.trim() : null;
     }
-
-    /**
-     * Retrieves a metadata value from the Metadata object, handling null and empty values.
-     * @param metadata The Metadata object.
-     * @param key The key of the metadata to retrieve.
-     * @return The trimmed metadata value, or null if the key is not set or empty.
-     */
     private String getMetadataValue(Metadata metadata, String key) {
         String value = metadata.get(key);
         return (value != null && !value.trim().isEmpty()) ? value.trim() : null;
     }
-
-    /**
-     * Maps a content type string to a simplified, uppercase format string.
-     * @param contentType The content type string (e.g., "application/pdf").
-     * @return A simplified format string (e.g., "PDF"), or "Unknown" if the mapping fails.
-     */
-    private String mapContentTypeToSimpleFormat(String contentType) {
-        return Optional.ofNullable(contentType)
-                .filter(c -> !c.isBlank())
-                .map(c -> c.toLowerCase().split(";")[0].trim())
-                .map(lowerType -> {
-                    // Use a switch expression for more concise mapping
-                    return switch (lowerType) {
-                        case "application/pdf" -> "PDF";
-                        case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> "DOCX";
-                        case "application/msword" -> "DOC";
-                        case "text/plain" -> "TXT";
-                        case "text/csv" -> "CSV";
-                        case "application/vnd.ms-excel" -> "XLS";
-                        case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> "XLSX";
-                        case "application/zip" -> "ZIP";
-                        case "image/jpeg", "image/jpg" -> "JPEG"; // Combine cases
-                        case "image/png" -> "PNG";
-                        case "image/gif" -> "GIF";
-                        case "application/json" -> "JSON";
-                        case "application/xml", "text/xml" -> "XML"; // Combine cases
-                        case "application/shp", "application/x-shapefile" -> "SHP"; // Combine cases
-                        case "application/vnd.google-earth.kml+xml" -> "KML";
-                        case "application/geopackage+sqlite3" -> "GPKG";
-                        default -> lowerType.toUpperCase();
-                    };
-                })
-                .orElse("Unknown");
-    }
-
-    /**
-     * Parses a date/time string into an Instant object, trying multiple formats.
-     * Uses Optional to handle parsing failures more cleanly.
-     * @param dateTime The date/time string to parse.
-     * @return An Optional containing the parsed Instant, or empty if parsing fails.
-     */
-    private Optional<Instant> parseToInstant(String dateTime) {
-        if (dateTime == null || dateTime.trim().isEmpty()) {
-            return Optional.empty();
-        }
-        // Try parsing with different formats
-        try { return Optional.of(OffsetDateTime.parse(dateTime, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant()); } catch (DateTimeParseException ignored) {}
-        try { return Optional.of(ZonedDateTime.parse(dateTime, DateTimeFormatter.ISO_ZONED_DATE_TIME).toInstant()); } catch (DateTimeParseException ignored) {}
-        try { return Optional.of(Instant.parse(dateTime)); } catch (DateTimeParseException ignored) {}
-        try { return Optional.of(java.time.LocalDateTime.parse(dateTime, DateTimeFormatter.ISO_LOCAL_DATE_TIME).atZone(ZoneId.systemDefault()).toInstant()); } catch (DateTimeParseException ignored) {}
-        try { return Optional.of(java.time.LocalDate.parse(dateTime, DateTimeFormatter.ISO_LOCAL_DATE).atStartOfDay(ZoneId.systemDefault()).toInstant()); } catch (DateTimeParseException ignored) {}
-
-        logger.warn("Could not parse date/time string to Instant: {}", dateTime);
-        return Optional.empty();
-    }
-
-    /**
-     * Formats an Instant object as an ISO 8601 date/time string.
-     * Uses Optional to handle null instants.
-     * @param instant The Instant object to format.
-     * @return An Optional containing the formatted ISO 8601 string, or empty if the input is null.
-     */
-    private Optional<String> formatInstantToIso8601(Instant instant) {
-        return Optional.ofNullable(instant).map(ISO8601_FORMATTER::format);
-    }
-
-    /**
-     * Formats a date/time string (in any parsable format) as an ISO 8601 string.
-     * Uses Optional chaining for a more functional style.
-     * @param dateTime The date/time string to format.
-     * @return An Optional containing the formatted ISO 8601 string, or empty if parsing or formatting fails.
-     */
     private Optional<String> formatIso8601DateTime(String dateTime) {
         return parseToInstant(dateTime).flatMap(this::formatInstantToIso8601);
     }
-
-    /**
-     * Maps a content type to its corresponding IANA URI.
-     * @param contentType The content type string.
-     * @return The IANA URI, or a placeholder URI if no mapping is found.
-     */
-    private String mapContentTypeToIanaUri(String contentType) {
-        return Optional.ofNullable(contentType)
-                .filter(c -> !c.isBlank())
-                .map(c -> c.toLowerCase().split(";")[0].trim())
-                .map(lowerType -> {
-                    // Use a switch expression for more concise mapping
-                    return switch (lowerType) {
-                        case "application/pdf" -> "https://www.iana.org/assignments/media-types/application/pdf";
-                        case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ->
-                                "https://www.iana.org/assignments/media-types/application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-                        case "application/msword" -> "https://www.iana.org/assignments/media-types/application/msword";
-                        case "text/plain" -> "https://www.iana.org/assignments/media-types/text/plain";
-                        case "text/csv" -> "https://www.iana.org/assignments/media-types/text/csv";
-                        case "image/jpeg", "image/jpg" -> "https://www.iana.org/assignments/media-types/image/jpeg";
-                        case "image/png" -> "https://www.iana.org/assignments/media-types/image/png";
-                        case "image/gif" -> "https://www.iana.org/assignments/media-types/image/gif";
-                        default ->
-                                PLACEHOLDER_URI + "-iana-" + lowerType.replaceAll("[^a-zA-Z0-9]", "-"); // Sanitize
-                    };
-                })
-                .orElse(PLACEHOLDER_URI + "-iana-unknown");
-    }
-
-    /**
-     * Maps a content type to its corresponding EU file type URI.
-     * @param contentType The content type string.
-     * @return The EU file type URI, or a placeholder URI if no mapping is found.
-     */
-    private String mapContentTypeToEuFileTypeUri(String contentType) {
-        return Optional.ofNullable(contentType)
-                .filter(c -> !c.isBlank())
-                .map(c -> c.toLowerCase().split(";")[0].trim())
-                .map(lowerType -> {
-                    // Use a switch expression for more concise mapping
-                    return switch (lowerType) {
-                        case "application/pdf" -> "http://publications.europa.eu/resource/authority/file-type/PDF";
-                        case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ->
-                                "http://publications.europa.eu/resource/authority/file-type/DOCX";
-                        case "application/msword" -> "http://publications.europa.eu/resource/authority/file-type/DOC";
-                        case "text/plain" -> "http://publications.europa.eu/resource/authority/file-type/TXT";
-                        case "text/csv" -> "http://publications.europa.eu/resource/authority/file-type/CSV";
-                        case "image/jpeg", "image/jpg" -> "http://publications.europa.eu/resource/authority/file-type/JPEG";
-                        case "image/png" -> "http://publications.europa.eu/resource/authority/file-type/PNG";
-                        case "image/gif" -> "http://publications.europa.eu/resource/authority/file-type/GIF";
-                        default ->
-                                PLACEHOLDER_URI + "-eu-filetype-" + lowerType.replaceAll("[^a-zA-Z0-9]", "-"); // Sanitize
-                    };
-                })
-                .orElse(PLACEHOLDER_URI + "-eu-filetype-unknown");
-    }
-
-    /**
-     * Maps a language code to its corresponding NAL (Named Authority List) URI.
-     * @param langCode The language code (e.g., "en", "nl").
-     * @return The NAL URI, or a default URI if no mapping is found.
-     */
-    private String mapLanguageCodeToNalUri(String langCode) {
-        if (langCode == null || langCode.isBlank()) {
-            return "http://publications.europa.eu/resource/authority/language/UND";
+    private Optional<Instant> parseToInstant(String dateTime) {
+        if (dateTime == null || dateTime.trim().isEmpty()) return Optional.empty();
+        List<DateTimeFormatter> formatters = Arrays.asList(
+                DateTimeFormatter.ISO_OFFSET_DATE_TIME, DateTimeFormatter.ISO_ZONED_DATE_TIME,
+                DateTimeFormatter.ISO_INSTANT, DateTimeFormatter.ISO_LOCAL_DATE_TIME,
+                DateTimeFormatter.ISO_LOCAL_DATE);
+        for (DateTimeFormatter formatter : formatters) {
+            try {
+                if (formatter == DateTimeFormatter.ISO_LOCAL_DATE_TIME) return Optional.of(java.time.LocalDateTime.parse(dateTime, formatter).atZone(ZoneId.systemDefault()).toInstant());
+                if (formatter == DateTimeFormatter.ISO_LOCAL_DATE) return Optional.of(java.time.LocalDate.parse(dateTime, formatter).atStartOfDay(ZoneId.systemDefault()).toInstant());
+                if (formatter == DateTimeFormatter.ISO_INSTANT) return Optional.of(Instant.parse(dateTime));
+                if (formatter == DateTimeFormatter.ISO_ZONED_DATE_TIME) return Optional.of(ZonedDateTime.parse(dateTime, formatter).toInstant());
+                if (formatter == DateTimeFormatter.ISO_OFFSET_DATE_TIME) return Optional.of(OffsetDateTime.parse(dateTime, formatter).toInstant());
+            } catch (DateTimeParseException ignored) {}
         }
-        // Use a switch expression for more concise mapping
-        return switch (langCode.toLowerCase()) {
-            case "nl" -> "http://publications.europa.eu/resource/authority/language/NLD";
-            case "en" -> "http://publications.europa.eu/resource/authority/language/ENG";
-            case "de" -> "http://publications.europa.eu/resource/authority/language/DEU";
-            case "fr" -> "http://publications.europa.eu/resource/authority/language/FRA";
-            case "und" -> "http://publications.europa.eu/resource/authority/language/UND";
-            default -> "http://publications.europa.eu/resource/authority/language/MUL";
+        System.err.println("Warning: Could not parse date/time: " + dateTime); return Optional.empty();
+    }
+    private Optional<String> formatInstantToIso8601(Instant instant) {
+        return Optional.ofNullable(instant).map(ISO8601_FORMATTER::format);
+    }
+    private String mapContentTypeToSimpleFormat(String contentType) {
+        return Optional.ofNullable(contentType).filter(c -> !c.isBlank()).map(c -> c.toLowerCase().split(";")[0].trim())
+                .map(lowerType -> switch (lowerType) {
+                    case "application/pdf" -> "PDF";
+                    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> "DOCX";
+                    case "application/msword" -> "DOC";
+                    case "application/vnd.openxmlformats-officedocument.presentationml.presentation" -> "PPTX";
+                    case "application/vnd.ms-powerpoint" -> "PPT";
+                    case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> "XLSX";
+                    case "application/vnd.ms-excel" -> "XLS";
+                    case "text/plain" -> "TXT"; case "text/csv" -> "CSV"; case "text/html" -> "HTML";
+                    case "application/rtf" -> "RTF";
+                    case "image/jpeg", "image/jpg" -> "JPEG"; case "image/png" -> "PNG"; case "image/gif" -> "GIF";
+                    case "image/tiff" -> "TIFF"; case "image/bmp" -> "BMP"; case "image/svg+xml" -> "SVG";
+                    case "application/zip" -> "ZIP"; case "application/gzip" -> "GZIP";
+                    case "application/x-rar-compressed" -> "RAR"; case "application/x-7z-compressed" -> "7Z";
+                    case "application/json" -> "JSON"; case "application/xml", "text/xml" -> "XML";
+                    case "application/shp", "application/x-shapefile" -> "SHP"; case "application/x-dbf" -> "DBF";
+                    case "application/vnd.google-earth.kml+xml" -> "KML";
+                    case "application/geopackage+sqlite3" -> "GPKG"; case "application/geo+json" -> "GEOJSON";
+                    default -> { int i = lowerType.lastIndexOf('/'); yield (i!=-1&&i<lowerType.length()-1)?lowerType.substring(i+1).toUpperCase().replaceAll("[^A-Z0-9]",""):lowerType.toUpperCase().replaceAll("[^A-Z0-9]",""); }
+                }).orElse("Unknown");
+    }
+    private String mapContentTypeToIanaUri(String contentType) {
+        return Optional.ofNullable(contentType).filter(c -> !c.isBlank()).map(c -> c.toLowerCase().split(";")[0].trim())
+                .map(lowerType -> switch (lowerType) {
+                    case "application/pdf" -> "https://www.iana.org/assignments/media-types/application/pdf";
+                    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> "https://www.iana.org/assignments/media-types/application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+                    case "application/msword" -> "https://www.iana.org/assignments/media-types/application/msword";
+                    case "text/plain" -> "https://www.iana.org/assignments/media-types/text/plain";
+                    case "text/csv" -> "https://www.iana.org/assignments/media-types/text/csv";
+                    case "image/jpeg" -> "https://www.iana.org/assignments/media-types/image/jpeg";
+                    case "image/png" -> "https://www.iana.org/assignments/media-types/image/png";
+                    case "image/gif" -> "https://www.iana.org/assignments/media-types/image/gif";
+                    case "application/zip" -> "https://www.iana.org/assignments/media-types/application/zip";
+                    case "application/json" -> "https://www.iana.org/assignments/media-types/application/json";
+                    case "application/xml" -> "https://www.iana.org/assignments/media-types/application/xml";
+                    case "text/xml" -> "https://www.iana.org/assignments/media-types/text/xml";
+                    case "application/shp", "application/x-shapefile" -> "https://www.iana.org/assignments/media-types/application/vnd.shp";
+                    case "application/x-dbf" -> "https://www.iana.org/assignments/media-types/application/vnd.dbf";
+                    default -> PLACEHOLDER_URI + "-iana-" + lowerType.replaceAll("[^a-zA-Z0-9]", "-");
+                }).orElse(PLACEHOLDER_URI + "-iana-unknown");
+    }
+    private String mapContentTypeToEuFileTypeUri(String contentType) {
+        final String EU_FT_BASE = "http://publications.europa.eu/resource/authority/file-type/";
+        return Optional.ofNullable(contentType).filter(c -> !c.isBlank()).map(c -> c.toLowerCase().split(";")[0].trim())
+                .map(lowerType -> switch (lowerType) {
+                    case "application/pdf" -> EU_FT_BASE + "PDF"; case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> EU_FT_BASE + "DOCX";
+                    case "application/msword" -> EU_FT_BASE + "DOC"; case "application/vnd.openxmlformats-officedocument.presentationml.presentation" -> EU_FT_BASE + "PPTX";
+                    case "application/vnd.ms-powerpoint" -> EU_FT_BASE + "PPT"; case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> EU_FT_BASE + "XLSX";
+                    case "application/vnd.ms-excel" -> EU_FT_BASE + "XLS"; case "text/plain" -> EU_FT_BASE + "TXT"; case "text/csv" -> EU_FT_BASE + "CSV";
+                    case "image/jpeg", "image/jpg" -> EU_FT_BASE + "JPEG"; case "image/png" -> EU_FT_BASE + "PNG"; case "image/gif" -> EU_FT_BASE + "GIF";
+                    case "image/tiff" -> EU_FT_BASE + "TIFF"; case "application/zip" -> EU_FT_BASE + "ZIP"; case "application/xml", "text/xml" -> EU_FT_BASE + "XML";
+                    case "application/shp", "application/x-shapefile" -> EU_FT_BASE + "SHP"; case "application/x-dbf" -> EU_FT_BASE + "DBF";
+                    default -> PLACEHOLDER_URI + "-eu-filetype-" + lowerType.replaceAll("[^a-zA-Z0-9]", "-");
+                }).orElse(PLACEHOLDER_URI + "-eu-filetype-unknown");
+    }
+    private Optional<LanguageResult> detectLanguage(String text, int maxSampleLength) {
+        if (this.languageDetector == null || text == null || text.trim().isEmpty()) return Optional.empty();
+        try {
+            String textSample = text.substring(0, Math.min(maxSampleLength, text.length()));
+            if (textSample.isBlank()) return Optional.empty();
+            return Optional.of(this.languageDetector.detect(textSample));
+        } catch (Exception e) {
+            System.err.println("Warning: Error during language detection: " + e.getMessage()); return Optional.empty();
+        }
+    }
+    private String mapLanguageCodeToNalUri(String langCode) {
+        final String EU_LANG_BASE = "http://publications.europa.eu/resource/authority/language/";
+        if (langCode == null || langCode.isBlank()) return EU_LANG_BASE + "UND";
+        String normCode = langCode.toLowerCase().split("-")[0];
+        return switch (normCode) {
+            case "nl"->"NLD"; case "en"->"ENG"; case "de"->"DEU"; case "fr"->"FRA";
+            case "es"->"SPA"; case "it"->"ITA"; case "und"->"UND"; default->"MUL";
+        }; // Simplified: assumes base URI prefix is handled elsewhere or concatenated
+        // Corrected version:
+        // return EU_LANG_BASE + switch (normCode) {
+        //     case "nl" -> "NLD"; case "en" -> "ENG"; case "de" -> "DEU"; case "fr" -> "FRA";
+        //     case "es" -> "SPA"; case "it" -> "ITA"; case "und" -> "UND"; default -> "MUL";
+        // };
+        // Re-correction - Need full URI
+        return EU_LANG_BASE + switch (normCode) {
+            case "nl" -> "NLD"; case "en" -> "ENG"; case "de" -> "DEU"; case "fr" -> "FRA";
+            case "es" -> "SPA"; case "it" -> "ITA"; case "und" -> "UND"; default -> "MUL";
         };
     }
+}
 
-    /**
-     * Detects the language of a text sample.
-     * @param text The text to analyze.
-     * @return An Optional containing the LanguageResult, or empty if language detection is disabled or fails.
-     */
-    private Optional<LanguageResult> detectLanguage(String text) {
-        if (this.languageDetector == null || text == null || text.trim().isEmpty()) {
-            return Optional.empty(); // Return empty Optional for null/empty text or disabled detector
-        }
-        try {
-            // Use the constant for max text sample length
-            String textSample = text.substring(0, Math.min(MAX_TEXT_SAMPLE_LENGTH, text.length()));
-            if (textSample.isBlank()) return Optional.empty();
-            LanguageResult result = this.languageDetector.detect(textSample);
-            return Optional.of(result);
-        } catch (Exception e) {
-            logger.warn("Error during language detection: {}", e.getMessage()); // Log the error
-            return Optional.empty();
+/**
+ * Processes ZIP archives, handling nesting and delegating file processing.
+ */
+class ZipSourceProcessor implements ISourceProcessor {
+    private static final Set<String> SUPPORTED_ZIP_EXTENSIONS = Set.of(".zip"); // Keep zip check local?
+
+    private final IFileTypeFilter fileFilter;
+    private final IMetadataProvider metadataProvider;
+    private final ICkanResourceFormatter resourceFormatter;
+    private final int maxTextLength; // Configurable text limit
+
+    public ZipSourceProcessor(IFileTypeFilter fileFilter, IMetadataProvider metadataProvider, ICkanResourceFormatter resourceFormatter, int maxTextLength) {
+        this.fileFilter = Objects.requireNonNull(fileFilter);
+        this.metadataProvider = Objects.requireNonNull(metadataProvider);
+        this.resourceFormatter = Objects.requireNonNull(resourceFormatter);
+        this.maxTextLength = maxTextLength;
+    }
+
+    @Override
+    public void processSource(Path zipPath, String containerPath, List<CkanResource> results, List<ProcessingError> errors, List<IgnoredEntry> ignored) throws IOException {
+        try (InputStream fis = Files.newInputStream(zipPath);
+             BufferedInputStream bis = new BufferedInputStream(fis);
+             ZipInputStream zis = new ZipInputStream(bis)) {
+
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                String entryName = entry.getName();
+                String fullEntryPath = containerPath + "!/" + entryName;
+
+                if (entry.isDirectory()) {
+                    zis.closeEntry(); continue;
+                }
+                if (!fileFilter.isFileTypeRelevant(entryName)) {
+                    ignored.add(new IgnoredEntry(fullEntryPath, "File type ignored by filter"));
+                    System.err.println("Ignoring entry based on filter: " + fullEntryPath);
+                    zis.closeEntry(); continue;
+                }
+
+                if (isZipEntryZip(entry)) {
+                    processNestedZip(entry, zis, fullEntryPath, results, errors, ignored);
+                } else {
+                    processRegularEntry(entryName, zis, fullEntryPath, results, errors);
+                }
+                zis.closeEntry(); // Ensure entry is closed before next iteration
+            }
+        } catch (IOException e) {
+            System.err.println("Error reading ZIP file '" + zipPath + "': " + e.getMessage());
+            // Add error for the container itself? Or rethrow? Rethrowing for now.
+            throw e;
         }
     }
+
+    private void processNestedZip(ZipEntry entry, ZipInputStream zis, String fullEntryPath, List<CkanResource> results, List<ProcessingError> errors, List<IgnoredEntry> ignored) {
+        Path tempZip = null;
+        try {
+            tempZip = Files.createTempFile("nested_zip_", ".zip");
+            try (InputStream nestedZipStream = new NonClosingInputStream(zis)) {
+                Files.copy(nestedZipStream, tempZip, StandardCopyOption.REPLACE_EXISTING);
+            }
+            System.err.println("Processing nested ZIP: " + fullEntryPath);
+            // Create a new instance of this processor or reuse? Reuse for now.
+            this.processSource(tempZip, fullEntryPath, results, errors, ignored);
+        } catch (IOException e) {
+            errors.add(new ProcessingError(fullEntryPath, "Failed to process nested zip: " + e.getMessage()));
+            System.err.println("Error processing nested ZIP entry '" + fullEntryPath + "': " + e.getMessage());
+        } finally {
+            if (tempZip != null) {
+                try { Files.deleteIfExists(tempZip); } catch (IOException e) {
+                    System.err.println("Warning: Failed to delete temporary file '" + tempZip + "': " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    private void processRegularEntry(String entryName, ZipInputStream zis, String fullEntryPath, List<CkanResource> results, List<ProcessingError> errors) {
+        try {
+            InputStream nonClosingStream = new NonClosingInputStream(zis);
+            IMetadataProvider.ExtractionOutput output = metadataProvider.extract(nonClosingStream, maxTextLength);
+            CkanResource resource = resourceFormatter.format(entryName, output.metadata, output.text, fullEntryPath);
+            results.add(resource);
+        } catch (Exception e) {
+            errors.add(new ProcessingError(fullEntryPath, e.getClass().getSimpleName() + ": " + e.getMessage()));
+            System.err.println("Error processing entry '" + entryName + "': " + e.getMessage());
+        }
+    }
+
+    private boolean isZipEntryZip(ZipEntry entry) {
+        if (entry == null || entry.isDirectory()) return false;
+        String lowerCaseName = entry.getName().toLowerCase();
+        return SUPPORTED_ZIP_EXTENSIONS.stream().anyMatch(lowerCaseName::endsWith);
+    }
 }
+
+// --- Facade Class ---
+
+/**
+ * Main entry point for metadata extraction, orchestrating the different components.
+ */
+public class MetadataExtractorFacade {
+
+    private final IFileTypeFilter fileFilter;
+    private final IMetadataProvider metadataProvider;
+    private final ICkanResourceFormatter resourceFormatter;
+    private final ISourceProcessor zipProcessor; // Handles ZIPs
+    private final int maxTextLength;
+
+    /**
+     * Constructor for dependency injection.
+     */
+    public MetadataExtractorFacade(IFileTypeFilter fileFilter, IMetadataProvider metadataProvider, ICkanResourceFormatter resourceFormatter, ISourceProcessor zipProcessor, int maxTextLength) {
+        this.fileFilter = Objects.requireNonNull(fileFilter);
+        this.metadataProvider = Objects.requireNonNull(metadataProvider);
+        this.resourceFormatter = Objects.requireNonNull(resourceFormatter);
+        this.zipProcessor = Objects.requireNonNull(zipProcessor);
+        this.maxTextLength = maxTextLength;
+    }
+
+    /**
+     * Processes a given source path (file or ZIP) and returns a report.
+     * @param sourcePathString Path to the source file or ZIP archive.
+     * @return A ProcessingReport containing results, errors, and ignored entries.
+     * @throws IOException If the source path is invalid or major I/O errors occur.
+     */
+    public ProcessingReport processSource(String sourcePathString) throws IOException {
+        Path sourcePath = Paths.get(sourcePathString);
+        if (!Files.exists(sourcePath)) {
+            throw new IOException("Source not found: " + sourcePathString);
+        }
+
+        List<CkanResource> successfulResults = new ArrayList<>();
+        List<ProcessingError> processingErrors = new ArrayList<>();
+        List<IgnoredEntry> ignoredEntries = new ArrayList<>();
+
+        if (Files.isDirectory(sourcePath)) {
+            // Decide how to handle directories - ignore, process recursively? Ignoring for now.
+            ignoredEntries.add(new IgnoredEntry(sourcePathString, "Source is a directory (not processed)"));
+            System.err.println("Source is a directory, skipping: " + sourcePathString);
+
+        } else if (isZipFile(sourcePath)) {
+            // Delegate ZIP processing
+            zipProcessor.processSource(sourcePath, sourcePath.toString(), successfulResults, processingErrors, ignoredEntries);
+
+        } else {
+            // Process single file
+            String filename = sourcePath.getFileName().toString();
+            if (fileFilter.isFileTypeRelevant(filename)) {
+                try (InputStream stream = new BufferedInputStream(Files.newInputStream(sourcePath))) {
+                    IMetadataProvider.ExtractionOutput output = metadataProvider.extract(stream, maxTextLength);
+                    CkanResource resource = resourceFormatter.format(filename, output.metadata, output.text, sourcePath.toString());
+                    successfulResults.add(resource);
+                } catch (Exception e) {
+                    processingErrors.add(new ProcessingError(sourcePathString, e.getClass().getSimpleName() + ": " + e.getMessage()));
+                    System.err.println("Error processing single file '" + sourcePath + "': " + e.getMessage());
+                }
+            } else {
+                ignoredEntries.add(new IgnoredEntry(sourcePathString, "File type ignored by filter"));
+                System.err.println("Ignoring file based on filter: " + filename);
+            }
+        }
+
+        return new ProcessingReport(successfulResults, processingErrors, ignoredEntries);
+    }
+
+    // Helper to check if a Path is a zip file (could be static utility)
+    private boolean isZipFile(Path path) {
+        if (path == null || !Files.isRegularFile(path)) { // Check if it's a regular file
+            return false;
+        }
+        String fileName = path.getFileName().toString().toLowerCase();
+        // Use the same constant as ZipSourceProcessor or define centrally
+        final Set<String> SUPPORTED_ZIP_EXTENSIONS = Set.of(".zip");
+        return SUPPORTED_ZIP_EXTENSIONS.stream().anyMatch(fileName::endsWith);
+    }
+
+
+    // --- Main Method for Demonstration ---
+    public static void main(String[] args) {
+        String filePath = "C:\\Users\\gurelb\\Downloads\\Veg kartering - habitatkaart 2021-2023.zip"; // Example path
+
+        if (args.length > 0) {
+            filePath = args[0];
+        } else {
+            System.err.println("Warning: No file path provided, using default: " + filePath);
+        }
+
+        Path sourcePath = Paths.get(filePath);
+        if (!Files.exists(sourcePath)) {
+            System.err.println("Error: File path does not exist: " + filePath);
+            return;
+        }
+
+        // --- Dependency Setup ---
+        LanguageDetector languageDetector = null;
+        try {
+            languageDetector = OptimaizeLangDetector.getDefaultLanguageDetector().loadModels();
+        } catch (IOException e) {
+            System.err.println("Warning: Failed to load language models: " + e.getMessage());
+        }
+
+        IFileTypeFilter filter = new DefaultFileTypeFilter();
+        IMetadataProvider provider = new TikaMetadataProvider(); // Uses default AutoDetectParser
+        ICkanResourceFormatter formatter = new DefaultCkanResourceFormatter(languageDetector);
+        ISourceProcessor zipProcessor = new ZipSourceProcessor(filter, provider, formatter, 5 * 1024 * 1024); // Use constant
+        int maxTextLengthForSingleFiles = 5 * 1024 * 1024; // Use constant
+
+        // Create the main facade instance with dependencies
+        MetadataExtractorFacade extractor = new MetadataExtractorFacade(filter, provider, formatter, zipProcessor, maxTextLengthForSingleFiles);
+
+        // --- Execution & Output ---
+        try {
+            ProcessingReport report = extractor.processSource(filePath);
+
+            // Serialize the report object to JSON
+            ObjectMapper jsonMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+            // Configure mapper to handle the CkanResource data map correctly if needed
+            // For example, if CkanResource had specific serialization needs.
+            // By default, it should serialize the internal map of CkanResource fine.
+            String jsonOutput = jsonMapper.writeValueAsString(report);
+
+            System.out.println(jsonOutput);
+
+        } catch (Exception e) {
+            System.err.println("Critical Error during processing source '" + filePath + "': " + e.getMessage());
+            e.printStackTrace(System.err);
+        }
+    }
+
+    // --- Utility Inner Class ---
+    private static class NonClosingInputStream extends FilterInputStream {
+        protected NonClosingInputStream(InputStream in) { super(in); }
+        @Override public void close() {} // Prevents closing the underlying stream
+    }
+
+} // End of class MetadataExtractorFacade (Main Entry Point)
