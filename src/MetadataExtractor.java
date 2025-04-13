@@ -5,9 +5,9 @@ import org.apache.tika.exception.TikaException;
 import org.apache.tika.language.detect.LanguageDetector;
 import org.apache.tika.language.detect.LanguageResult;
 import org.apache.tika.langdetect.optimaize.OptimaizeLangDetector;
-import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.DublinCore;
-import org.apache.tika.metadata.TikaCoreProperties; // Nodig voor TikaCoreProperties.DESCRIPTION
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.metadata.TikaCoreProperties;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.Parser;
@@ -31,673 +31,859 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-// --- Configuratie Constanten ---
+// --- Configuratie Klasse ---
 /**
- * Bevat configuratieconstanten voor de metadata extractor.
+ * Bevat alle configuratie-instellingen bij elkaar.
+ * Dit maakt het makkelijk om later instellingen aan te passen.
+ * 'final' betekent dat deze klasse niet uitgebreid kan worden (geen subklassen).
  */
-final class ExtractorConfig {
-    private ExtractorConfig() {} // Voorkom instantiatie
+final class ExtractorConfiguration {
+    // final velden: moeten een waarde krijgen in de constructor en kunnen daarna niet meer veranderen.
+    private final int maxTextSampleLength;
+    private final int maxExtractedTextLength;
+    private final int maxAutoDescriptionLength;
+    private final int minDescMetadataLength;
+    private final int maxDescMetadataLength;
+    private final Set<String> supportedZipExtensions;
+    private final Set<String> ignoredExtensions;
+    private final List<String> ignoredPrefixes;
+    private final List<String> ignoredFilenames;
+    private final DateTimeFormatter iso8601Formatter;
+    private final String placeholderUri;
+    private final Pattern titlePrefixPattern;
 
-    public static final int MAX_TEXT_SAMPLE_LENGTH = 10000; // Voor taaldetectie
-    public static final int MAX_EXTRACTED_TEXT_LENGTH = 5 * 1024 * 1024; // Limiteer tekstextractie tot 5MB
-    public static final int MAX_AUTO_DESCRIPTION_LENGTH = 250; // Max lengte voor auto-gegenereerde beschrijving uit tekst
-    public static final int MIN_DESC_METADATA_LENGTH = 10; // Minimale lengte voor bruikbare metadata beschrijving
-    public static final int MAX_DESC_METADATA_LENGTH = 1000; // Maximale lengte (voor check, niet voor inkorten)
-    public static final Set<String> SUPPORTED_ZIP_EXTENSIONS = Set.of(".zip");
+    /**
+     * Constructor: maakt een nieuw configuratie-object met standaardwaarden.
+     */
+    public ExtractorConfiguration() {
+        this.maxTextSampleLength = 10000; // Voor taaldetectie
+        this.maxExtractedTextLength = 5 * 1024 * 1024; // Limiteer tekstextractie tot 5MB
+        this.maxAutoDescriptionLength = 250; // Max lengte voor auto-gegenereerde beschrijving
+        this.minDescMetadataLength = 10; // Minimale lengte voor bruikbare metadata beschrijving
+        this.maxDescMetadataLength = 1000; // Maximale lengte
+        this.supportedZipExtensions = Set.of(".zip");
+        this.ignoredExtensions = Set.of(
+                ".ds_store", "thumbs.db", ".tmp", ".bak", ".lock", ".freelist", ".gdbindexes",
+                ".gdbtablx", ".atx", ".spx", ".horizon", ".cdx", ".fpt"
+        );
+        this.ignoredPrefixes = List.of("~", "._");
+        this.ignoredFilenames = List.of("gdb");
+        this.iso8601Formatter = DateTimeFormatter.ISO_INSTANT; // Standaard datum/tijd formaat
+        this.placeholderUri = "urn:placeholder:vervang-mij";
+        this.titlePrefixPattern = Pattern.compile( // Patroon om standaard prefixes van titels te verwijderen
+                "^(Microsoft Word - |Microsoft Excel - |PowerPoint Presentation - |Adobe Acrobat - )",
+                Pattern.CASE_INSENSITIVE);
+    }
 
-    // Definieer bestandstypen/patronen om te negeren
-    public static final Set<String> IGNORED_EXTENSIONS = Set.of(
-            ".ds_store", "thumbs.db", ".tmp", ".bak", ".lock",
-            ".freelist", ".gdbindexes", ".gdbtablx", ".atx", ".spx", ".horizon", // ESRI GDB internals
-            ".cdx", ".fpt" // dBase/FoxPro/Turboveg index/memo bestanden (behoud .dbf)
-    );
-    public static final List<String> IGNORED_PREFIXES = List.of("~", "._");
-    public static final List<String> IGNORED_FILENAMES = List.of("gdb");
-
-    public static final DateTimeFormatter ISO8601_FORMATTER = DateTimeFormatter.ISO_INSTANT;
-    public static final String PLACEHOLDER_URI = "urn:placeholder:vervang-mij";
-    public static final Pattern TITLE_PREFIX_PATTERN = Pattern.compile(
-            "^(Microsoft Word - |Microsoft Excel - |PowerPoint Presentation - |Adobe Acrobat - )",
-            Pattern.CASE_INSENSITIVE);
+    // Getters: publieke methoden om de (private final) configuratiewaarden op te vragen.
+    public int getMaxTextSampleLength() { return maxTextSampleLength; }
+    public int getMaxExtractedTextLength() { return maxExtractedTextLength; }
+    public int getMaxAutoDescriptionLength() { return maxAutoDescriptionLength; }
+    public int getMinDescMetadataLength() { return minDescMetadataLength; }
+    public int getMaxDescMetadataLength() { return maxDescMetadataLength; }
+    public Set<String> getSupportedZipExtensions() { return supportedZipExtensions; }
+    public Set<String> getIgnoredExtensions() { return ignoredExtensions; }
+    public List<String> getIgnoredPrefixes() { return ignoredPrefixes; }
+    public List<String> getIgnoredFilenames() { return ignoredFilenames; }
+    public DateTimeFormatter getIso8601Formatter() { return iso8601Formatter; }
+    public String getPlaceholderUri() { return placeholderUri; }
+    public Pattern getTitlePrefixPattern() { return titlePrefixPattern; }
 }
 
 
-// --- Data Transfer Objects / Resultaat Klassen ---
+// --- Data Objecten voor Resultaten ---
+// Deze klassen (ook wel DTOs - Data Transfer Objects genoemd) bevatten alleen data.
+// Ze maken het makkelijk om resultaten gestructureerd terug te geven.
 
 /**
- * Representeert de succesvol geëxtraheerde en geformatteerde metadata voor één bron.
+ * Bevat de metadata voor één succesvol verwerkt bestand (resource).
+ * De data wordt opgeslagen in een Map, wat flexibel is.
  */
 class CkanResource {
-    private final Map<String, Object> data;
+    private final Map<String, Object> data; // 'private final': interne data, onveranderlijk na creatie
 
     public CkanResource(Map<String, Object> data) {
+        // Maakt een onveranderlijke kopie om te zorgen dat de data niet per ongeluk
+        // van buitenaf gewijzigd kan worden na creatie.
         this.data = Collections.unmodifiableMap(new HashMap<>(data));
     }
-    // Maakt directe toegang tot de data mogelijk voor serialisatie
-    public Map<String, Object> getData() { return data; }
+
+    /** Geeft een *kopie* van de data terug (veilig voor externe gebruikers). */
+    public Map<String, Object> getData() {
+        return new HashMap<>(data);
+    }
 }
 
-/**
- * Representeert een fout die is opgetreden tijdens het verwerken van een specifieke bron-entry.
- */
+/** Bevat informatie over een fout tijdens de verwerking. */
 class ProcessingError {
-    private final String source;
-    private final String error;
+    private final String source; // Waar ging het mis? (bv. bestandsnaam)
+    private final String error;  // Wat was de foutmelding?
 
     public ProcessingError(String source, String error) {
-        this.source = source; this.error = error;
+        this.source = source;
+        this.error = error;
     }
     public String getSource() { return source; }
     public String getError() { return error; }
 }
 
-/**
- * Representeert een bestand/entry dat is genegeerd op basis van filterregels.
- */
+/** Bevat informatie over een bestand dat overgeslagen is. */
 class IgnoredEntry {
-    private final String source;
-    private final String reason;
+    private final String source; // Welk bestand?
+    private final String reason; // Waarom overgeslagen?
 
     public IgnoredEntry(String source, String reason) {
-        this.source = source; this.reason = reason;
+        this.source = source;
+        this.reason = reason;
     }
     public String getSource() { return source; }
     public String getReason() { return reason; }
 }
 
 /**
- * Omvat het algehele resultaat van een verwerkingsoperatie.
+ * Verzamelt alle resultaten van een verwerkingsrun.
+ * Bevat lijsten van succesvolle resultaten, fouten en overgeslagen bestanden.
  */
 class ProcessingReport {
+    // Lijsten zijn 'final', maar de inhoud kan (via de constructor) toegevoegd worden.
+    // Ze worden onveranderlijk gemaakt in de constructor.
     private final List<CkanResource> results;
     private final List<ProcessingError> errors;
     private final List<IgnoredEntry> ignored;
 
     public ProcessingReport(List<CkanResource> results, List<ProcessingError> errors, List<IgnoredEntry> ignored) {
+        // Maak onveranderlijke kopieën van de lijsten.
         this.results = Collections.unmodifiableList(new ArrayList<>(results));
         this.errors = Collections.unmodifiableList(new ArrayList<>(errors));
         this.ignored = Collections.unmodifiableList(new ArrayList<>(ignored));
     }
+    // Getters om de lijsten (onveranderlijk) op te vragen.
     public List<CkanResource> getResults() { return results; }
     public List<ProcessingError> getErrors() { return errors; }
     public List<IgnoredEntry> getIgnored() { return ignored; }
 }
 
 
-// --- Interfaces voor Componenten ---
+// --- Interfaces: Contracten voor Componenten ---
+// Interfaces definiëren WAT een component moet kunnen, maar niet HOE.
+// Dit maakt het systeem flexibel: je kunt later andere implementaties maken.
 
-/**
- * Interface om te bepalen of een bestand/entry relevant is voor verwerking.
- */
+/** Contract voor het filteren van bestandstypen. */
 interface IFileTypeFilter {
     boolean isFileTypeRelevant(String entryName);
 }
 
-/**
- * Interface voor het extraheren van metadata en tekstinhoud uit een input stream.
- */
+/** Contract voor het extraheren van metadata. */
 interface IMetadataProvider {
-    /** Representeert gecombineerde metadata en tekst */
+    /** Inner class: een klasse gedefinieerd binnen een andere klasse/interface. */
     class ExtractionOutput {
-        final Metadata metadata;
-        final String text;
+        final Metadata metadata; // Tika's metadata object
+        final String text;       // Geëxtraheerde tekst
         ExtractionOutput(Metadata m, String t) { this.metadata = m; this.text = t; }
     }
+    /** Methode die metadata en tekst uit een input stream haalt. */
     ExtractionOutput extract(InputStream inputStream, int maxTextLength) throws IOException, TikaException, SAXException;
 }
 
-/**
- * Interface voor het formatteren van geëxtraheerde metadata naar een CKAN resource structuur.
- */
+/** Contract voor het formatteren van metadata naar een CkanResource. */
 interface ICkanResourceFormatter {
     CkanResource format(String entryName, Metadata metadata, String text, String sourceIdentifier);
 }
 
-/**
- * Interface voor het verwerken van een bron (bestand of archief).
- */
+/** Contract voor het verwerken van een bron (bestand of ZIP). */
 interface ISourceProcessor {
-    /** Verwerkt de gegeven bron en voegt resultaten/fouten/genegeerde items toe aan de lijsten. */
     void processSource(Path sourcePath, String containerPath, List<CkanResource> results, List<ProcessingError> errors, List<IgnoredEntry> ignored);
 }
 
-// --- Utility Inner Class (Moved Here) ---
+// --- Utility Inner Class (Nuttig voor ZIP verwerking) ---
 /**
- * Helper InputStream wrapper die voorkomt dat de close() methode de onderliggende stream sluit.
+ * Een speciaal soort InputStream die voorkomt dat de 'close()' methode
+ * de onderliggende stream (hier de ZipInputStream) sluit.
+ * Dit is nodig om door een ZIP bestand te kunnen lezen zonder het te vroeg te sluiten.
+ * 'extends FilterInputStream' = dit is een voorbeeld van overerving. NonClosingInputStream
+ * erft functionaliteit van FilterInputStream.
  */
 class NonClosingInputStream extends FilterInputStream {
-    protected NonClosingInputStream(InputStream in) { super(in); }
-    @Override public void close() {} // Voorkomt sluiten onderliggende stream
+    protected NonClosingInputStream(InputStream in) { super(in); } // Roept constructor van superklasse aan
+    /**
+     * @Override: Deze methode overschrijft de close() methode van de superklasse.
+     * In plaats van de stream te sluiten, doet deze methode niets.
+     */
+    @Override public void close() { /* Doe niets */ }
 }
 
-
-// --- Standaard Implementaties ---
+// --- Implementaties: Concrete Uitvoering van de Contracten ---
 
 /**
- * Standaard implementatie die filtert op basis van bestandsextensies, prefixes en namen.
+ * Implementatie van IFileTypeFilter: filtert op basis van configuratie.
  */
 class DefaultFileTypeFilter implements IFileTypeFilter {
+    private final ExtractorConfiguration config; // Houdt de configuratie vast
+
+    /** Constructor ontvangt de configuratie (Dependency Injection). */
+    public DefaultFileTypeFilter(ExtractorConfiguration config) {
+        this.config = Objects.requireNonNull(config, "Configuratie mag niet null zijn");
+    }
+
     @Override
     public boolean isFileTypeRelevant(String entryName) {
         if (entryName == null || entryName.isEmpty()) return false;
-        String filename = getFilenameFromEntry(entryName).toLowerCase();
+
+        String filename = getFilenameFromEntry(entryName); // Gebruik private helper
         if (filename.isEmpty()) return false;
+        String lowerFilename = filename.toLowerCase();
 
-        for (String prefix : ExtractorConfig.IGNORED_PREFIXES) {
-            if (filename.startsWith(prefix)) return false;
-        }
-        if (ExtractorConfig.IGNORED_FILENAMES.contains(filename)) return false;
-
-        int lastDot = filename.lastIndexOf('.');
-        if (lastDot > 0 && lastDot < filename.length() - 1) {
-            String extension = filename.substring(lastDot);
-            if (ExtractorConfig.IGNORED_EXTENSIONS.contains(extension)) return false;
-        } else if (lastDot == -1 && ExtractorConfig.IGNORED_FILENAMES.contains(filename)) {
+        // Check prefixes (bv. "~" of "._") uit config
+        // Gebruik een stream en lambda expressie voor een korte check.
+        // stream(): zet de lijst om in een stroom van elementen.
+        // anyMatch(): controleert of *minstens één* element voldoet aan de voorwaarde.
+        // lowerFilename::startsWith: een method reference, checkt of de filename start met de prefix.
+        if (config.getIgnoredPrefixes().stream().anyMatch(lowerFilename::startsWith)) {
             return false;
         }
+
+        // Check genegeerde bestandsnamen (bv. "gdb") uit config (case-insensitive)
+        if (config.getIgnoredFilenames().stream().anyMatch(lowerFilename::equalsIgnoreCase)) {
+            return false;
+        }
+
+        // Check genegeerde extensies (bv. ".tmp") uit config
+        int lastDot = lowerFilename.lastIndexOf('.');
+        if (lastDot > 0 && lastDot < lowerFilename.length() - 1) {
+            String extension = lowerFilename.substring(lastDot);
+            if (config.getIgnoredExtensions().contains(extension)) {
+                return false;
+            }
+        }
+        // Als geen enkele 'ignore' regel van toepassing was, is het bestand relevant.
         return true;
     }
 
-    public static String getFilenameFromEntry(String entryName) {
+    // --- Private Helper Methode ---
+    // 'private static': alleen binnen deze klasse bruikbaar, geen object nodig.
+    /** Haalt de bestandsnaam uit een volledig pad (bv. "map/bestand.txt" -> "bestand.txt"). */
+    private static String getFilenameFromEntry(String entryName) {
         if (entryName == null) return "";
-        String normalizedName = entryName.replace('\\', '/');
+        String normalizedName = entryName.replace('\\', '/'); // Zorg voor consistente slashes
         int lastSlash = normalizedName.lastIndexOf('/');
         return (lastSlash >= 0) ? normalizedName.substring(lastSlash + 1) : normalizedName;
     }
 }
 
 /**
- * Standaard implementatie die Apache Tika gebruikt voor metadata extractie.
+ * Implementatie van IMetadataProvider: gebruikt Apache Tika.
  */
 class TikaMetadataProvider implements IMetadataProvider {
-    private final Parser tikaParser;
+    private final Parser tikaParser; // Houdt de Tika parser vast
 
+    /** Standaard constructor: gebruikt Tika's AutoDetectParser. */
     public TikaMetadataProvider() { this(new AutoDetectParser()); }
+    /** Constructor om een specifieke Tika parser te gebruiken. */
     public TikaMetadataProvider(Parser parser) { this.tikaParser = Objects.requireNonNull(parser); }
 
     @Override
     public ExtractionOutput extract(InputStream inputStream, int maxTextLength) throws IOException, TikaException, SAXException {
+        // BodyContentHandler vangt de tekst op, gelimiteerd door maxTextLength.
         BodyContentHandler handler = new BodyContentHandler(maxTextLength);
-        Metadata metadata = new Metadata();
-        ParseContext context = new ParseContext();
+        Metadata metadata = new Metadata(); // Tika object om metadata op te slaan
+        ParseContext context = new ParseContext(); // Context voor de parser
         try {
+            // Roep Tika aan om de stream te parsen
             tikaParser.parse(inputStream, handler, metadata, context);
         } catch (Exception e) {
+            // Vang algemene fouten tijdens Tika parsing
             System.err.println("Fout tijdens Tika parsing: " + e.getMessage());
+            // Gooi de specifieke exception door als het een bekende Tika/SAX/IO fout is
             if (e instanceof TikaException) throw (TikaException) e;
             if (e instanceof SAXException) throw (SAXException) e;
             if (e instanceof IOException) throw (IOException) e;
-            throw new TikaException("Tika parsing onverwacht mislukt", e);
+            // Anders, wrap het in een TikaException
+            throw new TikaException("Onverwachte Tika parsing fout", e);
         }
+        // Geef het resultaat terug met de gevonden metadata en tekst
         return new ExtractionOutput(metadata, handler.toString());
     }
 }
 
 /**
- * Standaard implementatie die data formatteert voor CKAN.
- * Probeert nu een betere automatische beschrijving te genereren.
+ * Implementatie van ICkanResourceFormatter: formatteert data voor CKAN.
  */
 class DefaultCkanResourceFormatter implements ICkanResourceFormatter {
-    private final LanguageDetector languageDetector;
+    // Dependencies die deze klasse nodig heeft
+    private final LanguageDetector languageDetector; // Voor taaldetectie (kan null zijn)
+    private final ExtractorConfiguration config; // Voor configuratie-instellingen
 
-    public DefaultCkanResourceFormatter(LanguageDetector languageDetector) {
-        this.languageDetector = languageDetector;
+    /** Constructor ontvangt dependencies (Configuratie en geladen Taaldetector). */
+    public DefaultCkanResourceFormatter(LanguageDetector loadedLanguageDetector, ExtractorConfiguration config) {
+        if (loadedLanguageDetector == null) {
+            System.err.println("Waarschuwing: Geen LanguageDetector beschikbaar, taaldetectie uitgeschakeld.");
+        }
+        this.languageDetector = loadedLanguageDetector;
+        this.config = Objects.requireNonNull(config, "Configuratie mag niet null zijn");
     }
 
     @Override
     public CkanResource format(String entryName, Metadata metadata, String text, String sourceIdentifier) {
-        Map<String, Object> resourceData = new HashMap<>();
-        List<Map<String, String>> extras = new ArrayList<>();
-        String filename = DefaultFileTypeFilter.getFilenameFromEntry(entryName);
+        Map<String, Object> resourceData = new HashMap<>(); // Gebruik een Map om de resource data op te bouwen
+        List<Map<String, String>> extras = new ArrayList<>(); // Lijst voor extra CKAN velden
+        String filename = getFilenameFromEntry(entryName); // Gebruik helper methode
 
-        // --- Kernvelden ---
+        // --- Vul de resourceData Map ---
         resourceData.put("__comment_mandatory__", "package_id en url MOETEN extern worden aangeleverd.");
-        resourceData.put("package_id", "PLACEHOLDER_-_NEEDS_PARENT_DATASET_ID_OR_NAME_FROM_CKAN");
-        resourceData.put("url", "PLACEHOLDER_-_NEEDS_PUBLIC_URL_AFTER_UPLOAD_TO_CKAN_OR_SERVER");
+        resourceData.put("package_id", "PLACEHOLDER_PACKAGE_ID"); // Moet later ingevuld worden
+        resourceData.put("url", "PLACEHOLDER_URL"); // Moet later ingevuld worden
 
+        // Bepaal de naam: probeer opgeschoonde titel, anders originele titel, anders bestandsnaam
         String originalTitle = getMetadataValue(metadata, TikaCoreProperties.TITLE);
-        String cleanedTitle = cleanTitle(originalTitle);
-        String resourceName = Optional.ofNullable(cleanedTitle)
-                .orElse(Optional.ofNullable(originalTitle)
-                        .orElse(filename));
+        String cleanedTitle = cleanTitle(originalTitle, config.getTitlePrefixPattern());
+        String resourceName = Optional.ofNullable(cleanedTitle) // Optional helpt omgaan met null waarden
+                .or(() -> Optional.ofNullable(originalTitle)) // Als cleanedTitle null is, probeer originalTitle
+                .orElse(filename); // Als beide null zijn, gebruik bestandsnaam
         resourceData.put("name", resourceName);
 
-        // --- Verbeterde Beschrijving ---
+        // Genereer beschrijving
         String description = generateDescription(metadata, text, filename);
         resourceData.put("description", description);
 
-        // --- Overige Velden ---
+        // Bepaal formaat (bv. PDF, DOCX)
         String contentType = getMetadataValue(metadata, Metadata.CONTENT_TYPE);
         resourceData.put("format", mapContentTypeToSimpleFormat(contentType));
-        formatIso8601DateTime(metadata.get(TikaCoreProperties.CREATED))
-                .ifPresent(d -> resourceData.put("created", d));
-        formatIso8601DateTime(metadata.get(TikaCoreProperties.MODIFIED))
+
+        // Verwerk datums (indien aanwezig) naar ISO8601 formaat
+        parseToInstant(metadata.get(TikaCoreProperties.CREATED)) // Parse datum string naar Instant
+                .flatMap(instant -> formatInstantToIso8601(instant, config.getIso8601Formatter())) // Formatteer Instant naar String
+                .ifPresent(d -> resourceData.put("created", d)); // Voeg toe aan map als succesvol
+        parseToInstant(metadata.get(TikaCoreProperties.MODIFIED))
+                .flatMap(instant -> formatInstantToIso8601(instant, config.getIso8601Formatter()))
                 .ifPresent(d -> resourceData.put("last_modified", d));
 
-        // --- Extras ---
+        // --- Vul de 'extras' lijst ---
         addExtra(extras, "source_identifier", sourceIdentifier);
-        if (originalTitle != null && !originalTitle.equals(cleanedTitle)) {
-            addExtra(extras, "original_extracted_title", originalTitle);
-        }
-        if (!filename.equals(resourceName)) {
-            addExtra(extras, "original_entry_name", filename);
-        }
+        addExtra(extras, "original_entry_name", filename);
         addExtra(extras, "creator", getMetadataValue(metadata, TikaCoreProperties.CREATOR));
-        String creatorTool = getMetadataValue(metadata, TikaCoreProperties.CREATOR_TOOL);
-        if (creatorTool != null) addExtra(extras, "creator_tool", creatorTool);
-        addExtra(extras, "producer", getMetadataValue(metadata, "producer"));
         addExtra(extras, "mime_type", contentType);
-        addExtra(extras, "media_type_iana_uri", mapContentTypeToIanaUri(contentType));
-        addExtra(extras, "file_type_eu_uri", mapContentTypeToEuFileTypeUri(contentType));
-        addExtra(extras, "pdf_version", getMetadataValue(metadata, "pdf:PDFVersion"));
-        addExtra(extras, "page_count", getMetadataValue(metadata, "xmpTPg:NPages"));
+        //... (voeg eventueel meer extra's toe zoals voorheen)
 
-        detectLanguage(text, ExtractorConfig.MAX_TEXT_SAMPLE_LENGTH)
-                .filter(LanguageResult::isReasonablyCertain)
-                .ifPresentOrElse(
+        // Taaldetectie
+        detectLanguage(text, config.getMaxTextSampleLength())
+                .filter(LanguageResult::isReasonablyCertain) // Alleen als detectie redelijk zeker is
+                .ifPresentOrElse( // Als er een zeker resultaat is...
                         langResult -> addExtra(extras, "language_uri", mapLanguageCodeToNalUri(langResult.getLanguage())),
-                        () -> addExtra(extras, "language_uri", mapLanguageCodeToNalUri("und"))
+                        () -> addExtra(extras, "language_uri", mapLanguageCodeToNalUri("und")) // Anders: onbepaald (und)
                 );
-        resourceData.put("extras", extras);
+        resourceData.put("extras", extras); // Voeg de lijst met extra's toe aan de hoofdmap
 
-        // --- Dataset Hints ---
+        // --- Voeg Dataset Hints toe (optioneel) ---
         Map<String, Object> datasetHints = new HashMap<>();
         datasetHints.put("potential_dataset_title_suggestion", resourceName);
         String[] subjects = metadata.getValues(DublinCore.SUBJECT);
         if (subjects != null && subjects.length > 0) {
-            datasetHints.put("potential_dataset_tags", Arrays.stream(subjects)
-                    .filter(s -> s != null && !s.trim().isEmpty()).map(String::trim).distinct().collect(Collectors.toList()));
+            // Gebruik stream om tags te verzamelen, te filteren en uniek te maken
+            List<String> potentialTags = Arrays.stream(subjects)
+                    .filter(s -> s != null && !s.trim().isEmpty())
+                    .map(String::trim)
+                    .distinct()
+                    .collect(Collectors.toList());
+            if (!potentialTags.isEmpty()) {
+                datasetHints.put("potential_dataset_tags", potentialTags);
+            }
         }
-        resourceData.put("__comment_dataset_hints__", "Deze velden kunnen helpen bij het vullen van de bovenliggende Dataset");
         resourceData.put("dataset_hints", datasetHints);
 
+        // Maak en retourneer het CkanResource object
         return new CkanResource(resourceData);
     }
 
-    /**
-     * Genereert een beschrijving op basis van beschikbare metadata of tekstinhoud.
-     * Past kwaliteitschecks toe en verwijdert prefixen voor productie.
-     */
-    private String generateDescription(Metadata metadata, String text, String filename) {
-        // 1. Probeer expliciete beschrijvingsvelden met kwaliteitscheck
-        String desc = getMetadataValue(metadata, DublinCore.DESCRIPTION);
-        if (!isDescriptionValid(desc)) { // Check dc:description
-            desc = getMetadataValue(metadata, TikaCoreProperties.DESCRIPTION);
-            if (!isDescriptionValid(desc)) { // Check cp:description
-                desc = null; // Beide ongeldig
-            }
-        }
+    // --- Private Helper Methoden (voorheen in Utils klasse) ---
+    // Deze methoden helpen de 'format' methode, maar zijn alleen hier nodig.
 
-        if (desc != null) {
-            // Trim, kort in, voeg ellipsis toe indien nodig
-            desc = desc.trim();
-            if (desc.length() > ExtractorConfig.MAX_AUTO_DESCRIPTION_LENGTH) {
-                desc = desc.substring(0, ExtractorConfig.MAX_AUTO_DESCRIPTION_LENGTH) + "...";
-            }
-            // Verwijder potentieel leidende/volgende non-alfanumerieke tekens
-            desc = desc.replaceAll("^[\\W_]+|[\\W_]+$", "").trim();
-            if (!desc.isBlank()) {
-                return desc; // Return de schone metadata beschrijving
-            }
-        }
-
-        // 2. Probeer eerste deel van de tekstinhoud
-        if (text != null && !text.isBlank()) {
-            String cleanedText = text.trim().replaceAll("\\s+", " "); // Vervang witruimte
-            if (cleanedText.length() > 10) { // Eis minimale lengte
-                String snippet = cleanedText.substring(0, Math.min(cleanedText.length(), ExtractorConfig.MAX_AUTO_DESCRIPTION_LENGTH));
-                // Verwijder leidende/volgende non-alfanumerieke tekens
-                snippet = snippet.replaceAll("^[\\W_]+|[\\W_]+$", "").trim();
-                String suffix = cleanedText.length() > snippet.length() ? "..." : ""; // Ellipsis alleen als echt ingekort
-
-                if (!snippet.isBlank()) {
-                    return snippet + suffix; // Return het schone tekstfragment
-                }
-            }
-        }
-
-        // 3. Terugval placeholder (verbeterd)
-        return "Geen beschrijving automatisch beschikbaar voor: " + filename;
+    private static String getFilenameFromEntry(String entryName) { // Zelfde als in DefaultFileTypeFilter
+        if (entryName == null) return "";
+        String normalizedName = entryName.replace('\\', '/');
+        int lastSlash = normalizedName.lastIndexOf('/');
+        return (lastSlash >= 0) ? normalizedName.substring(lastSlash + 1) : normalizedName;
     }
 
-    /**
-     * Helper methode om te valideren of een metadata beschrijving bruikbaar is.
-     */
-    private static boolean isDescriptionValid(String description) {
-        if (description == null || description.isBlank()) return false;
-        String trimmed = description.trim();
-        // Check op minimale/maximale lengte en vreemde codes
-        return trimmed.length() >= ExtractorConfig.MIN_DESC_METADATA_LENGTH &&
-                trimmed.length() <= ExtractorConfig.MAX_DESC_METADATA_LENGTH && // Voorkom extreem lange velden
-                !trimmed.contains("_x000d_"); // Check op vreemde codes
-    }
-
-
-    // --- Statische Helper methoden voor formattering ---
-    private static String cleanTitle(String title) {
+    private static String cleanTitle(String title, Pattern titlePrefixPattern) {
         if (title == null || title.trim().isEmpty()) return null;
-        String cleaned = ExtractorConfig.TITLE_PREFIX_PATTERN.matcher(title).replaceFirst("");
+        String cleaned = titlePrefixPattern.matcher(title).replaceFirst("");
         cleaned = cleaned.replace('_', ' ');
         cleaned = cleaned.replaceAll("\\s+", " ").trim();
         return cleaned.isEmpty() ? null : cleaned;
     }
+
     private static void addExtra(List<Map<String, String>> extras, String key, String value) {
-        if (value != null && !value.trim().isEmpty()) extras.add(Map.of("key", key, "value", value.trim()));
+        if (value != null && !value.trim().isEmpty()) {
+            extras.add(Map.of("key", key, "value", value.trim()));
+        }
     }
+
     private static String getMetadataValue(Metadata metadata, org.apache.tika.metadata.Property property) {
-        String value = metadata.get(property); return (value != null && !value.trim().isEmpty()) ? value.trim() : null;
+        String value = metadata.get(property);
+        return (value != null && !value.trim().isEmpty()) ? value.trim() : null;
     }
     private static String getMetadataValue(Metadata metadata, String key) {
-        String value = metadata.get(key); return (value != null && !value.trim().isEmpty()) ? value.trim() : null;
+        String value = metadata.get(key);
+        return (value != null && !value.trim().isEmpty()) ? value.trim() : null;
     }
-    private static Optional<String> formatIso8601DateTime(String dateTime) {
-        return parseToInstant(dateTime).flatMap(DefaultCkanResourceFormatter::formatInstantToIso8601);
+
+    private static Optional<String> formatInstantToIso8601(Instant instant, DateTimeFormatter formatter) {
+        // Optional.ofNullable: maakt een Optional, leeg als 'instant' null is.
+        // .map: voert de formattering alleen uit als 'instant' niet null is.
+        return Optional.ofNullable(instant).map(formatter::format);
     }
-    private static Optional<Instant> parseToInstant(String dateTime) {
-        if (dateTime == null || dateTime.trim().isEmpty()) return Optional.empty();
-        List<DateTimeFormatter> formatters = Arrays.asList(DateTimeFormatter.ISO_OFFSET_DATE_TIME, DateTimeFormatter.ISO_ZONED_DATE_TIME, DateTimeFormatter.ISO_INSTANT, DateTimeFormatter.ISO_LOCAL_DATE_TIME, DateTimeFormatter.ISO_LOCAL_DATE);
+
+    private static Optional<Instant> parseToInstant(String dateTimeString) {
+        if (dateTimeString == null || dateTimeString.trim().isEmpty()) {
+            return Optional.empty(); // Lege Optional als input leeg is
+        }
+        List<DateTimeFormatter> formatters = Arrays.asList( // Lijst van formaten om te proberen
+                DateTimeFormatter.ISO_OFFSET_DATE_TIME, DateTimeFormatter.ISO_ZONED_DATE_TIME,
+                DateTimeFormatter.ISO_INSTANT, DateTimeFormatter.ISO_LOCAL_DATE_TIME,
+                DateTimeFormatter.ISO_LOCAL_DATE);
+
         for (DateTimeFormatter formatter : formatters) {
-            try {
-                if (formatter == DateTimeFormatter.ISO_LOCAL_DATE_TIME) return Optional.of(java.time.LocalDateTime.parse(dateTime, formatter).atZone(ZoneId.systemDefault()).toInstant());
-                if (formatter == DateTimeFormatter.ISO_LOCAL_DATE) return Optional.of(java.time.LocalDate.parse(dateTime, formatter).atStartOfDay(ZoneId.systemDefault()).toInstant());
-                if (formatter == DateTimeFormatter.ISO_INSTANT) return Optional.of(Instant.parse(dateTime));
-                if (formatter == DateTimeFormatter.ISO_ZONED_DATE_TIME) return Optional.of(ZonedDateTime.parse(dateTime, formatter).toInstant());
-                if (formatter == DateTimeFormatter.ISO_OFFSET_DATE_TIME) return Optional.of(OffsetDateTime.parse(dateTime, formatter).toInstant());
-            } catch (DateTimeParseException ignored) {}
+            try { // Probeer te parsen
+                if (formatter == DateTimeFormatter.ISO_OFFSET_DATE_TIME) return Optional.of(OffsetDateTime.parse(dateTimeString, formatter).toInstant());
+                if (formatter == DateTimeFormatter.ISO_ZONED_DATE_TIME) return Optional.of(ZonedDateTime.parse(dateTimeString, formatter).toInstant());
+                if (formatter == DateTimeFormatter.ISO_INSTANT) return Optional.of(Instant.parse(dateTimeString));
+                if (formatter == DateTimeFormatter.ISO_LOCAL_DATE_TIME) return Optional.of(java.time.LocalDateTime.parse(dateTimeString, formatter).atZone(ZoneId.systemDefault()).toInstant());
+                if (formatter == DateTimeFormatter.ISO_LOCAL_DATE) return Optional.of(java.time.LocalDate.parse(dateTimeString, formatter).atStartOfDay(ZoneId.systemDefault()).toInstant());
+            } catch (DateTimeParseException ignored) { /* Probeer volgende formaat */ }
         }
-        System.err.println("Waarschuwing: Kon datum/tijd niet parsen: " + dateTime); return Optional.empty();
+        System.err.println("Waarschuwing: Kon datum/tijd niet parsen: " + dateTimeString);
+        return Optional.empty(); // Lege Optional als niets werkte
     }
-    private static Optional<String> formatInstantToIso8601(Instant instant) {
-        return Optional.ofNullable(instant).map(ExtractorConfig.ISO8601_FORMATTER::format);
-    }
+
     private static String mapContentTypeToSimpleFormat(String contentType) {
-        return Optional.ofNullable(contentType).filter(c -> !c.isBlank()).map(c -> c.toLowerCase().split(";")[0].trim())
-                .map(lowerType -> switch (lowerType) {
-                    case "application/pdf"->"PDF"; case "application/vnd.openxmlformats-officedocument.wordprocessingml.document"->"DOCX";
-                    case "application/msword"->"DOC"; case "application/vnd.openxmlformats-officedocument.presentationml.presentation"->"PPTX";
-                    case "application/vnd.ms-powerpoint"->"PPT"; case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"->"XLSX";
-                    case "application/vnd.ms-excel"->"XLS"; case "text/plain"->"TXT"; case "text/csv"->"CSV"; case "text/html"->"HTML";
-                    case "application/rtf"->"RTF"; case "image/jpeg", "image/jpg"->"JPEG"; case "image/png"->"PNG"; case "image/gif"->"GIF";
-                    case "image/tiff"->"TIFF"; case "image/bmp"->"BMP"; case "image/svg+xml"->"SVG"; case "application/zip"->"ZIP";
-                    case "application/gzip"->"GZIP"; case "application/x-rar-compressed"->"RAR"; case "application/x-7z-compressed"->"7Z";
-                    case "application/json"->"JSON"; case "application/xml", "text/xml"->"XML"; case "application/shp", "application/x-shapefile"->"SHP";
-                    case "application/x-dbf"->"DBF"; case "application/vnd.google-earth.kml+xml"->"KML"; case "application/geopackage+sqlite3"->"GPKG";
-                    case "application/geo+json"->"GEOJSON";
-                    default->{int i=lowerType.lastIndexOf('/'); yield (i!=-1&&i<lowerType.length()-1)?lowerType.substring(i+1).toUpperCase().replaceAll("[^A-Z0-9]",""):lowerType.toUpperCase().replaceAll("[^A-Z0-9]","");}
-                }).orElse("Unknown");
+        return Optional.ofNullable(contentType).filter(c -> !c.isBlank())
+                .map(c -> c.toLowerCase().split(";")[0].trim())
+                .map(lowerType -> switch (lowerType) { // Gebruik switch expression voor leesbaarheid
+                    case "application/pdf" -> "PDF";
+                    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> "DOCX";
+                    case "application/msword" -> "DOC";
+                    case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> "XLSX";
+                    case "application/vnd.ms-excel" -> "XLS";
+                    // ... (voeg andere mappings toe zoals voorheen) ...
+                    case "text/plain" -> "TXT";
+                    case "text/csv" -> "CSV";
+                    case "image/jpeg", "image/jpg" -> "JPEG";
+                    case "image/png" -> "PNG";
+                    case "application/zip" -> "ZIP";
+                    case "application/xml", "text/xml" -> "XML";
+                    case "application/shp", "application/x-shapefile", "application/vnd.shp" -> "SHP";
+                    case "application/x-dbf", "application/vnd.dbf" -> "DBF";
+                    default -> { // Fallback: probeer deel na laatste '/'
+                        int lastSlash = lowerType.lastIndexOf('/');
+                        yield (lastSlash != -1 && lastSlash < lowerType.length() - 1)
+                                ? lowerType.substring(lastSlash + 1).toUpperCase().replaceAll("[^A-Z0-9]", "")
+                                : lowerType.toUpperCase().replaceAll("[^A-Z0-9]", "");
+                    }
+                })
+                .orElse("Unknown"); // Als input null of leeg was
     }
-    private static String mapContentTypeToIanaUri(String contentType) {
-        return Optional.ofNullable(contentType).filter(c -> !c.isBlank()).map(c -> c.toLowerCase().split(";")[0].trim())
-                .map(lowerType -> switch (lowerType) {
-                    case "application/pdf"->"https://www.iana.org/assignments/media-types/application/pdf";
-                    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document"->"https://www.iana.org/assignments/media-types/application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-                    case "application/msword"->"https://www.iana.org/assignments/media-types/application/msword";
-                    case "text/plain"->"https://www.iana.org/assignments/media-types/text/plain"; case "text/csv"->"https://www.iana.org/assignments/media-types/text/csv";
-                    case "image/jpeg"->"https://www.iana.org/assignments/media-types/image/jpeg"; case "image/png"->"https://www.iana.org/assignments/media-types/image/png";
-                    case "image/gif"->"https://www.iana.org/assignments/media-types/image/gif"; case "application/zip"->"https://www.iana.org/assignments/media-types/application/zip";
-                    case "application/json"->"https://www.iana.org/assignments/media-types/application/json"; case "application/xml"->"https://www.iana.org/assignments/media-types/application/xml";
-                    case "text/xml"->"https://www.iana.org/assignments/media-types/text/xml"; case "application/shp", "application/x-shapefile"->"https://www.iana.org/assignments/media-types/application/vnd.shp";
-                    case "application/x-dbf"->"https://www.iana.org/assignments/media-types/application/vnd.dbf";
-                    default->ExtractorConfig.PLACEHOLDER_URI + "-iana-" + lowerType.replaceAll("[^a-zA-Z0-9]", "-");
-                }).orElse(ExtractorConfig.PLACEHOLDER_URI + "-iana-unknown");
-    }
-    private static String mapContentTypeToEuFileTypeUri(String contentType) {
-        final String EU_FT_BASE = "http://publications.europa.eu/resource/authority/file-type/";
-        return Optional.ofNullable(contentType).filter(c -> !c.isBlank()).map(c -> c.toLowerCase().split(";")[0].trim())
-                .map(lowerType -> switch (lowerType) {
-                    case "application/pdf"->EU_FT_BASE+"PDF"; case "application/vnd.openxmlformats-officedocument.wordprocessingml.document"->EU_FT_BASE+"DOCX";
-                    case "application/msword"->EU_FT_BASE+"DOC"; case "application/vnd.openxmlformats-officedocument.presentationml.presentation"->EU_FT_BASE+"PPTX";
-                    case "application/vnd.ms-powerpoint"->EU_FT_BASE+"PPT"; case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"->EU_FT_BASE+"XLSX";
-                    case "application/vnd.ms-excel"->EU_FT_BASE+"XLS"; case "text/plain"->EU_FT_BASE+"TXT"; case "text/csv"->EU_FT_BASE+"CSV";
-                    case "image/jpeg","image/jpg"->EU_FT_BASE+"JPEG"; case "image/png"->EU_FT_BASE+"PNG"; case "image/gif"->EU_FT_BASE+"GIF";
-                    case "image/tiff"->EU_FT_BASE+"TIFF"; case "application/zip"->EU_FT_BASE+"ZIP"; case "application/xml","text/xml"->EU_FT_BASE+"XML";
-                    case "application/shp","application/x-shapefile"->EU_FT_BASE+"SHP"; case "application/x-dbf"->EU_FT_BASE+"DBF";
-                    default->ExtractorConfig.PLACEHOLDER_URI + "-eu-filetype-" + lowerType.replaceAll("[^a-zA-Z0-9]", "-");
-                }).orElse(ExtractorConfig.PLACEHOLDER_URI + "-eu-filetype-unknown");
-    }
-    // Instance method as it uses the languageDetector instance variable
-    private Optional<LanguageResult> detectLanguage(String text, int maxSampleLength) {
-        if (this.languageDetector == null || text == null || text.trim().isEmpty()) return Optional.empty();
-        try {
-            String textSample = text.substring(0, Math.min(maxSampleLength, text.length()));
-            if (textSample.isBlank()) return Optional.empty();
-            return Optional.of(this.languageDetector.detect(textSample));
-        } catch (Exception e) {
-            System.err.println("Waarschuwing: Fout tijdens taaldetectie: " + e.getMessage()); return Optional.empty();
-        }
-    }
+    // --- Andere Mapping Functies (IANA URI, EU URI, Taal) ---
+    // Deze kunnen hier ook als private static methoden staan, of
+    // je kunt besluiten ze weg te laten voor maximale eenvoud als ze niet strikt nodig zijn.
+    // Voor nu laat ik ze weg om de klasse korter te maken. Voeg ze toe indien nodig.
     private static String mapLanguageCodeToNalUri(String langCode) {
         final String EU_LANG_BASE = "http://publications.europa.eu/resource/authority/language/";
-        if (langCode == null || langCode.isBlank()) return EU_LANG_BASE + "UND";
+        if (langCode == null || langCode.isBlank() || langCode.equalsIgnoreCase("und")) {
+            return EU_LANG_BASE + "UND";
+        }
         String normCode = langCode.toLowerCase().split("-")[0];
         return EU_LANG_BASE + switch (normCode) {
-            case "nl" -> "NLD"; case "en" -> "ENG"; case "de" -> "DEU"; case "fr" -> "FRA";
-            case "es" -> "SPA"; case "it" -> "ITA"; case "und" -> "UND"; default -> "MUL";
+            case "nl" -> "NLD"; case "en" -> "ENG"; case "de" -> "DEU";
+            case "fr" -> "FRA"; case "es" -> "SPA"; case "it" -> "ITA";
+            default -> "MUL"; // Meertalig/Anders
         };
+    }
+
+    /** Genereert een beschrijving (interne logica). */
+    private String generateDescription(Metadata metadata, String text, String filename) {
+        String desc = getMetadataValue(metadata, DublinCore.DESCRIPTION);
+        if (!isDescriptionValid(desc)) {
+            desc = getMetadataValue(metadata, TikaCoreProperties.DESCRIPTION);
+            if (!isDescriptionValid(desc)) {
+                desc = null;
+            }
+        }
+
+        if (desc != null) {
+            String cleanDesc = desc.trim().replaceAll("\\s+", " ");
+            if (cleanDesc.length() > config.getMaxAutoDescriptionLength()) {
+                cleanDesc = cleanDesc.substring(0, config.getMaxAutoDescriptionLength()).trim() + "...";
+            }
+            cleanDesc = cleanDesc.replaceAll("^[\\W_]+|[\\W_]+$", "").trim();
+            if (!cleanDesc.isEmpty()) return cleanDesc;
+        }
+
+        if (text != null && !text.isBlank()) {
+            String cleanedText = text.trim().replaceAll("\\s+", " ");
+            if (cleanedText.length() > 10) {
+                int end = Math.min(cleanedText.length(), config.getMaxAutoDescriptionLength());
+                String snippet = cleanedText.substring(0, end).trim();
+                snippet = snippet.replaceAll("^[\\W_]+|[\\W_]+$", "").trim();
+                String suffix = (cleanedText.length() > end && snippet.length() < config.getMaxAutoDescriptionLength()) ? "..." : "";
+                if (!snippet.isEmpty()) return snippet + suffix;
+            }
+        }
+        return "Geen beschrijving automatisch beschikbaar voor: " + filename;
+    }
+
+    /** Valideert beschrijving (interne logica). */
+    private boolean isDescriptionValid(String description) {
+        if (description == null || description.isBlank()) return false;
+        String trimmed = description.trim();
+        return trimmed.length() >= config.getMinDescMetadataLength() &&
+                trimmed.length() <= config.getMaxDescMetadataLength() &&
+                !trimmed.contains("_x000d_");
+    }
+
+    /** Detecteert taal (interne logica). */
+    private Optional<LanguageResult> detectLanguage(String text, int maxSampleLength) {
+        if (this.languageDetector == null || text == null || text.trim().isEmpty()) {
+            return Optional.empty();
+        }
+        try {
+            String textSample = text.substring(0, Math.min(text.length(), maxSampleLength)).trim();
+            if (textSample.isEmpty()) return Optional.empty();
+            return Optional.of(this.languageDetector.detect(textSample));
+        } catch (Exception e) {
+            System.err.println("Waarschuwing: Fout tijdens taaldetectie: " + e.getMessage());
+            return Optional.empty();
+        }
     }
 }
 
 /**
- * Verwerkt ZIP-archieven, inclusief geneste archieven, en delegeert bestandsverwerking.
+ * Implementatie van ISourceProcessor: verwerkt ZIP-bestanden.
  */
 class ZipSourceProcessor implements ISourceProcessor {
+    // Dependencies
     private final IFileTypeFilter fileFilter;
     private final IMetadataProvider metadataProvider;
     private final ICkanResourceFormatter resourceFormatter;
-    private final int maxTextLength;
+    private final ExtractorConfiguration config;
 
-    public ZipSourceProcessor(IFileTypeFilter fileFilter, IMetadataProvider metadataProvider, ICkanResourceFormatter resourceFormatter, int maxTextLength) {
-        this.fileFilter = Objects.requireNonNull(fileFilter);
-        this.metadataProvider = Objects.requireNonNull(metadataProvider);
-        this.resourceFormatter = Objects.requireNonNull(resourceFormatter);
-        this.maxTextLength = maxTextLength;
+    /** Constructor ontvangt dependencies. */
+    public ZipSourceProcessor(IFileTypeFilter fileFilter, IMetadataProvider metadataProvider, ICkanResourceFormatter resourceFormatter, ExtractorConfiguration config) {
+        this.fileFilter = fileFilter;
+        this.metadataProvider = metadataProvider;
+        this.resourceFormatter = resourceFormatter;
+        this.config = config;
     }
 
     @Override
     public void processSource(Path zipPath, String containerPath, List<CkanResource> results, List<ProcessingError> errors, List<IgnoredEntry> ignored) {
+        // Gebruik try-with-resources voor automatische resource afhandeling (sluiten van streams)
         try (InputStream fis = Files.newInputStream(zipPath);
-             BufferedInputStream bis = new BufferedInputStream(fis);
-             ZipInputStream zis = new ZipInputStream(bis)) {
+             BufferedInputStream bis = new BufferedInputStream(fis); // Efficiënter lezen
+             ZipInputStream zis = new ZipInputStream(bis)) { // Om ZIP entries te lezen
 
             ZipEntry entry;
+            // Loop door alle entries in het ZIP bestand
             while ((entry = zis.getNextEntry()) != null) {
                 String entryName = entry.getName();
-                // Voorkom Zip Slip vulnerability door entry naam te normaliseren en te checken
-                Path currentPath = Paths.get(entryName).normalize();
-                if (currentPath.startsWith("..") || currentPath.isAbsolute()) {
-                    String errorMsg = "Ongeldige/onveilige entry naam overgeslagen: " + entryName;
-                    errors.add(new ProcessingError(containerPath + "!/" + entryName, errorMsg));
-                    System.err.println(errorMsg);
-                    zis.closeEntry();
-                    continue;
-                }
-                String fullEntryPath = containerPath + "!/" + entryName;
+                String fullEntryPath = containerPath + "!/" + entryName; // Uniek pad voor deze entry
 
+                // --- Veiligheidschecks en Filters ---
+                if (isInvalidPath(entryName)) { // Check op bv. "../"
+                    errors.add(new ProcessingError(fullEntryPath, "Onveilige entry naam overgeslagen."));
+                    System.err.println("FOUT: Onveilige entry naam: " + fullEntryPath);
+                    zis.closeEntry(); continue; // Ga naar volgende entry
+                }
                 if (entry.isDirectory()) {
-                    zis.closeEntry(); continue;
+                    zis.closeEntry(); continue; // Sla mappen over
                 }
-                if (!fileFilter.isFileTypeRelevant(entryName)) {
+                if (!fileFilter.isFileTypeRelevant(entryName)) { // Gebruik de filter component
                     ignored.add(new IgnoredEntry(fullEntryPath, "Bestandstype genegeerd door filter"));
-                    System.err.println("Negeer entry gebaseerd op filter: " + fullEntryPath);
-                    zis.closeEntry(); continue;
+                    zis.closeEntry(); continue; // Sla irrelevante bestanden over
                 }
 
+                // --- Verwerking: Geneste ZIP of Normaal Bestand? ---
                 if (isZipEntryZip(entry)) {
+                    // Het is een ZIP binnen een ZIP: verwerk recursief
                     processNestedZip(entry, zis, fullEntryPath, results, errors, ignored);
                 } else {
+                    // Het is een normaal bestand: extraheer & formatteer
                     processRegularEntry(entryName, zis, fullEntryPath, results, errors);
                 }
-                zis.closeEntry();
+                zis.closeEntry(); // Ga naar de volgende entry in de ZIP
             }
         } catch (IOException e) {
-            String errorMsg = "Fout bij lezen ZIP-bestand '" + zipPath + "': " + e.getMessage();
-            errors.add(new ProcessingError(containerPath, errorMsg));
-            System.err.println(errorMsg);
+            // Fout bij het lezen van het hoof-ZIP bestand
+            errors.add(new ProcessingError(containerPath, "Fout bij lezen ZIP: " + e.getMessage()));
+            System.err.println("FOUT: Kon ZIP niet lezen '" + containerPath + "': " + e.getMessage());
+        } catch (Exception e) {
+            // Onverwachte fout tijdens ZIP verwerking
+            errors.add(new ProcessingError(containerPath, "Onverwachte ZIP fout: " + e.getMessage()));
+            System.err.println("KRITIEKE FOUT bij ZIP '" + containerPath + "': " + e.getMessage());
+            e.printStackTrace(System.err);
         }
     }
 
+    /** Verwerkt een geneste ZIP door deze tijdelijk op te slaan en opnieuw te processen. */
     private void processNestedZip(ZipEntry entry, ZipInputStream zis, String fullEntryPath, List<CkanResource> results, List<ProcessingError> errors, List<IgnoredEntry> ignored) {
         Path tempZip = null;
         try {
             tempZip = Files.createTempFile("nested_zip_", ".zip");
+            // Kopieer de entry data naar het tijdelijke bestand zonder de hoofdstream te sluiten
             try (InputStream nestedZipStream = new NonClosingInputStream(zis)) {
                 Files.copy(nestedZipStream, tempZip, StandardCopyOption.REPLACE_EXISTING);
             }
-            System.err.println("Verwerk geneste ZIP: " + fullEntryPath);
+            System.err.println("INFO: Verwerk geneste ZIP: " + fullEntryPath);
+            // Roep DEZELFDE methode (processSource) aan voor het tijdelijke bestand (Recursie!)
             this.processSource(tempZip, fullEntryPath, results, errors, ignored);
         } catch (IOException e) {
-            String errorMsg = "Kon geneste zip niet verwerken: " + e.getMessage();
-            errors.add(new ProcessingError(fullEntryPath, errorMsg));
-            System.err.println("Fout bij verwerken geneste ZIP entry '" + fullEntryPath + "': " + e.getMessage());
+            errors.add(new ProcessingError(fullEntryPath, "Kon geneste ZIP niet verwerken: " + e.getMessage()));
+            System.err.println("FOUT: Verwerken geneste ZIP '" + fullEntryPath + "' mislukt: " + e.getMessage());
         } finally {
+            // Ruim altijd het tijdelijke bestand op
             if (tempZip != null) {
-                try { Files.deleteIfExists(tempZip); } catch (IOException e) {
-                    System.err.println("Waarschuwing: Kon tijdelijk bestand niet verwijderen '" + tempZip + "': " + e.getMessage());
-                }
+                try { Files.deleteIfExists(tempZip); } catch (IOException e) { /* Log waarschuwing */ }
             }
         }
     }
 
+    /** Verwerkt een normaal bestand binnen de ZIP. */
     private void processRegularEntry(String entryName, ZipInputStream zis, String fullEntryPath, List<CkanResource> results, List<ProcessingError> errors) {
         try {
+            // Gebruik NonClosingInputStream om de hoofdstream open te houden
             InputStream nonClosingStream = new NonClosingInputStream(zis);
-            IMetadataProvider.ExtractionOutput output = metadataProvider.extract(nonClosingStream, maxTextLength);
+            // Stap 1: Extraheer metadata en tekst
+            IMetadataProvider.ExtractionOutput output = metadataProvider.extract(nonClosingStream, config.getMaxExtractedTextLength());
+            // Stap 2: Formatteer de output naar een CkanResource
             CkanResource resource = resourceFormatter.format(entryName, output.metadata, output.text, fullEntryPath);
-            results.add(resource);
-        } catch (Exception e) {
+            results.add(resource); // Voeg toe aan succesvolle resultaten
+        } catch (Exception e) { // Vang alle fouten tijdens extractie/formattering
             errors.add(new ProcessingError(fullEntryPath, e.getClass().getSimpleName() + ": " + e.getMessage()));
-            System.err.println("Fout bij verwerken entry '" + entryName + "': " + e.getMessage());
+            System.err.println("FOUT: Kon entry niet verwerken '" + fullEntryPath + "': " + e.getMessage());
+            // e.printStackTrace(); // Eventueel aanzetten voor meer debug info
         }
     }
 
+    /** Controleert of een entry een ZIP bestand is. */
     private boolean isZipEntryZip(ZipEntry entry) {
         if (entry == null || entry.isDirectory()) return false;
         String lowerCaseName = entry.getName().toLowerCase();
-        return ExtractorConfig.SUPPORTED_ZIP_EXTENSIONS.stream().anyMatch(lowerCaseName::endsWith);
+        return config.getSupportedZipExtensions().stream().anyMatch(lowerCaseName::endsWith);
+    }
+
+    /** Controleert of een pad ongeldige tekens bevat (simpele check). */
+    private boolean isInvalidPath(String entryName) {
+        // Basis check om path traversal te voorkomen
+        return entryName.contains("..") || Paths.get(entryName).normalize().isAbsolute();
     }
 }
 
-// --- Facade Klasse ---
-
+// --- Hoofd Klasse: De Facade ---
 /**
- * Hoofdingang voor metadata-extractie, orkestreert de verschillende componenten.
+ * Dit is de hoofdklasse die het hele proces aanstuurt (Facade Pattern).
+ * Het gebruikt de andere componenten (filter, provider, formatter, processor)
+ * om het werk te doen.
  */
-public class MetadataExtractor { // Hernoemd van MetadataExtractorFacade voor eenvoud
+public class MetadataExtractor {
 
+    // Houd referenties naar de componenten die nodig zijn
     private final IFileTypeFilter fileFilter;
     private final IMetadataProvider metadataProvider;
     private final ICkanResourceFormatter resourceFormatter;
-    private final ISourceProcessor sourceProcessor;
-    private final int maxTextLength;
+    private final ISourceProcessor sourceProcessor; // Specifiek voor ZIPs/bestanden
+    private final ExtractorConfiguration config;
 
-    /** Constructor voor dependency injection. */
-    public MetadataExtractor(IFileTypeFilter fileFilter, IMetadataProvider metadataProvider, ICkanResourceFormatter resourceFormatter, ISourceProcessor sourceProcessor, int maxTextLength) {
+    /** Constructor waar alle benodigde componenten worden "geïnjecteerd". */
+    public MetadataExtractor(IFileTypeFilter fileFilter,
+                             IMetadataProvider metadataProvider,
+                             ICkanResourceFormatter resourceFormatter,
+                             ISourceProcessor sourceProcessor,
+                             ExtractorConfiguration config) {
+        // Sla de ontvangen componenten op in de velden van dit object
         this.fileFilter = Objects.requireNonNull(fileFilter);
         this.metadataProvider = Objects.requireNonNull(metadataProvider);
         this.resourceFormatter = Objects.requireNonNull(resourceFormatter);
         this.sourceProcessor = Objects.requireNonNull(sourceProcessor);
-        this.maxTextLength = maxTextLength;
+        this.config = Objects.requireNonNull(config);
     }
 
     /**
-     * Verwerkt een gegeven bronpad (bestand of ZIP) en retourneert een rapport.
-     * Vangt de meeste IOExceptions intern af en rapporteert ze.
-     * @param sourcePathString Pad naar het bronbestand of ZIP-archief.
-     * @return Een ProcessingReport met resultaten, fouten en genegeerde entries.
+     * Startpunt voor het verwerken van een bestand of ZIP.
+     * @param sourcePathString Pad naar het bronbestand.
+     * @return Een ProcessingReport met alle resultaten.
      */
     public ProcessingReport processSource(String sourcePathString) {
+        // Maak lege lijsten om resultaten in te verzamelen
         List<CkanResource> successfulResults = new ArrayList<>();
         List<ProcessingError> processingErrors = new ArrayList<>();
         List<IgnoredEntry> ignoredEntries = new ArrayList<>();
-        Path sourcePath = null;
+        Path sourcePath;
 
         try {
-            sourcePath = Paths.get(sourcePathString).normalize();
+            sourcePath = Paths.get(sourcePathString).normalize(); // Maak een Path object
 
+            // --- Eerste controles ---
             if (!Files.exists(sourcePath)) {
-                processingErrors.add(new ProcessingError(sourcePathString, "Bron niet gevonden"));
-                System.err.println("Fout: Bron niet gevonden: " + sourcePathString);
-                return new ProcessingReport(successfulResults, processingErrors, ignoredEntries);
+                processingErrors.add(new ProcessingError(sourcePathString, "Bron niet gevonden."));
+                System.err.println("FOUT: Bron niet gevonden: " + sourcePathString);
+                return new ProcessingReport(successfulResults, processingErrors, ignoredEntries); // Stop hier
             }
 
+            // --- Bepaal type bron en delegeer ---
             if (Files.isDirectory(sourcePath)) {
-                ignoredEntries.add(new IgnoredEntry(sourcePathString, "Bron is een map (niet verwerkt)"));
-                System.err.println("Bron is een map, overgeslagen: " + sourcePathString);
+                ignoredEntries.add(new IgnoredEntry(sourcePathString, "Bron is een map (niet ondersteund)."));
+                System.err.println("INFO: Bron is een map, overgeslagen: " + sourcePathString);
             } else if (isZipFile(sourcePath)) {
+                // Het is een ZIP: gebruik de sourceProcessor (ZipSourceProcessor)
                 sourceProcessor.processSource(sourcePath, sourcePath.toString(), successfulResults, processingErrors, ignoredEntries);
             } else {
-                String filename = sourcePath.getFileName().toString();
-                if (fileFilter.isFileTypeRelevant(filename)) {
-                    try (InputStream stream = new BufferedInputStream(Files.newInputStream(sourcePath))) {
-                        IMetadataProvider.ExtractionOutput output = metadataProvider.extract(stream, maxTextLength);
-                        CkanResource resource = resourceFormatter.format(filename, output.metadata, output.text, sourcePath.toString());
-                        successfulResults.add(resource);
-                    } catch (Exception e) {
-                        processingErrors.add(new ProcessingError(sourcePathString, e.getClass().getSimpleName() + ": " + e.getMessage()));
-                        System.err.println("Fout bij verwerken enkel bestand '" + sourcePath + "': " + e.getMessage());
-                    }
-                } else {
-                    ignoredEntries.add(new IgnoredEntry(sourcePathString, "Bestandstype genegeerd door filter"));
-                    System.err.println("Negeer bestand gebaseerd op filter: " + filename);
-                }
+                // Het is een enkel bestand: verwerk het direct hier
+                processSingleFile(sourcePath, successfulResults, processingErrors, ignoredEntries);
             }
         } catch (Exception e) {
-            String errorMsg = "Onverwachte kritieke fout tijdens verwerking '" + sourcePathString + "': " + e.getMessage();
+            // Vang onverwachte fouten op het hoogste niveau
+            String errorMsg = "Kritieke fout bij verwerken '" + sourcePathString + "': " + e.getMessage();
             processingErrors.add(new ProcessingError(sourcePathString, errorMsg));
-            System.err.println(errorMsg);
+            System.err.println("KRITIEKE FOUT: " + errorMsg);
             e.printStackTrace(System.err);
         }
 
+        // Geef het verzamelde rapport terug
         return new ProcessingReport(successfulResults, processingErrors, ignoredEntries);
     }
 
-    private static boolean isZipFile(Path path) {
-        if (path == null || !Files.isRegularFile(path)) return false;
-        String fileName = path.getFileName().toString().toLowerCase();
-        return ExtractorConfig.SUPPORTED_ZIP_EXTENSIONS.stream().anyMatch(fileName::endsWith);
-    }
+    /** Verwerkt een enkel (niet-ZIP) bestand. */
+    private void processSingleFile(Path sourcePath, List<CkanResource> results, List<ProcessingError> errors, List<IgnoredEntry> ignored) {
+        String sourcePathString = sourcePath.toString();
+        String filename = sourcePath.getFileName().toString();
 
-    // --- Main Methode voor Demonstratie ---
-    public static void main(String[] args) {
-        String filePath = "C:\\Users\\gurelb\\Downloads\\Veg kartering - habitatkaart 2021-2023.zip"; // Voorbeeld pad
-
-        if (args.length > 0) filePath = args[0];
-        else System.err.println("Waarschuwing: Geen bestandspad opgegeven, gebruik standaard: " + filePath);
-
-        // --- Dependency Setup ---
-        LanguageDetector languageDetector = null;
-        try {
-            languageDetector = OptimaizeLangDetector.getDefaultLanguageDetector().loadModels();
-        } catch (IOException e) { System.err.println("Waarschuwing: Kon taalmodellen niet laden: " + e.getMessage()); }
-
-        int maxTextLength = ExtractorConfig.MAX_EXTRACTED_TEXT_LENGTH;
-
-        IFileTypeFilter filter = new DefaultFileTypeFilter();
-        IMetadataProvider provider = new TikaMetadataProvider();
-        ICkanResourceFormatter formatter = new DefaultCkanResourceFormatter(languageDetector);
-        ISourceProcessor zipProcessor = new ZipSourceProcessor(filter, provider, formatter, maxTextLength);
-
-        MetadataExtractor extractor = new MetadataExtractor(filter, provider, formatter, zipProcessor, maxTextLength);
-
-        // --- Uitvoering & Output ---
-        try {
-            ProcessingReport report = extractor.processSource(filePath);
-
-            ObjectMapper jsonMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-            String jsonOutput = jsonMapper.writeValueAsString(report);
-            System.out.println(jsonOutput);
-
-            if (!report.getErrors().isEmpty()) {
-                System.err.println("\nVerwerking voltooid met " + report.getErrors().size() + " fout(en).");
+        // Controleer eerst of het bestandstype relevant is
+        if (fileFilter.isFileTypeRelevant(filename)) {
+            // Gebruik try-with-resources om de stream automatisch te sluiten
+            try (InputStream stream = new BufferedInputStream(Files.newInputStream(sourcePath))) {
+                // Stap 1: Extraheer
+                IMetadataProvider.ExtractionOutput output = metadataProvider.extract(stream, config.getMaxExtractedTextLength());
+                // Stap 2: Formatteer
+                CkanResource resource = resourceFormatter.format(filename, output.metadata, output.text, sourcePathString);
+                results.add(resource);
+            } catch (Exception e) { // Vang fouten tijdens lezen/extractie/formattering
+                errors.add(new ProcessingError(sourcePathString, e.getClass().getSimpleName() + ": " + e.getMessage()));
+                System.err.println("FOUT: Kon enkel bestand niet verwerken '" + sourcePathString + "': " + e.getMessage());
             }
-            if (!report.getIgnored().isEmpty()) {
-                System.err.println(report.getIgnored().size() + " bestand(en) genegeerd.");
-            }
-
-        } catch (Exception e) {
-            System.err.println("Kritieke fout in main: " + e.getMessage());
-            e.printStackTrace(System.err);
+        } else {
+            ignored.add(new IgnoredEntry(sourcePathString, "Bestandstype genegeerd door filter."));
         }
     }
 
-} // Einde van MetadataExtractor
+    /** Controleert of een bestand een ZIP is. */
+    private boolean isZipFile(Path path) {
+        if (path == null || !Files.isRegularFile(path)) return false;
+        String fileName = path.getFileName().toString().toLowerCase();
+        return config.getSupportedZipExtensions().stream().anyMatch(fileName::endsWith);
+    }
+
+
+    // --- Main Methode: Startpunt van de Applicatie ---
+    /**
+     * Dit is waar het programma begint.
+     * Het zet alles klaar en start de extractor.
+     */
+    public static void main(String[] args) {
+        System.out.println("--- Metadata Extractor Start ---");
+
+        // --- Stap 1: Bepaal welk bestand verwerkt moet worden ---
+        String defaultFilePath = "C:\\Users\\gurelb\\Downloads\\Veg kartering - habitatkaart 2021-2023.zip";
+
+        String filePath = defaultFilePath;
+        if (args.length > 0) { // Kijk of een pad is meegegeven als argument
+            filePath = args[0];
+            System.out.println("INFO: Gebruik pad uit argument: " + filePath);
+        } else {
+            System.out.println("INFO: Geen argument opgegeven, gebruik standaard pad: " + filePath);
+            System.err.println("WAARSCHUWING: Zorg dat het standaard pad correct is!");
+        }
+
+        // --- Stap 2: Maak de benodigde objecten (Dependencies) ---
+        // Maak het configuratie object
+        ExtractorConfiguration config = new ExtractorConfiguration();
+
+        // Probeer de taaldetector te laden (kan mislukken als library mist)
+        LanguageDetector loadedLanguageDetector = loadLanguageDetector(); // Roep helper methode aan
+
+        // Maak de componenten en geef de configuratie (en detector) mee
+        // Dit heet Dependency Injection: we geven de benodigde objecten aan de klassen die ze gebruiken.
+        IFileTypeFilter filter = new DefaultFileTypeFilter(config);
+        IMetadataProvider provider = new TikaMetadataProvider(); // Gebruikt standaard Tika parser
+        ICkanResourceFormatter formatter = new DefaultCkanResourceFormatter(loadedLanguageDetector, config);
+        // Voor ISourceProcessor gebruiken we de ZipSourceProcessor, die ook losse bestanden (via de facade) kan aanroepen
+        ISourceProcessor sourceProcessor = new ZipSourceProcessor(filter, provider, formatter, config);
+
+        // Maak de hoofd extractor en geef alle componenten mee
+        MetadataExtractor extractor = new MetadataExtractor(filter, provider, formatter, sourceProcessor, config);
+
+        // --- Stap 3: Start de verwerking ---
+        System.out.println("INFO: Start verwerking voor: " + filePath);
+        ProcessingReport report = extractor.processSource(filePath); // Roep de hoofd verwerkingsmethode aan
+        System.out.println("INFO: Verwerking voltooid.");
+
+        // --- Stap 4: Verwerk en toon de resultaten ---
+        System.out.println("\n--- Resultaten ---");
+        System.out.println("Aantal succesvolle resources: " + report.getResults().size());
+        System.out.println("Aantal genegeerde entries: " + report.getIgnored().size());
+        System.out.println("Aantal verwerkingsfouten: " + report.getErrors().size());
+
+        // Print details van fouten (indien aanwezig)
+        if (!report.getErrors().isEmpty()) {
+            System.err.println("\n--- Foutdetails ---");
+            report.getErrors().forEach(err -> System.err.println("  - [" + err.getSource() + "]: " + err.getError()));
+        }
+
+        // Print JSON output van de succesvolle resources
+        if (!report.getResults().isEmpty()) {
+            System.out.println("\n--- Succesvolle Resources (JSON) ---");
+            try {
+                // Gebruik Jackson ObjectMapper om de lijst van CkanResource objecten om te zetten naar JSON
+                ObjectMapper jsonMapper = new ObjectMapper()
+                        .enable(SerializationFeature.INDENT_OUTPUT); // Zorgt voor netjes ingesprongen JSON
+                // We moeten de lijst van CkanResource's omzetten naar een lijst van hun data Maps voor serialisatie
+                List<Map<String, Object>> resultsData = report.getResults().stream()
+                        .map(CkanResource::getData) // Haal de Map uit elke CkanResource
+                        .collect(Collectors.toList()); // Verzamel in een nieuwe lijst
+                String jsonOutput = jsonMapper.writeValueAsString(Map.of( // Maak een top-level JSON object
+                        "results", resultsData
+                        // Je kunt hier ook errors en ignored toevoegen indien gewenst
+                        // "errors", report.getErrors(),
+                        // "ignored", report.getIgnored()
+                ));
+                System.out.println(jsonOutput);
+            } catch (JsonProcessingException e) {
+                System.err.println("FOUT: Kon resultaten niet naar JSON converteren: " + e.getMessage());
+            }
+        }
+
+        System.out.println("\n--- Metadata Extractor Klaar ---");
+    }
+
+    /** Helper methode om de taaldetector te laden. */
+    private static LanguageDetector loadLanguageDetector() {
+        try {
+            System.out.println("INFO: Laden van taalmodellen...");
+            // Gebruikt Tika's Optimaize detector
+            LanguageDetector detector = OptimaizeLangDetector.getDefaultLanguageDetector();
+            detector.loadModels(); // Laad de modellen
+            System.out.println("INFO: Taalmodellen geladen.");
+            return detector;
+        } catch (NoClassDefFoundError e) {
+            System.err.println("FOUT: Tika taal detectie library (tika-langdetect) niet gevonden. Taaldetectie uitgeschakeld.");
+            System.err.println("Voeg 'org.apache.tika:tika-langdetect' toe aan je dependencies.");
+        } catch (IOException e) {
+            System.err.println("FOUT: Kon taalmodellen niet laden: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("FOUT: Onverwachte fout bij laden taalmodellen: " + e.getMessage());
+            e.printStackTrace(System.err);
+        }
+        // Als er een fout was, geef null terug
+        System.err.println("WAARSCHUWING: Taaldetectie is uitgeschakeld.");
+        return null;
+    }
+
+} // Einde van MetadataExtractor klasse
