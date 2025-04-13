@@ -1,7 +1,7 @@
-// Save as: src/config/ConfigLoader.java
-package config;
+// Save as: src/old.config/ConfigLoader.java
+package old.config;
 
-import util.LoggingUtil;
+import old.util.LoggingUtil;
 import org.slf4j.Logger;
 
 import java.io.FileInputStream;
@@ -136,7 +136,7 @@ public final class ConfigLoader { // Made class final
         boolean shouldMove = getBooleanProperty(KEY_MOVE_PROCESSED, false);
         // Use the already loaded 'processedDir' field for validation
         if (shouldMove && this.processedDir == null) {
-            logger.warn("'{}' is true, but '{}' is not set or invalid in config file '{}'. Processed files will NOT be moved.",
+            logger.warn("'{}' is true, but '{}' is not set or invalid in old.config file '{}'. Processed files will NOT be moved.",
                     KEY_MOVE_PROCESSED, KEY_PROCESSED_DIR, configPath);
             return false; // Disable if dir is invalid/missing
         }

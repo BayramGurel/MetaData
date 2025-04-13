@@ -1,11 +1,11 @@
 // Save as: src/ckan/CkanExceptions.java
-package client; // Using package name from your snippet
+package old.client; // Using package name from your snippet
 
 import java.io.IOException;
 import java.util.Map;
 
 /**
- * Container class for CKAN client-related custom exceptions.
+ * Container class for CKAN old.client-related custom exceptions.
  */
 public final class CkanExceptions {
 
@@ -15,7 +15,7 @@ public final class CkanExceptions {
     }
 
     /**
-     * Base class for specific CKAN client-related IOExceptions.
+     * Base class for specific CKAN old.client-related IOExceptions.
      */
     public static class CkanException extends IOException {
         public CkanException(String message) {

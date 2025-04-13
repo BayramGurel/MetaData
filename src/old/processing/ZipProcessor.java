@@ -1,8 +1,8 @@
-// Save as: src/processing/ZipProcessor.java
-package processing;
+// Save as: src/old.processing/ZipProcessor.java
+package old.processing;
 
-import config.ConfigLoader;
-import util.LoggingUtil;
+import old.config.ConfigLoader;
+import old.util.LoggingUtil;
 
 import org.apache.commons.io.FileUtils; // Requires commons-io dependency
 import org.slf4j.Logger;
@@ -26,7 +26,7 @@ import java.util.zip.ZipFile;
 import java.util.Objects;
 
 /**
- * Handles staging, extraction, filtering, and cleanup/processing of source ZIP files.
+ * Handles staging, extraction, filtering, and cleanup/old.processing of source ZIP files.
  * Uses configuration from ConfigLoader to determine behavior.
  * This class is final as it's not designed for extension.
  */
@@ -49,12 +49,12 @@ public final class ZipProcessor { // Made class final
      * Creates a processor for a specific source ZIP file.
      * @param sourceZipPath The path to the source ZIP file.
      * @param config The application configuration.
-     * @throws NullPointerException if sourceZipPath or config is null.
+     * @throws NullPointerException if sourceZipPath or old.config is null.
      * @throws RuntimeException if the staging directory cannot be created or initial paths are invalid.
      */
     public ZipProcessor(Path sourceZipPath, ConfigLoader config) {
         this.sourceZipPath = Objects.requireNonNull(sourceZipPath, "sourceZipPath cannot be null");
-        this.config = Objects.requireNonNull(config, "config cannot be null");
+        this.config = Objects.requireNonNull(config, "old.config cannot be null");
         this.originalName = sourceZipPath.getFileName().toString();
         this.logPrefix = "[" + this.originalName + "] ";
 
@@ -129,7 +129,7 @@ public final class ZipProcessor { // Made class final
      * Handles nested ZIP exclusion based on configuration (does not recursively extract).
      * Includes path traversal protection.
      *
-     * @return An unmodifiable list of paths to the extracted files selected for further processing (e.g., upload).
+     * @return An unmodifiable list of paths to the extracted files selected for further old.processing (e.g., upload).
      * @throws IOException If the staged ZIP is not found/readable, is corrupt, or extraction fails.
      */
     public List<Path> extract() throws IOException {

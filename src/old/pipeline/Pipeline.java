@@ -1,11 +1,11 @@
-// Save as: src/pipeline/Pipeline.java
-package pipeline;
+// Save as: src/old.pipeline/Pipeline.java
+package old.pipeline;
 
-import config.ConfigLoader;
-import processing.ZipProcessor;
-import client.CkanHandler;
-import client.CkanExceptions.*; // Includes CkanAuthorizationException, CkanNotFoundException etc.
-import util.LoggingUtil;
+import old.config.ConfigLoader;
+import old.processing.ZipProcessor;
+import old.client.CkanHandler;
+import old.client.CkanExceptions.*; // Includes CkanAuthorizationException, CkanNotFoundException etc.
+import old.util.LoggingUtil;
 
 import org.slf4j.Logger;
 
@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Orchestrates the data processing pipeline: finds ZIP files,
+ * Orchestrates the data old.processing old.pipeline: finds ZIP files,
  * processes each using ZipProcessor, publishes results via CkanHandler,
  * handles overall workflow, error counting, and logging.
  * This class is final and not intended for subclassing.
@@ -54,7 +54,7 @@ public final class Pipeline { // Made class final
     private int totalErrorZips = 0;
 
     /**
-     * Initializes the pipeline with necessary configuration and handlers.
+     * Initializes the old.pipeline with necessary configuration and handlers.
      * @param config The loaded application configuration.
      */
     public Pipeline(ConfigLoader config) {
@@ -74,14 +74,14 @@ public final class Pipeline { // Made class final
     }
 
     /**
-     * Runs the main pipeline process: scan source, process ZIPs, log summary.
+     * Runs the main old.pipeline process: scan source, process ZIPs, log summary.
      */
     public void run() {
         Instant runStartTime = Instant.now();
         logger.info("==================================================");
         logger.info("--- Starting Data Pipeline Run ---");
         logger.info("Timestamp: {}", LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME));
-        logConfigurationSummary(); // Log resolved config values
+        logConfigurationSummary(); // Log resolved old.config values
         logger.info("==================================================");
 
         // Reset counters for the run
@@ -112,8 +112,8 @@ public final class Pipeline { // Made class final
             logger.error("CRITICAL FAILURE accessing source directory '{}': {}. Aborting run.", config.getSourceDir(), e.getMessage(), e);
             totalErrorZips = Math.max(0, totalFilesFound - totalProcessedZips); // Estimate remaining as errors
         } catch (Exception e) {
-            // Catch any other unexpected errors during the main loop setup or processing initiation
-            logger.error("CRITICAL UNEXPECTED failure during pipeline execution: {}. Aborting run.", e.getMessage(), e);
+            // Catch any other unexpected errors during the main loop setup or old.processing initiation
+            logger.error("CRITICAL UNEXPECTED failure during old.pipeline execution: {}. Aborting run.", e.getMessage(), e);
             totalErrorZips = Math.max(0, totalFilesFound - totalProcessedZips); // Estimate errors
         } finally {
             Instant runEndTime = Instant.now();
@@ -195,7 +195,7 @@ public final class Pipeline { // Made class final
 
         String logPrefix = processor.getLogPrefix(); // Get prefix "[zipfilename] "
         Instant zipStartTime = Instant.now();
-        logger.info("--- [{}/{}] Start processing ZIP: '{}' ---", index, totalFiles, processor.getOriginalName());
+        logger.info("--- [{}/{}] Start old.processing ZIP: '{}' ---", index, totalFiles, processor.getOriginalName());
         boolean zipProcessedSuccessfully = false;
 
         try {
@@ -227,8 +227,8 @@ public final class Pipeline { // Made class final
             totalErrorZips++; logger.error("{}CKAN API Error: {}.", logPrefix, e.getMessage()); logger.debug("{}CKAN API Error Stack Trace:", logPrefix, e);
         } catch (IOException e) { // Catch file/IO errors (staging, extraction, moving, listing)
             totalErrorZips++; logger.error("{}File I/O Error: {}.", logPrefix, e.getMessage()); logger.debug("{}I/O Error Stack Trace:", logPrefix, e);
-        } catch (RuntimeException e) { // Catch unexpected runtime errors during processing steps
-            totalErrorZips++; logger.error("{}Unexpected Runtime Error during processing: {}.", logPrefix, e.getMessage()); logger.error("{}Runtime Error Stack Trace:", logPrefix, e);
+        } catch (RuntimeException e) { // Catch unexpected runtime errors during old.processing steps
+            totalErrorZips++; logger.error("{}Unexpected Runtime Error during old.processing: {}.", logPrefix, e.getMessage()); logger.error("{}Runtime Error Stack Trace:", logPrefix, e);
         } finally {
             // Ensure processor was initialized before attempting cleanup/move
             if (processor != null) {
@@ -248,7 +248,7 @@ public final class Pipeline { // Made class final
                             logger.error("{}Failed to move successfully processed file '{}' to processed directory: {}", logPrefix, processor.getOriginalName(), moveEx.getMessage(), moveEx);
                         }
                     } else {
-                        logger.warn("{}Skipping move to processed for '{}' due to processing errors.", logPrefix, processor.getOriginalName());
+                        logger.warn("{}Skipping move to processed for '{}' due to old.processing errors.", logPrefix, processor.getOriginalName());
                     }
                 }
             } // end if processor != null
@@ -335,7 +335,7 @@ public final class Pipeline { // Made class final
 
         // FIX: Use placeholder prefix until ConfigLoader is updated. See TODO below.
         String orgPrefix = "org-"; // Default prefix
-        // String orgPrefix = config.getCkanOrgPrefix(); // Use this line once ConfigLoader is updated
+        // String orgPrefix = old.config.getCkanOrgPrefix(); // Use this line once ConfigLoader is updated
 
         String targetOrgId = orgPrefix + baseId;
         String targetOrgTitle = baseTitle; // Reusing base title for org, adjust if needed
@@ -437,7 +437,7 @@ public final class Pipeline { // Made class final
             }
         }
 
-        logger.info("{}CKAN resource processing finished. Successful: {}, Failed: {}", logPrefix, successfulUploads, failedUploads);
+        logger.info("{}CKAN resource old.processing finished. Successful: {}, Failed: {}", logPrefix, successfulUploads, failedUploads);
 
         // Fail the whole ZIP's publish step if any resource failed
         if (failedUploads > 0) {
@@ -495,7 +495,7 @@ public final class Pipeline { // Made class final
     }
 
 
-    /** Logs final summary statistics of the pipeline run. */
+    /** Logs final summary statistics of the old.pipeline run. */
     private void logRunSummary(Duration runDuration) {
         logger.info("==================================================");
         logger.info("--- Data Pipeline Run Summary ---");
@@ -510,7 +510,7 @@ public final class Pipeline { // Made class final
 
     // --- Filename Helper Methods ---
     // RECOMMENDATION: Move getBaseName and getExtension to a shared utility class
-    // (e.g., util.FilenameUtils) to avoid duplication with ZipProcessor.java
+    // (e.g., old.util.FilenameUtils) to avoid duplication with ZipProcessor.java
 
     /** Gets the base name of a file (name without last extension). */
     private static String getBaseName(String filename) {

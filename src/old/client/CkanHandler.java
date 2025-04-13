@@ -1,8 +1,8 @@
 // Save as: src/ckan/CkanHandler.java
-package client; // Using package name from your snippet
+package old.client; // Using package name from your snippet
 
-import client.CkanExceptions.*;
-import util.LoggingUtil; // Assuming LoggingUtil is in 'util' package
+import old.client.CkanExceptions.*;
+import old.util.LoggingUtil; // Assuming LoggingUtil is in 'old.util' package
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -344,7 +344,7 @@ public final class CkanHandler { // Made class final
             logger.error("Failed to parse JSON response from action '{}'. Status: {}, Body: {}", action, statusCode, responseBody, e);
             String errorMsg = String.format("Invalid JSON response from CKAN action '%s' (Status %d). Body: %s",
                     action, statusCode, responseBody.length() > 500 ? responseBody.substring(0, 500) + "..." : responseBody);
-            // Distinguish connection issues (likely bad gateway returning non-JSON) from client/server errors
+            // Distinguish connection issues (likely bad gateway returning non-JSON) from old.client/server errors
             if (statusCode >= 500) {
                 throw new CkanConnectionException(errorMsg, e);
             } else {
@@ -460,7 +460,7 @@ public final class CkanHandler { // Made class final
         orgData.put("name", orgId); // Usually the URL slug / unique ID
         orgData.put("title", orgTitle); // Display name
         orgData.put("state", "active");
-        orgData.put("description", "Organization automatically created by pipeline on " + LocalDateTime.now().format(DateTimeFormatter.ISO_DATE));
+        orgData.put("description", "Organization automatically created by old.pipeline on " + LocalDateTime.now().format(DateTimeFormatter.ISO_DATE));
         // Use TypeReference<Map<String, Object>> for generic create response
         Map<String, Object> createdOrg = sendRequest(ACTION_ORG_CREATE, orgData, "POST", new TypeReference<>() {});
         logger.info("Organization '{}' (ID: {}) successfully created.", orgId, createdOrg.get("id"));

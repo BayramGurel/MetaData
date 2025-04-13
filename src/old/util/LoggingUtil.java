@@ -1,5 +1,5 @@
-// Save as: src/util/LoggingUtil.java
-package util;
+// Save as: src/old.util/LoggingUtil.java
+package old.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
