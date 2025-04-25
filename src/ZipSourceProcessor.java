@@ -1,154 +1,166 @@
-import org.apache.tika.metadata.Metadata; // Required for IMetadataProvider.ExtractionOutput
+import org.apache.tika.metadata.Metadata; // Nodig voor IMetadataProvider.ExtractionOutput
 
-import java.io.*; // Required for FilterInputStream, IOException, InputStream
+import java.io.*; // Nodig voor FilterInputStream, IOException, InputStream
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Optional;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipException; // Still needed for the outer catch
+import java.util.zip.ZipException; // Nodig voor buitenste catch
 import java.util.zip.ZipInputStream;
 
-// --- Utility Inner Class ---
+// --- Hulpklasse ---
 
 /**
- * InputStream wrapper that ignores close(). Essential for ZipInputStream entries.
+ * InputStream wrapper die close() negeert. Essentieel voor ZipInputStream entries.
  */
 class NonClosingInputStream extends FilterInputStream {
     protected NonClosingInputStream(InputStream in) { super(in); }
-    @Override public void close() throws IOException { /* Ignore close */ }
+    @Override public void close() throws IOException { /* Negeer sluiten */ }
     @Override public synchronized void mark(int readlimit) { in.mark(readlimit); }
     @Override public synchronized void reset() throws IOException { in.reset(); }
     @Override public boolean markSupported() { return in.markSupported(); }
 }
 
-// --- Zip Processor Class ---
+// --- Zip Processor Klasse ---
 
 /**
- * Processes ZIP archives, including nested ones.
- * Extends {@link AbstractSourceProcessor}.
+ * Verwerkt ZIP-archieven, inclusief geneste.
+ * Erft van {@link AbstractSourceProcessor}.
  */
 public class ZipSourceProcessor extends AbstractSourceProcessor {
 
-    /** Constructor, calls super to inject dependencies. */
+    /** Constructor, roept super aan om dependencies te injecteren. */
     public ZipSourceProcessor(IFileTypeFilter ff, IMetadataProvider mp, ICkanResourceFormatter rf, ExtractorConfiguration cfg) {
         super(ff, mp, rf, cfg);
     }
 
-    /** Processes a ZIP archive. */
+    /** Verwerkt een ZIP-archief. */
     @Override
     public void processSource(Path zipPath, String containerPath, List<CkanResource> results, List<ProcessingError> errors, List<IgnoredEntry> ignored) {
-        // Use try-with-resources for automatic closing of streams
+        // Gebruik try-with-resources voor automatisch sluiten streams
         try (InputStream fis = Files.newInputStream(zipPath);
              BufferedInputStream bis = new BufferedInputStream(fis);
              ZipInputStream zis = new ZipInputStream(bis)) {
 
             ZipEntry entry;
-            // Iterate through each entry in the ZIP
-            // getNextEntry() can throw ZipException or IOException here
+            // Itereer door elke entry in de ZIP
+            // getNextEntry() kan hier ZipException of IOException gooien
             while ((entry = zis.getNextEntry()) != null) {
                 String entryName = entry.getName();
-                String fullEntryPath = containerPath + "!/" + entryName; // Path for reporting
+                String fullEntryPath = containerPath + "!/" + entryName; // Pad voor rapportage
 
-                try { // Try block for processing a single entry
-                    // --- Basic checks ---
+                try { // Try-block voor verwerking van één entry
+                    // --- Basis checks ---
                     if (isInvalidPath(entryName)) {
-                        errors.add(new ProcessingError(fullEntryPath, "Unsafe path detected."));
-                        continue; // Skip potentially harmful entries
+                        errors.add(new ProcessingError(fullEntryPath, "Onveilig pad gedetecteerd."));
+                        continue; // Sla potentieel gevaarlijke entry over
                     }
                     if (entry.isDirectory()) {
-                        continue; // Skip directories themselves
+                        continue; // Sla mappen zelf over
                     }
                     if (!fileFilter.isFileTypeRelevant(entryName)) {
-                        ignored.add(new IgnoredEntry(fullEntryPath, "Irrelevant file type/name."));
-                        continue; // Skip irrelevant files
+                        ignored.add(new IgnoredEntry(fullEntryPath, "Irrelevant bestandstype/naam."));
+                        continue; // Sla irrelevante bestanden over
                     }
 
-                    // --- Process entry (nested ZIP or regular file) ---
+                    // --- Verwerk entry (geneste ZIP of regulier bestand) ---
                     if (isZipEntry(entry)) {
                         processNestedZip(entry, zis, fullEntryPath, results, errors, ignored);
                     } else {
                         processRegularEntry(entryName, zis, fullEntryPath)
                                 .ifPresentOrElse(
-                                        results::add, // Add resource on success
-                                        () -> errors.add(new ProcessingError(fullEntryPath, "Could not process entry.")) // Add error on failure
+                                        results::add, // Voeg resource toe bij succes
+                                        () -> errors.add(new ProcessingError(fullEntryPath, "Kon entry niet verwerken.")) // Voeg fout toe bij falen
                                 );
                     }
-                    // Removed the specific catch (ZipException ze) inside the loop as it's unlikely to be thrown here
-                    // and causes a compiler warning. The general Exception catch below handles issues during entry processing.
                 } catch (Exception e) {
-                    // Catch other unexpected errors per entry
-                    errors.add(new ProcessingError(fullEntryPath, "Unexpected entry error: " + e.getClass().getSimpleName() + " - " + e.getMessage()));
-                    System.err.println("ERROR: Unexpected error processing entry '" + fullEntryPath + "': " + e.getMessage());
+                    // Vang andere onverwachte fouten per entry op
+                    errors.add(new ProcessingError(fullEntryPath, "Onverwachte entry fout: " + e.getClass().getSimpleName() + " - " + e.getMessage()));
+                    System.err.println("FOUT: Onverwacht bij verwerken entry '" + fullEntryPath + "': " + e.getMessage());
                 } finally {
-                    // IMPORTANT: Always close the current entry to proceed to the next
-                    // closeEntry() can also throw ZipException or IOException
+                    // BELANGRIJK: Sluit altijd de huidige entry om door te gaan naar de volgende
+                    // closeEntry() kan ook ZipException of IOException gooien
                     try { zis.closeEntry(); } catch (IOException ioe) {
-                        System.err.println("WARN: Could not properly close ZIP entry: " + fullEntryPath + " - " + ioe.getMessage());
-                        // Optionally add to errors list if this is considered critical
-                        // errors.add(new ProcessingError(fullEntryPath, "Error closing entry: " + ioe.getMessage()));
+                        System.err.println("WARN: Kon ZIP entry niet correct sluiten: " + fullEntryPath + " - " + ioe.getMessage());
+                        // Optioneel: voeg toe aan errors indien kritiek
+                        // errors.add(new ProcessingError(fullEntryPath, "Fout bij sluiten entry: " + ioe.getMessage()));
                     }
                 }
-            } // End while loop over entries
+            } // Einde while loop over entries
 
         } catch (ZipException ze) {
-            // This catch block IS necessary for errors opening/reading the main ZIP structure
-            errors.add(new ProcessingError(containerPath, "Error opening/reading ZIP (possibly corrupt): " + ze.getMessage()));
-            System.err.println("ERROR: Cannot read ZIP file '" + containerPath + "': " + ze.getMessage());
+            // Deze catch is nodig voor fouten bij openen/lezen hoofd ZIP structuur
+            errors.add(new ProcessingError(containerPath, "Fout openen/lezen ZIP (mogelijk corrupt): " + ze.getMessage()));
+            System.err.println("FOUT: Kan ZIP bestand niet lezen '" + containerPath + "': " + ze.getMessage());
         } catch (IOException e) {
-            // General I/O error reading the main ZIP
-            errors.add(new ProcessingError(containerPath, "I/O Error reading ZIP: " + e.getMessage()));
-            System.err.println("ERROR: I/O problem reading ZIP '" + containerPath + "': " + e.getMessage());
+            // Algemene I/O fout bij lezen hoofd ZIP
+            errors.add(new ProcessingError(containerPath, "I/O Fout bij lezen ZIP: " + e.getMessage()));
+            System.err.println("FOUT: I/O probleem lezen ZIP '" + containerPath + "': " + e.getMessage());
         } catch (Exception e) {
-            // Catch other unexpected critical errors at the top level
-            errors.add(new ProcessingError(containerPath, "Unexpected critical ZIP error: " + e.getMessage()));
-            System.err.println("CRITICAL ERROR processing ZIP '" + containerPath + "': " + e.getMessage());
-            e.printStackTrace(System.err); // Print stack trace for debugging
+            // Vang andere onverwachte kritieke fouten op topniveau
+            errors.add(new ProcessingError(containerPath, "Onverwachte kritieke ZIP fout: " + e.getMessage()));
+            System.err.println("KRITIEKE FOUT verwerken ZIP '" + containerPath + "': " + e.getMessage());
+            e.printStackTrace(System.err); // Print stack trace voor debuggen
         }
     }
 
-    /** Processes a nested ZIP: extracts to temp, calls processSource recursively, cleans up temp file. */
+    /** Verwerkt geneste ZIP: extract naar temp, roep processSource recursief aan, ruim temp op. */
     private void processNestedZip(ZipEntry entry, ZipInputStream zis, String fullEntryPath, List<CkanResource> results, List<ProcessingError> errors, List<IgnoredEntry> ignored) {
         Path tempZip = null;
         try {
+            // Maak tijdelijk bestand voor geneste ZIP
             tempZip = Files.createTempFile("nested_zip_", ".zip");
+
+            // Kopieer inhoud naar temp bestand met NonClosingInputStream
             try (InputStream nestedZipStream = new NonClosingInputStream(zis)) {
                 Files.copy(nestedZipStream, tempZip, StandardCopyOption.REPLACE_EXISTING);
             }
-            System.err.println("INFO: Processing nested ZIP: " + fullEntryPath);
+            System.err.println("INFO: Verwerk geneste ZIP: " + fullEntryPath);
+
+            // Roep deze processor recursief aan voor het tijdelijke ZIP bestand
             this.processSource(tempZip, fullEntryPath, results, errors, ignored);
+
         } catch (IOException e) {
-            errors.add(new ProcessingError(fullEntryPath, "Error processing nested ZIP: " + e.getMessage()));
-            System.err.println("ERROR: Failed processing nested ZIP '" + fullEntryPath + "': " + e.getMessage());
+            errors.add(new ProcessingError(fullEntryPath, "Fout verwerken geneste ZIP: " + e.getMessage()));
+            System.err.println("FOUT: Mislukt verwerken geneste ZIP '" + fullEntryPath + "': " + e.getMessage());
         } finally {
+            // Ruim altijd tijdelijk bestand op
             if (tempZip != null) {
                 try { Files.deleteIfExists(tempZip); } catch (IOException e) {
-                    System.err.println("WARN: Could not delete temp file: " + tempZip);
+                    System.err.println("WARN: Kon temp bestand niet verwijderen: " + tempZip);
                 }
             }
         }
     }
 
-    /** Processes a regular file entry within the ZIP using base class dependencies. */
+    /** Verwerkt reguliere bestandsentry binnen ZIP. */
     private Optional<CkanResource> processRegularEntry(String entryName, ZipInputStream zis, String fullEntryPath) {
         try {
+            // Gebruik NonClosingInputStream om sluiten hoofdstream te voorkomen
             InputStream entryStream = new NonClosingInputStream(zis);
+            // Roep metadata provider aan
             IMetadataProvider.ExtractionOutput output = metadataProvider.extract(entryStream, config.getMaxExtractedTextLength());
+            // Roep formatter aan
             CkanResource resource = resourceFormatter.format(entryName, output.metadata(), output.text(), fullEntryPath);
+            // Retourneer succesvolle resource
             return Optional.of(resource);
         } catch (Exception e) {
-            System.err.println("ERROR: Processing entry '" + fullEntryPath + "' failed: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            // Vang alle excepties op tijdens extractie/formattering voor deze entry
+            System.err.println("FOUT: Verwerken entry '" + fullEntryPath + "' mislukt: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            // Geef falen aan met lege Optional
             return Optional.empty();
         }
     }
 
-    /** Helper method to check if a ZipEntry is itself a ZIP file based on extension. */
+    /** Hulpmethode: controleert of ZipEntry zelf een ZIP is (o.b.v. extensie). */
     private boolean isZipEntry(ZipEntry entry) {
         if (entry == null || entry.isDirectory()) {
             return false;
         }
         String nameLower = entry.getName().toLowerCase();
+        // Check of naam eindigt op ondersteunde ZIP extensie uit config
         return config.getSupportedZipExtensions().stream().anyMatch(nameLower::endsWith);
     }
 }

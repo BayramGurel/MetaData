@@ -3,39 +3,39 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-// --- Reporting DTOs ---
+// --- Rapportage DTOs ---
 
 /**
- * Represents an error encountered during processing. Immutable record.
- * @param source Path where the error occurred.
- * @param error Error description.
+ * Representeert een fout tijdens verwerking. Onveranderlijk record.
+ * @param source Pad waar de fout optrad.
+ * @param error Foutbeschrijving.
  */
 record ProcessingError(String source, String error) {
-    public ProcessingError { // Compact constructor validation
-        Objects.requireNonNull(source, "Source cannot be null");
-        Objects.requireNonNull(error, "Error message cannot be null");
-        if (source.isBlank()) throw new IllegalArgumentException("Source cannot be blank");
-        if (error.isBlank()) throw new IllegalArgumentException("Error message cannot be blank");
+    public ProcessingError { // Compacte constructor validatie
+        Objects.requireNonNull(source, "Bron mag niet null zijn");
+        Objects.requireNonNull(error, "Foutmelding mag niet null zijn");
+        if (source.isBlank()) throw new IllegalArgumentException("Bron mag niet leeg zijn");
+        if (error.isBlank()) throw new IllegalArgumentException("Foutmelding mag niet leeg zijn");
     }
 }
 
 /**
- * Represents an item that was skipped during processing. Immutable record.
- * @param source Path of the ignored item.
- * @param reason Reason for ignoring.
+ * Representeert een overgeslagen item. Onveranderlijk record.
+ * @param source Pad van genegeerd item.
+ * @param reason Reden voor negeren.
  */
 record IgnoredEntry(String source, String reason) {
-    public IgnoredEntry { // Compact constructor validation
-        Objects.requireNonNull(source, "Source cannot be null");
-        Objects.requireNonNull(reason, "Reason cannot be null");
-        if (source.isBlank()) throw new IllegalArgumentException("Source cannot be blank");
-        if (reason.isBlank()) throw new IllegalArgumentException("Reason cannot be blank");
+    public IgnoredEntry { // Compacte constructor validatie
+        Objects.requireNonNull(source, "Bron mag niet null zijn");
+        Objects.requireNonNull(reason, "Reden mag niet null zijn");
+        if (source.isBlank()) throw new IllegalArgumentException("Bron mag niet leeg zijn");
+        if (reason.isBlank()) throw new IllegalArgumentException("Reden mag niet leeg zijn");
     }
 }
 
 /**
- * Bundles the results of an extraction run (successes, errors, ignored items).
- * This class is immutable after creation.
+ * Bundelt de resultaten van een extractie-run.
+ * Onveranderlijk na creatie.
  */
 public final class ProcessingReport {
 
@@ -44,45 +44,45 @@ public final class ProcessingReport {
     private final List<IgnoredEntry> ignored;
 
     /**
-     * Constructor for ProcessingReport. Creates defensive copies of the lists.
-     * @param results List of successful CkanResource objects.
-     * @param errors List of ProcessingError objects.
-     * @param ignored List of IgnoredEntry objects.
+     * Constructor. Maakt defensieve kopieën van de lijsten.
+     * @param results Lijst van succesvolle CkanResource objecten.
+     * @param errors Lijst van ProcessingError objecten.
+     * @param ignored Lijst van IgnoredEntry objecten.
      */
     public ProcessingReport(List<CkanResource> results, List<ProcessingError> errors, List<IgnoredEntry> ignored) {
-        // Ensure lists are not null
-        Objects.requireNonNull(results, "Results list cannot be null");
-        Objects.requireNonNull(errors, "Errors list cannot be null");
-        Objects.requireNonNull(ignored, "Ignored list cannot be null");
+        // Zorg dat lijsten niet null zijn
+        Objects.requireNonNull(results, "Lijst met resultaten mag niet null zijn");
+        Objects.requireNonNull(errors, "Lijst met fouten mag niet null zijn");
+        Objects.requireNonNull(ignored, "Lijst met genegeerde items mag niet null zijn");
 
-        // Create unmodifiable copies to ensure immutability
+        // Maak onveranderlijke kopieën
         this.results = Collections.unmodifiableList(new ArrayList<>(results));
         this.errors = Collections.unmodifiableList(new ArrayList<>(errors));
         this.ignored = Collections.unmodifiableList(new ArrayList<>(ignored));
     }
 
-    /** Returns the unmodifiable list of successful results. */
+    /** Geeft de onveranderlijke lijst van succesvolle resultaten. */
     public List<CkanResource> getResults() {
         return results;
     }
 
-    /** Returns the unmodifiable list of errors. */
+    /** Geeft de onveranderlijke lijst van fouten. */
     public List<ProcessingError> getErrors() {
         return errors;
     }
 
-    /** Returns the unmodifiable list of ignored items. */
+    /** Geeft de onveranderlijke lijst van genegeerde items. */
     public List<IgnoredEntry> getIgnored() {
         return ignored;
     }
 
-    /** Provides a summary string representation. */
+    /** Geeft een samenvattende string representatie. */
     @Override
     public String toString() {
         return "ProcessingReport{" +
-                "results=" + results.size() +
-                ", errors=" + errors.size() +
-                ", ignored=" + ignored.size() +
+                "resultaten=" + results.size() +
+                ", fouten=" + errors.size() +
+                ", genegeerd=" + ignored.size() +
                 '}';
     }
 }

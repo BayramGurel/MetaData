@@ -9,7 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
-import java.util.regex.Pattern; // Needed for drive letter check
+import java.util.regex.Pattern; // Nodig voor drive letter check
 
 // --- Kern Interfaces ---
 
@@ -20,7 +20,7 @@ interface IFileTypeFilter {
 
 /** Contract voor metadata/tekst extractie. */
 interface IMetadataProvider {
-    /** Bundelt extractie output. */
+    /** Record voor extractie output (metadata en tekst). */
     record ExtractionOutput(Metadata metadata, String text) {}
 
     /** Voert extractie uit. */
@@ -33,7 +33,7 @@ interface ICkanResourceFormatter {
     CkanResource format(String entryName, Metadata metadata, String text, String sourceIdentifier);
 }
 
-/** Contract voor bronverwerking. */
+/** Contract voor bronverwerking (bestand of archief). */
 interface ISourceProcessor {
     void processSource(Path sourcePath, String containerPath,
                        List<CkanResource> results, List<ProcessingError> errors, List<IgnoredEntry> ignored);
@@ -43,8 +43,8 @@ interface ISourceProcessor {
 // --- Abstracte Basisklasse ---
 
 /**
- * Abstracte basis voor ISourceProcessor implementaties.
- * Bevat gedeelde dependencies en hulpmethoden.
+ * Abstracte basisklasse voor {@link ISourceProcessor} implementaties.
+ * Bevat gedeelde componenten en hulpmethoden.
  */
 public abstract class AbstractSourceProcessor implements ISourceProcessor {
 
@@ -53,86 +53,81 @@ public abstract class AbstractSourceProcessor implements ISourceProcessor {
     protected final ICkanResourceFormatter resourceFormatter;
     protected final ExtractorConfiguration config;
 
-    // Pattern to check for Windows drive letters at the start of a path
+    // Patroon om Windows drive letters aan het begin van een pad te herkennen
     private static final Pattern WINDOWS_DRIVE_PATTERN = Pattern.compile("^[a-zA-Z]:[/\\\\].*");
 
 
-    /** Injecteert gedeelde dependencies. */
+    /** Constructor voor dependency injection. */
     protected AbstractSourceProcessor(IFileTypeFilter fileFilter,
                                       IMetadataProvider metadataProvider,
                                       ICkanResourceFormatter resourceFormatter,
                                       ExtractorConfiguration config) {
-        this.fileFilter = Objects.requireNonNull(fileFilter, "File filter cannot be null");
-        this.metadataProvider = Objects.requireNonNull(metadataProvider, "Metadata provider cannot be null");
-        this.resourceFormatter = Objects.requireNonNull(resourceFormatter, "Resource formatter cannot be null");
-        this.config = Objects.requireNonNull(config, "Configuration cannot be null");
+        this.fileFilter = Objects.requireNonNull(fileFilter, "File filter mag niet null zijn");
+        this.metadataProvider = Objects.requireNonNull(metadataProvider, "Metadata provider mag niet null zijn");
+        this.resourceFormatter = Objects.requireNonNull(resourceFormatter, "Resource formatter mag niet null zijn");
+        this.config = Objects.requireNonNull(config, "Configuratie mag niet null zijn");
     }
 
-    /** Abstracte methode voor specifieke bronverwerking (te implementeren door subclasses). */
+    /** Abstracte methode voor specifieke bronverwerking (implementeren in subclass). */
     @Override
     public abstract void processSource(Path sourcePath, String containerPath,
                                        List<CkanResource> results, List<ProcessingError> errors, List<IgnoredEntry> ignored);
 
     // --- Hulpmethoden ---
 
-    /** Extraheert bestandsnaam uit een pad. Handles null, empty, blank input. */
+    /** Extraheert bestandsnaam uit een pad string. Handelt null/lege/blanke input af. */
     protected static String getFilenameFromEntry(String entryName) {
         if (entryName == null) {
             return "";
         }
-        String trimmedName = entryName.trim(); // Trim whitespace first
+        String trimmedName = entryName.trim(); // Verwijder eerst witruimte
         if (trimmedName.isEmpty()) {
             return "";
         }
+        // Normaliseer padscheidingstekens
         String normalizedName = trimmedName.replace('\\', '/');
         int lastSlash = normalizedName.lastIndexOf('/');
+        // Geef deel na laatste slash terug, of de hele naam
         return (lastSlash >= 0) ? normalizedName.substring(lastSlash + 1) : normalizedName;
     }
 
-    /**
-     * Checks for potentially unsafe paths (directory traversal, absolute paths within archives).
-     * Relies partly on host OS `isAbsolute()` but prioritizes `..` check.
-     */
+    /** Controleert op potentieel onveilige paden (bv. directory traversal, absolute paden). */
     protected boolean isInvalidPath(String entryName) {
         if (entryName == null) {
             return false;
         }
         String trimmedName = entryName.trim();
         if (trimmedName.isEmpty()){
-            return false;
+            return false; // Leeg pad is niet direct ongeldig
         }
 
-        // 1. Check for directory traversal sequences (most important)
+        // 1. Belangrijkste check: directory traversal
         if (trimmedName.contains("..")) {
             return true;
         }
 
         try {
-            // 2. Check for invalid path syntax (throws InvalidPathException)
+            // 2. Controleer op ongeldige pad syntax (gooit InvalidPathException)
             Path path = Paths.get(trimmedName);
-            Path normalizedPath = path.normalize();
-            String normalizedString = normalizedPath.toString().replace('\\', '/'); // For drive letter check
+            Path normalizedPath = path.normalize(); // Normaliseer bv. a/./b -> a/b
+            String normalizedString = normalizedPath.toString().replace('\\', '/'); // Voor drive letter check
 
-            // 3. Explicitly check for paths starting with a drive letter (Windows-style absolute)
-            // This is reliable across platforms for identifying Windows absolute paths.
+            // 3. Expliciete check op Windows drive letters (betrouwbaar cross-platform)
             if (WINDOWS_DRIVE_PATTERN.matcher(normalizedString).matches()) {
                 return true;
             }
 
-            // 4. Use the OS-specific isAbsolute() check.
-            // This will correctly identify "/" as absolute on Unix and not on Windows.
-            // It will identify "C:\" as absolute on Windows.
+            // 4. Gebruik OS-specifieke isAbsolute() check.
+            //    Identificeert "/" als absoluut op Unix, "C:\" op Windows.
             if (normalizedPath.isAbsolute()) {
-                // Log if needed, as this might behave differently depending on context (e.g., inside ZIP vs direct file system)
-                // System.err.println("Waarschuwing: Pad '" + trimmedName + "' als absoluut beschouwd door OS isAbsolute().");
                 return true;
             }
 
-            // If none of the above, consider the path safe for now
+            // Geen onveilige patronen gevonden
             return false;
 
         } catch (InvalidPathException e) {
-            // Treat invalid syntax as unsafe/unprocessable
+            // Behandel ongeldige syntax als onveilig/niet-verwerkbaar
             System.err.println("Waarschuwing: Ongeldige pad syntax gedetecteerd in entry: " + trimmedName);
             return true;
         }

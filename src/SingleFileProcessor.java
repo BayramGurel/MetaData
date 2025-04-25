@@ -6,50 +6,48 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * Processes a single (non-archive) file.
- * Extends {@link AbstractSourceProcessor}.
+ * Verwerkt een enkel (niet-archief) bestand.
+ * Erft van {@link AbstractSourceProcessor}.
  */
 public class SingleFileProcessor extends AbstractSourceProcessor {
 
-    /** Constructor, calls super to inject dependencies. */
+    /** Constructor, roept super aan om dependencies te injecteren. */
     public SingleFileProcessor(IFileTypeFilter ff, IMetadataProvider mp, ICkanResourceFormatter rf, ExtractorConfiguration cfg) {
         super(ff, mp, rf, cfg);
     }
 
-    /** Processes one single file. */
+    /** Verwerkt één enkel bestand. */
     @Override
     public void processSource(Path sourcePath, String containerPath, List<CkanResource> results, List<ProcessingError> errors, List<IgnoredEntry> ignored) {
-        String sourceIdentifier = sourcePath.toString(); // Use full path as identifier
+        String sourceIdentifier = sourcePath.toString(); // Gebruik volledig pad als identifier
         String filename = sourcePath.getFileName().toString();
 
-        // Check if the file type is relevant according to the filter
+        // Controleer of bestandstype relevant is volgens filter
         if (!fileFilter.isFileTypeRelevant(filename)) {
-            ignored.add(new IgnoredEntry(sourceIdentifier, "Irrelevant file type or name."));
-            return; // Skip processing this file
+            ignored.add(new IgnoredEntry(sourceIdentifier, "Irrelevant bestandstype of naam."));
+            return; // Sla verwerking over
         }
 
-        // Try opening and processing the file
-        // Use try-with-resources for automatic stream closing
+        // Probeer bestand te openen en verwerken (try-with-resources sluit stream)
         try (InputStream stream = new BufferedInputStream(Files.newInputStream(sourcePath))) {
 
-            // Extract metadata and text using the provider
+            // Extraheer metadata en tekst
             IMetadataProvider.ExtractionOutput output = metadataProvider.extract(stream, config.getMaxExtractedTextLength());
 
-            // Format the extracted data into a CkanResource
+            // Formatteer data naar CkanResource
             CkanResource resource = resourceFormatter.format(filename, output.metadata(), output.text(), sourceIdentifier);
 
-            // Add the result to the list of successful resources
+            // Voeg toe aan succesvolle resultaten
             results.add(resource);
 
         } catch (IOException e) {
-            // Handle errors during file reading
-            errors.add(new ProcessingError(sourceIdentifier, "I/O Error reading file: " + e.getMessage()));
-            System.err.println("ERROR: I/O problem reading file '" + sourceIdentifier + "': " + e.getMessage());
+            // Handel fouten af tijdens lezen bestand
+            errors.add(new ProcessingError(sourceIdentifier, "I/O Fout bij lezen bestand: " + e.getMessage()));
+            System.err.println("FOUT: I/O Probleem bestand '" + sourceIdentifier + "': " + e.getMessage());
         } catch (Exception e) {
-            // Catch other potential errors (from Tika, Formatter, etc.)
-            errors.add(new ProcessingError(sourceIdentifier, "Error processing file: " + e.getClass().getSimpleName() + " - " + e.getMessage()));
-            System.err.println("ERROR: Problem processing file '" + sourceIdentifier + "': " + e.getMessage());
-            // Optionally print stack trace for more details: e.printStackTrace(System.err);
+            // Vang andere mogelijke fouten op (Tika, Formatter, etc.)
+            errors.add(new ProcessingError(sourceIdentifier, "Fout bij verwerken bestand: " + e.getClass().getSimpleName() + " - " + e.getMessage()));
+            System.err.println("FOUT: Probleem verwerken bestand '" + sourceIdentifier + "': " + e.getMessage());
         }
     }
 }

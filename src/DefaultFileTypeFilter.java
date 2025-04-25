@@ -1,53 +1,53 @@
 import java.util.Objects;
 
 /**
- * Standard implementation of {@link IFileTypeFilter}.
- * Filters files/entries based on configuration (extensions, prefixes, names).
+ * Standaard implementatie van {@link IFileTypeFilter}.
+ * Filtert bestanden/entries op basis van configuratie.
  */
 public class DefaultFileTypeFilter implements IFileTypeFilter {
 
     private final ExtractorConfiguration config;
 
-    /** Constructor, injects configuration. */
+    /** Constructor, injecteert configuratie. */
     public DefaultFileTypeFilter(ExtractorConfiguration config) {
-        this.config = Objects.requireNonNull(config, "Configuration cannot be null");
+        this.config = Objects.requireNonNull(config, "Configuratie mag niet null zijn");
     }
 
-    /** Determines if a file/entry is relevant for processing. */
+    /** Bepaalt of een bestand/entry relevant is voor verwerking. */
     @Override
     public boolean isFileTypeRelevant(String entryName) {
-        // Basic validity check
+        // Basis validiteit check
         if (entryName == null || entryName.isBlank()) {
             return false;
         }
 
-        // Extract filename (part after last slash)
+        // Extraheer bestandsnaam (deel na laatste slash)
         String filename = AbstractSourceProcessor.getFilenameFromEntry(entryName);
         if (filename.isEmpty()) {
-            return false; // Likely a directory entry ending with '/'
+            return false; // Waarschijnlijk een map entry eindigend op '/'
         }
 
-        String lowerFilename = filename.toLowerCase(); // For case-insensitive checks
+        String lowerFilename = filename.toLowerCase(); // Voor case-insensitive checks
 
-        // Check against ignore lists from configuration
+        // Check tegen negeerlijsten uit configuratie
         if (config.getIgnoredPrefixes().stream().anyMatch(lowerFilename::startsWith)) {
-            return false; // Ignored prefix found
+            return false; // Genegeerde prefix gevonden
         }
         if (config.getIgnoredFilenames().stream().anyMatch(lowerFilename::equalsIgnoreCase)) {
-            return false; // Ignored filename found
+            return false; // Genegeerde bestandsnaam gevonden
         }
 
-        // Check ignored extensions (if an extension exists)
+        // Check genegeerde extensies (indien extensie bestaat)
         int lastDotIndex = lowerFilename.lastIndexOf('.');
-        // Ensure dot exists, is not the first char, and has chars after it
+        // Zeker stellen dat punt bestaat, niet eerste teken is, en tekens erna heeft
         if (lastDotIndex > 0 && lastDotIndex < lowerFilename.length() - 1) {
-            String extension = lowerFilename.substring(lastDotIndex); // Includes the dot
+            String extension = lowerFilename.substring(lastDotIndex); // Inclusief de punt
             if (config.getIgnoredExtensions().contains(extension)) {
-                return false; // Ignored extension found
+                return false; // Genegeerde extensie gevonden
             }
         }
 
-        // If no ignore rule matched, the file is relevant
+        // Geen negeer-regel gevonden -> bestand is relevant
         return true;
     }
 }

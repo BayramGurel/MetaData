@@ -13,37 +13,33 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.*; // Includes List, Map, Optional, Arrays, Objects
+import java.util.*; // Bevat List, Map, Optional, Arrays, Objects
 import java.util.regex.Pattern;
 
 /**
- * Standard implementation of {@link ICkanResourceFormatter}.
- * Formats Tika output into a {@link CkanResource}.
- * Corrected based on "old code" logic and using DublinCore.MODIFIED.
+ * Standaard implementatie van {@link ICkanResourceFormatter}.
+ * Formatteert Tika output naar {@link CkanResource}.
  */
 public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
 
-    private final LanguageDetector languageDetector; // Can be null
+    private final LanguageDetector languageDetector; // Kan null zijn
     private final ExtractorConfiguration config;
 
     /** Constructor. */
     public DefaultCkanResourceFormat(LanguageDetector languageDetector, ExtractorConfiguration config) {
         this.languageDetector = languageDetector;
-        this.config = Objects.requireNonNull(config, "Configuration cannot be null");
-        if (this.languageDetector == null) {
-            System.err.println("Warning: No LanguageDetector provided. Language detection will be skipped.");
-        }
+        this.config = Objects.requireNonNull(config, "Configuratie mag niet null zijn");
     }
 
-    /** Formats the input into a CkanResource. */
+    /** Formatteert input naar CkanResource. */
     @Override
     public CkanResource format(String entryName, Metadata metadata, String text, String sourceIdentifier) {
         Map<String, Object> resourceData = new LinkedHashMap<>();
         Map<String, String> extras = new LinkedHashMap<>();
-        String filename = AbstractSourceProcessor.getFilenameFromEntry(entryName); // Use static helper
+        String filename = AbstractSourceProcessor.getFilenameFromEntry(entryName);
 
         populateCoreFields(resourceData, metadata, text, filename);
-        populateDates(resourceData, metadata); // Call updated populateDates
+        populateDates(resourceData, metadata);
         populateExtrasMap(extras, metadata, text, sourceIdentifier, filename, entryName);
 
         if (!extras.isEmpty()) {
@@ -52,12 +48,12 @@ public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
         return new CkanResource(resourceData);
     }
 
-    // --- Private Helper Methods ---
+    // --- Private Hulpmethoden ---
 
-    /** Populates the core CKAN resource fields. */
+    /** Vult de kern CKAN velden. */
     private void populateCoreFields(Map<String, Object> resourceData, Metadata metadata, String text, String filename) {
-        resourceData.put("package_id", "PLACEHOLDER_PACKAGE_ID");
-        resourceData.put("url", config.getPlaceholderUri());
+        resourceData.put("package_id", "PLACEHOLDER_PACKAGE_ID"); // Later bijwerken
+        resourceData.put("url", config.getPlaceholderUri());      // Later bijwerken
 
         String originalTitle = getMetadataValue(metadata, TikaCoreProperties.TITLE);
         String cleanedTitle = cleanTitle(originalTitle, config.getTitlePrefixPattern());
@@ -77,22 +73,20 @@ public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
                 .orElse(null));
     }
 
-    /** Populates date fields (created, last_modified) if available. */
+    /** Vult datumvelden (created, last_modified). */
     private void populateDates(Map<String, Object> resourceData, Metadata metadata) {
-        // Created date
         parseToInstant(metadata.get(TikaCoreProperties.CREATED))
                 .flatMap(instant -> formatInstantToIso8601(instant, config.getIso8601Formatter()))
                 .ifPresent(isoDate -> resourceData.put("created", isoDate));
 
-        // Modified date: Try TikaCoreProperties.MODIFIED first, then DublinCore.MODIFIED
         String modifiedDateString = Optional.ofNullable(metadata.get(TikaCoreProperties.MODIFIED))
-                .orElse(metadata.get(DublinCore.MODIFIED)); // Use DublinCore.MODIFIED as fallback
+                .orElse(metadata.get(DublinCore.MODIFIED)); // Fallback
         parseToInstant(modifiedDateString)
                 .flatMap(instant -> formatInstantToIso8601(instant, config.getIso8601Formatter()))
                 .ifPresent(isoDate -> resourceData.put("last_modified", isoDate));
     }
 
-    /** Populates the 'extras' map with additional metadata. */
+    /** Vult de 'extras' map. */
     private void populateExtrasMap(Map<String, String> extras, Metadata metadata, String text,
                                    String sourceIdentifier, String filename, String originalEntryName) {
         addExtraIfPresent(extras, "source_identifier", sourceIdentifier);
@@ -100,7 +94,6 @@ public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
         addExtraIfPresent(extras, "original_filename", filename);
         addExtraIfPresent(extras, "creator", getMetadataValue(metadata, TikaCoreProperties.CREATOR));
 
-        // Language detection
         detectLanguage(text, config.getMaxTextSampleLength())
                 .filter(LanguageResult::isReasonablyCertain)
                 .ifPresentOrElse(
@@ -109,14 +102,14 @@ public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
                 );
     }
 
-    /** Adds key-value to map only if value is not null or blank. */
+    /** Voegt key-value toe aan map indien value niet null/leeg is. */
     private static void addExtraIfPresent(Map<String, String> extrasMap, String key, String value) {
         if (value != null && !value.trim().isEmpty()) {
             extrasMap.put(key, value.trim());
         }
     }
 
-    /** Cleans a title by removing common prefixes and normalizing whitespace. */
+    /** Maakt titel schoon (verwijder prefix, normaliseer spaties). */
     private static String cleanTitle(String title, Pattern prefixPattern) {
         if (title == null || title.trim().isEmpty()) return null;
         String cleaned = prefixPattern.matcher(title).replaceFirst("");
@@ -125,24 +118,24 @@ public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
         return cleaned.isEmpty() ? null : cleaned;
     }
 
-    /** Safely gets a metadata value using a Tika Property object. */
+    /** Haalt metadata waarde op (met Property object). */
     private static String getMetadataValue(Metadata metadata, Property property) {
         String value = metadata.get(property);
         return (value != null && !value.trim().isEmpty()) ? value.trim() : null;
     }
 
-    /** Safely gets a metadata value using a String key. */
+    /** Haalt metadata waarde op (met String key). */
     private static String getMetadataValue(Metadata metadata, String key) {
         String value = metadata.get(key);
         return (value != null && !value.trim().isEmpty()) ? value.trim() : null;
     }
 
-    /** Formats an Instant to an ISO 8601 string, returning Optional. */
+    /** Formatteert Instant naar ISO 8601 string. */
     private static Optional<String> formatInstantToIso8601(Instant instant, DateTimeFormatter formatter) {
         return Optional.ofNullable(instant).map(formatter::format);
     }
 
-    /** Attempts to parse various date/time string formats into an Instant. */
+    /** Probeert diverse datum/tijd formats te parsen naar Instant. */
     private static Optional<Instant> parseToInstant(String dateTimeString) {
         if (dateTimeString == null || dateTimeString.trim().isEmpty()) return Optional.empty();
         List<DateTimeFormatter> formatters = Arrays.asList(
@@ -164,17 +157,15 @@ public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
                     return Optional.of(LocalDate.parse(dateTimeString, formatter).atStartOfDay(ZoneId.systemDefault()).toInstant());
             } catch (DateTimeParseException ignored) {}
         }
-        System.err.println("Warning: Could not parse date/time string: " + dateTimeString);
         return Optional.empty();
     }
 
-    /** Maps a Tika content type to a simple format string (e.g., PDF, DOCX). */
+    /** Mapt Tika content type naar simpele formaat string (bv. PDF). */
     private static String mapContentTypeToSimpleFormat(String contentType) {
         return Optional.ofNullable(contentType)
                 .filter(ct -> !ct.isBlank())
                 .map(ct -> ct.toLowerCase().split(";")[0].trim())
                 .map(lowerType -> switch (lowerType) {
-                    // Cases remain the same...
                     case "application/pdf" -> "PDF";
                     case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> "DOCX";
                     case "application/msword" -> "DOC";
@@ -207,7 +198,7 @@ public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
                 .orElse("Unknown");
     }
 
-    /** Maps an ISO 639-1 language code (e.g., "nl") to a NAL URI. */
+    /** Mapt ISO 639-1 taalcode naar NAL URI. */
     private static String mapLanguageCodeToNalUri(String languageCode) {
         final String NAL_BASE_URI = "http://publications.europa.eu/resource/authority/language/";
         if (languageCode == null || languageCode.isBlank() || languageCode.equalsIgnoreCase("und")) {
@@ -221,10 +212,7 @@ public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
         };
     }
 
-    /**
-     * Generates a description, preferring metadata fields, falling back to a text snippet.
-     * Logic restored closer to the "old code".
-     */
+    /** Genereert beschrijving (metadata voorkeur, anders tekst snippet). */
     private String generateDescription(Metadata metadata, String text, String filename) {
         String description = getMetadataValue(metadata, DublinCore.DESCRIPTION);
         if (!isDescriptionValid(description)) {
@@ -239,11 +227,9 @@ public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
             if (cleanedDesc.length() > config.getMaxAutoDescriptionLength()) {
                 int end = config.getMaxAutoDescriptionLength();
                 int lastSpace = cleanedDesc.lastIndexOf(' ', end - 3);
-                if (lastSpace > end / 2) {
-                    cleanedDesc = cleanedDesc.substring(0, lastSpace).trim() + "...";
-                } else {
-                    cleanedDesc = cleanedDesc.substring(0, end - 3).trim() + "...";
-                }
+                cleanedDesc = (lastSpace > end / 2)
+                        ? cleanedDesc.substring(0, lastSpace).trim() + "..."
+                        : cleanedDesc.substring(0, end - 3).trim() + "...";
             }
             cleanedDesc = cleanedDesc.replaceAll("^[\\W_]+|[\\W_]+$", "").trim();
             if (!cleanedDesc.isEmpty()) {
@@ -267,10 +253,7 @@ public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
         return "Geen beschrijving beschikbaar voor: " + filename;
     }
 
-    /**
-     * Checks if a description string meets basic quality criteria.
-     * Uses the 'config' field directly, like in the old code.
-     */
+    /** Controleert of beschrijving voldoet aan kwaliteitseisen. */
     private boolean isDescriptionValid(String description) {
         if (description == null || description.isBlank()) return false;
         String trimmed = description.trim();
@@ -282,7 +265,7 @@ public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
                 && !trimmed.matches("(?i)^\\s*template\\s*$");
     }
 
-    /** Cleans a description: trims, normalizes whitespace, truncates gracefully. */
+    /** Maakt beschrijving schoon en kort eventueel in. */
     private static String cleanDescription(String description, int maxLength) {
         if (description == null) return null;
         String cleaned = description.trim().replaceAll("\\s+", " ");
@@ -295,19 +278,16 @@ public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
         return cleaned.replaceAll("^[\\W_]+|[\\W_]+$", "").trim();
     }
 
-    /** Detects language using Tika, returning Optional<LanguageResult>. */
+    /** Detecteert taal met Tika. */
     private Optional<LanguageResult> detectLanguage(String text, int maxSampleLength) {
         if (this.languageDetector == null || text == null || text.trim().isEmpty()) {
             return Optional.empty();
         }
         try {
             String sample = text.substring(0, Math.min(text.length(), maxSampleLength)).trim();
-            if (sample.isEmpty()) {
-                return Optional.empty();
-            }
-            return Optional.of(this.languageDetector.detect(sample));
+            return sample.isEmpty() ? Optional.empty() : Optional.of(this.languageDetector.detect(sample));
         } catch (Exception e) {
-            System.err.println("Warning: Language detection failed: " + e.getMessage());
+            System.err.println("Waarschuwing: Taaldetectie mislukt: " + e.getMessage());
             return Optional.empty();
         }
     }

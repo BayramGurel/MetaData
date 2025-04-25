@@ -16,18 +16,18 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Main class orchestrating the metadata extraction process (Facade).
- * Includes the main method for command-line execution.
+ * Hoofdklasse (Facade) die het extractieproces orkestreert.
+ * Bevat de main methode voor command-line gebruik.
  */
 public class MetadataExtractor {
 
-    // Injected dependencies
+    // Geïnjecteerde dependencies
     private final IFileTypeFilter fileFilter;
     private final IMetadataProvider metadataProvider;
     private final ICkanResourceFormatter resourceFormatter;
     private final ExtractorConfiguration config;
 
-    /** Constructor injecting dependencies. */
+    /** Constructor voor dependency injection. */
     public MetadataExtractor(IFileTypeFilter fileFilter,
                              IMetadataProvider metadataProvider,
                              ICkanResourceFormatter resourceFormatter,
@@ -39,8 +39,8 @@ public class MetadataExtractor {
     }
 
     /**
-     * Processes the specified source (file or ZIP archive).
-     * Selects the appropriate processor and delegates the work.
+     * Verwerkt de opgegeven bron (bestand of ZIP).
+     * Kiest de juiste processor en delegeert.
      */
     public ProcessingReport processSource(String sourcePathString) {
         List<CkanResource> results = new ArrayList<>();
@@ -49,215 +49,209 @@ public class MetadataExtractor {
         Path sourcePath = null;
 
         try {
-            // Validate and normalize the input path
+            // Valideer en normaliseer input pad
             sourcePath = Paths.get(sourcePathString).toAbsolutePath().normalize();
 
-            // Check existence and type
+            // Controleer bestaan en type
             if (!Files.exists(sourcePath)) {
-                errors.add(new ProcessingError(sourcePathString, "Source not found."));
+                errors.add(new ProcessingError(sourcePathString, "Bron niet gevonden."));
             } else if (Files.isDirectory(sourcePath)) {
-                ignored.add(new IgnoredEntry(sourcePathString, "Source is a directory (not supported)."));
+                ignored.add(new IgnoredEntry(sourcePathString, "Bron is map (niet ondersteund)."));
             } else {
-                // Determine processor type (ZIP or single file)
+                // Bepaal processor type (ZIP of enkel bestand)
                 ISourceProcessor processor;
-                String containerPath = sourcePath.toString(); // For single file, container is the file itself
+                String containerPath = sourcePath.toString(); // Voor enkel bestand is container = bron
 
                 if (isZipFile(sourcePath)) {
-                    System.out.println("INFO: Detected ZIP archive: " + sourcePath);
+                    System.out.println("INFO: Gedetecteerd als ZIP: " + sourcePath);
                     processor = new ZipSourceProcessor(fileFilter, metadataProvider, resourceFormatter, config);
                 } else {
-                    System.out.println("INFO: Detected single file: " + sourcePath);
+                    System.out.println("INFO: Gedetecteerd als enkel bestand: " + sourcePath);
                     processor = new SingleFileProcessor(fileFilter, metadataProvider, resourceFormatter, config);
                 }
-                // Delegate processing
+                // Delegeer verwerking
                 processor.processSource(sourcePath, containerPath, results, errors, ignored);
             }
         } catch (InvalidPathException ipe) {
-            errors.add(new ProcessingError(sourcePathString, "Invalid path syntax: " + ipe.getMessage()));
-            System.err.println("FATAL: Invalid path provided: " + sourcePathString);
+            errors.add(new ProcessingError(sourcePathString, "Ongeldige pad syntax: " + ipe.getMessage()));
+            System.err.println("FATAL: Ongeldig pad opgegeven: " + sourcePathString);
         } catch (Exception e) {
-            // Catch unexpected critical errors during setup or processing
+            // Vang onverwachte kritieke fouten op
             String pathForError = (sourcePath != null) ? sourcePath.toString() : sourcePathString;
-            errors.add(new ProcessingError(pathForError, "Critical error: " + e.getMessage()));
-            System.err.println("FATAL: Unexpected error processing '" + pathForError + "': " + e.getMessage());
-            e.printStackTrace(System.err); // Print stack trace for debugging
+            errors.add(new ProcessingError(pathForError, "Kritieke fout: " + e.getMessage()));
+            System.err.println("FATAL: Onverwachte fout bij '" + pathForError + "': " + e.getMessage());
+            e.printStackTrace(System.err); // Print stack trace voor debuggen
         }
 
-        // Finalize and return the report
+        // Finaliseer en retourneer rapport
         return finalizeReport(results, errors, ignored);
     }
 
-    /** Checks if a path points to a supported ZIP file. */
+    /** Controleert of pad een ondersteund ZIP bestand is. */
     private boolean isZipFile(Path path) {
-        // Must be an existing regular file
+        // Moet een bestaand, regulier bestand zijn
         if (path == null || !Files.isRegularFile(path)) {
             return false;
         }
         String filenameLower = path.getFileName().toString().toLowerCase();
-        // Check against configured ZIP extensions
+        // Check tegen geconfigureerde ZIP extensies
         return config.getSupportedZipExtensions().stream().anyMatch(filenameLower::endsWith);
     }
 
-    /** Finalizes the report and logs a summary to System.err. */
+    /** Finaliseert rapport en logt samenvatting naar System.err. */
     private ProcessingReport finalizeReport(List<CkanResource> results, List<ProcessingError> errors, List<IgnoredEntry> ignored) {
-        // Log summary
-        System.err.printf("--- Processing Summary ---%n");
-        System.err.printf("Successful: %d, Errors: %d, Ignored: %d%n", results.size(), errors.size(), ignored.size());
-        // Log error details if any
+        // Log samenvatting
+        System.err.printf("--- Verwerking Samenvatting ---%n");
+        System.err.printf("Succesvol: %d, Fouten: %d, Genegeerd: %d%n", results.size(), errors.size(), ignored.size());
+        // Log foutdetails indien aanwezig
         if (!errors.isEmpty()) {
-            System.err.println("\n--- Error Details ---");
+            System.err.println("\n--- Fout Details ---");
             errors.forEach(e -> System.err.printf("  - [%s]: %s%n", e.source(), e.error()));
         }
         System.err.println("--------------------------");
-        // Return the immutable report object
+        // Retourneer onveranderlijk rapport object
         return new ProcessingReport(results, errors, ignored);
     }
 
-    // --- Main Method (Command-Line Entry Point) ---
+    // --- Main Methode (Command-Line Entry Point) ---
 
     /** CLI entry point. */
     public static void main(String[] args) {
         System.out.println("--- Metadata Extractor Start ---");
 
-        // Get file path from arguments or use default
+        // Haal bestandspad op (uit args of default)
         String filePath = getFilePathFromArgsOrDefault(args);
         if (filePath == null) {
-            System.err.println("FATAL: No valid file path provided. Exiting.");
-            System.exit(1); // Exit with error code
+            System.err.println("FATAL: Geen geldig pad opgegeven. Stoppen.");
+            System.exit(1); // Stop met foutcode
         }
-        System.out.println("INFO: Processing source: " + filePath);
+        System.out.println("INFO: Te verwerken bron: " + filePath);
 
-        // Initialize components
+        // Initialiseer componenten
         ExtractorConfiguration config = new ExtractorConfiguration();
-        LanguageDetector languageDetector = loadTikaLanguageDetector(); // Attempt to load language detector
+        LanguageDetector languageDetector = loadTikaLanguageDetector(); // Probeer taal detector te laden
         IFileTypeFilter filter = new DefaultFileTypeFilter(config);
         IMetadataProvider provider = new TikaMetadataProvider();
         ICkanResourceFormatter formatter = new DefaultCkanResourceFormat(languageDetector, config);
 
-        // Create the main extractor instance (Facade)
+        // Maak extractor (Facade) instantie
         MetadataExtractor extractor = new MetadataExtractor(filter, provider, formatter, config);
 
-        // Execute the extraction process
-        System.out.println("\n--- Starting Processing ---");
+        // Voer extractieproces uit
+        System.out.println("\n--- Start Verwerking ---");
         ProcessingReport report = extractor.processSource(filePath);
-        System.out.println("--- Processing Finished ---");
+        System.out.println("--- Verwerking Voltooid ---");
 
-        // Print successful results as JSON
+        // Print succesvolle resultaten als JSON
         printReportAsJson(report);
 
-        System.out.println("\n--- Metadata Extractor Finished ---");
-        // Optionally set exit code based on errors
+        System.out.println("\n--- Metadata Extractor Klaar ---");
+        // Optioneel: exit code gebaseerd op fouten
         if (!report.getErrors().isEmpty()) {
-            System.exit(2); // Exit with error code if errors occurred
+            System.exit(2); // Stop met foutcode indien errors
         }
     }
 
-    /** Gets the file path from command-line args or uses a hardcoded default. */
+    /** Haalt bestandspad op uit command-line args of gebruikt hardcoded default. */
     private static String getFilePathFromArgsOrDefault(String[] args) {
-        // --- !! IMPORTANT !! ---
-        // Adjust this default path to an existing test file on your system,
-        // or remove it and always provide a path as an argument.
-        String defaultPath = ".\\document\\Veg kartering - habitatkaart 2021-2023.zip";
-        // String defaultPath = null; // Alternative: no default
+        // --- !! BELANGRIJK !! ---
+        // Pas dit standaard pad aan naar een bestaand testbestand,
+        // of verwijder het en geef altijd een pad mee als argument.
+        String defaultPath = ".\\document\\Veg kartering - habitatkaart 2021-2023.zip"; // Voorbeeld - AANPASSEN!
+        // String defaultPath = null; // Alternatief: geen default
         // -------------------------
 
         String pathToCheck = null;
-        // Try path from the first argument
+        // Probeer pad uit eerste argument
         if (args.length > 0 && args[0] != null && !args[0].isBlank()) {
             pathToCheck = args[0].trim();
-            System.out.println("INFO: Using path from command-line argument: " + pathToCheck);
+            System.out.println("INFO: Gebruik pad uit argument: " + pathToCheck);
         } else if (defaultPath != null) {
-            // Use default path if no argument is given
+            // Gebruik default pad indien geen argument
             pathToCheck = defaultPath;
-            System.out.println("INFO: No argument found, using default path: " + pathToCheck);
-            System.err.println("WARNING: Using default path. Ensure this is correct or provide a path!");
+            System.out.println("INFO: Geen argument gevonden, gebruik standaard pad: " + pathToCheck);
+            System.err.println("WAARSCHUWING: Standaard pad gebruikt. Zorg dat dit correct is!");
         } else {
-            // No argument and no default path
-            System.err.println("ERROR: No file path provided as argument and no default path configured.");
-            System.err.println("Usage: java MetadataExtractor <path_to_file_or_zip>");
+            // Geen argument en geen default
+            System.err.println("FOUT: Geen pad opgegeven. Gebruik: java MetadataExtractor <pad>");
             return null;
         }
 
-        // Validate the chosen path
+        // Valideer gekozen pad
         try {
             Path p = Paths.get(pathToCheck);
             if (!Files.exists(p)) {
-                System.err.println("ERROR: Provided path does not exist: " + pathToCheck);
+                System.err.println("FOUT: Opgegeven pad bestaat niet: " + pathToCheck);
                 return null;
             }
-            // Optional: Check read permissions
-            // if (!Files.isReadable(p)) {
-            //     System.err.println("ERROR: Cannot read path: " + pathToCheck);
-            //     return null;
-            // }
-            return pathToCheck; // Path seems valid
+            return pathToCheck; // Pad lijkt geldig
         } catch (InvalidPathException ipe) {
-            System.err.println("ERROR: Invalid path syntax: '" + pathToCheck + "' - " + ipe.getMessage());
+            System.err.println("FOUT: Ongeldige pad syntax: '" + pathToCheck + "' - " + ipe.getMessage());
             return null;
         } catch (Exception e) {
-            System.err.println("ERROR: Unexpected error validating path '" + pathToCheck + "': " + e.getMessage());
+            System.err.println("FOUT: Onverwachte fout bij valideren pad '" + pathToCheck + "': " + e.getMessage());
             return null;
         }
     }
 
-    /** Loads the Tika language detector. Returns null on failure. */
+    /** Laadt Tika taal detector. Geeft null terug bij falen. */
     private static LanguageDetector loadTikaLanguageDetector() {
         try {
-            System.out.println("INFO: Loading Tika language models (might take a moment)...");
-            // Use the recommended Optimaize detector
+            System.out.println("INFO: Laden Tika taalmodellen...");
+            // Gebruik aanbevolen Optimaize detector
             LanguageDetector detector = OptimaizeLangDetector.getDefaultLanguageDetector();
-            detector.loadModels(); // Load language profiles
-            System.out.println("INFO: Tika language models loaded successfully.");
+            detector.loadModels(); // Laad taalprofielen
+            System.out.println("INFO: Tika taalmodellen geladen.");
             return detector;
         } catch (NoClassDefFoundError e) {
-            System.err.println("ERROR: Could not find Tika language detection classes.");
-            System.err.println("Ensure 'tika-langdetect' (and its dependencies) are in the classpath.");
+            System.err.println("FOUT: Kon Tika taaldetectie klassen niet vinden.");
+            System.err.println("Zorg dat 'tika-langdetect' (en dependencies) in classpath staan.");
         } catch (IOException e) {
-            System.err.println("ERROR: Could not load Tika language models from disk: " + e.getMessage());
+            System.err.println("FOUT: Kon Tika taalmodellen niet laden: " + e.getMessage());
         } catch (Exception e) {
-            System.err.println("ERROR: Unexpected error initializing Tika language detector: " + e.getMessage());
+            System.err.println("FOUT: Onverwacht bij initialiseren Tika taaldetector: " + e.getMessage());
             e.printStackTrace(System.err);
         }
-        // Return null if loading failed
-        System.err.println("WARNING: Language detection is disabled due to a loading error.");
+        // Geef null terug bij laadfout
+        System.err.println("WAARSCHUWING: Taaldetectie uitgeschakeld door laadfout.");
         return null;
     }
 
-    /** Prints the successful results from the report as JSON to System.out. */
+    /** Print succesvolle resultaten uit rapport als JSON naar System.out. */
     private static void printReportAsJson(ProcessingReport report) {
-        // Check if there are results to print
+        // Controleer of er resultaten zijn
         if (report == null || report.getResults().isEmpty()) {
-            System.out.println("\nINFO: No successful results found to display as JSON.");
+            System.out.println("\nINFO: Geen succesvolle resultaten om als JSON te tonen.");
             return;
         }
 
-        System.out.println("\n--- Successfully Processed Resources (JSON Output) ---");
+        System.out.println("\n--- Succesvol Verwerkte Resources (JSON Output) ---");
         try {
-            // Use Jackson ObjectMapper for JSON serialization
+            // Gebruik Jackson ObjectMapper voor JSON serialisatie
             ObjectMapper mapper = new ObjectMapper();
-            // Configure for pretty-printing
+            // Configureer voor leesbare ("pretty print") output
             mapper.enable(SerializationFeature.INDENT_OUTPUT);
 
-            // Create a root object for the JSON structure {"resources": [...]}
+            // Maak root object voor JSON structuur {"resources": [...]}
             Map<String, Object> jsonRoot = new LinkedHashMap<>();
 
-            // Extract the data maps from the CkanResource objects
+            // Extraheer data maps uit CkanResource objecten
             List<Map<String, Object>> resourceDataList = report.getResults().stream()
-                    .map(CkanResource::getData) // Get the internal map from each CkanResource
+                    .map(CkanResource::getData) // Haal interne map op
                     .collect(Collectors.toList());
 
             jsonRoot.put("resources", resourceDataList);
 
-            // Convert the root map to JSON and print
+            // Converteer root map naar JSON en print
             String jsonOutput = mapper.writeValueAsString(jsonRoot);
             System.out.println(jsonOutput);
 
         } catch (JsonProcessingException e) {
-            System.err.println("ERROR: Could not convert results to JSON: " + e.getMessage());
-            e.printStackTrace(System.err); // Useful for debugging JSON issues
+            System.err.println("FOUT: Kon resultaten niet naar JSON converteren: " + e.getMessage());
+            e.printStackTrace(System.err); // Nuttig voor debuggen JSON issues
         } catch (Exception e) {
-            System.err.println("ERROR: Unexpected error during JSON generation: " + e.getMessage());
+            System.err.println("FOUT: Onverwacht bij genereren JSON output: " + e.getMessage());
             e.printStackTrace(System.err);
         }
     }
-} // End of MetadataExtractor class
+} // Einde MetadataExtractor klasse

@@ -4,54 +4,54 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Configuration settings for the metadata extractor.
- * Holds hardcoded limits, filter lists, and formatters.
+ * Configuratie-instellingen voor de metadata extractor.
+ * Bevat hardcoded limieten, filterlijsten en formatters.
  */
 public final class ExtractorConfiguration {
 
-    // Limits
+    // Limieten
     private final int maxTextSampleLength;
     private final int maxExtractedTextLength;
     private final int maxAutoDescriptionLength;
     private final int minDescMetadataLength;
     private final int maxDescMetadataLength;
 
-    // File Filtering
+    // Bestandsfiltering
     private final Set<String> supportedZipExtensions;
     private final Set<String> ignoredExtensions;
     private final List<String> ignoredPrefixes;
     private final List<String> ignoredFilenames;
 
-    // Formatting & Misc
+    // Formattering & Diversen
     private final DateTimeFormatter iso8601Formatter;
     private final String placeholderUri;
     private final Pattern titlePrefixPattern;
 
-    /** Initializes default configuration values. */
+    /** Initialiseert standaard configuratiewaarden. */
     public ExtractorConfiguration() {
-        // Limits
+        // Limieten
         this.maxTextSampleLength = 10000;
         this.maxExtractedTextLength = 5 * 1024 * 1024; // 5MB
         this.maxAutoDescriptionLength = 250;
         this.minDescMetadataLength = 10;
         this.maxDescMetadataLength = 1000;
 
-        // File Filtering
+        // Bestandsfiltering
         this.supportedZipExtensions = Set.of(".zip");
-        this.ignoredExtensions = Set.of( // Includes common temp/system/GIS files
+        this.ignoredExtensions = Set.of( // Incl. temp/systeem/GIS bestanden
                 ".ds_store", "thumbs.db", ".tmp", ".temp", ".bak", ".lock",
                 ".freelist", ".gdbindexes", ".gdbtable", ".gdbtablx", ".atx", ".spx",
                 ".horizon", ".cdx", ".fpt", ".ini", ".cfg", ".config", ".log",
                 ".shp", ".shx", ".dbf", ".prj", ".sbn", ".sbx", ".cpg", ".qpj",
                 ".gpkg", ".gpkg-journal", ".geojson", ".topojson", ".mbtiles"
         );
-        this.ignoredPrefixes = List.of("~", "._"); // Common temp/Mac prefixes
-        this.ignoredFilenames = List.of("gdb");    // Common filename in ESRI GDB
+        this.ignoredPrefixes = List.of("~", "._"); // Temp/Mac prefixes
+        this.ignoredFilenames = List.of("gdb");    // ESRI GDB bestand
 
-        // Formatting & Misc
-        this.iso8601Formatter = DateTimeFormatter.ISO_INSTANT; // Use UTC Instant format
-        this.placeholderUri = "urn:placeholder:replace-me";    // Default placeholder URI
-        this.titlePrefixPattern = Pattern.compile(             // Regex to clean titles
+        // Formattering & Diversen
+        this.iso8601Formatter = DateTimeFormatter.ISO_INSTANT; // UTC Instant formaat
+        this.placeholderUri = "urn:placeholder:vervang-mij";    // Standaard placeholder URI
+        this.titlePrefixPattern = Pattern.compile(             // Regex voor opschonen titels
                 "^(Microsoft Word - |Microsoft Excel - |PowerPoint Presentation - |Adobe Acrobat - )",
                 Pattern.CASE_INSENSITIVE);
     }
