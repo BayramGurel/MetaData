@@ -157,7 +157,7 @@ public class MetadataExtractor {
         // --- !! IMPORTANT !! ---
         // Adjust this default path to an existing test file on your system,
         // or remove it and always provide a path as an argument.
-        String defaultPath = "C:\\Users\\gurelb\\Downloads\\Veg kartering - habitatkaart 2021-2023.zip";
+        String defaultPath = ".\\document\\Veg kartering - habitatkaart 2021-2023.zip";
         // String defaultPath = null; // Alternative: no default
         // -------------------------
 
