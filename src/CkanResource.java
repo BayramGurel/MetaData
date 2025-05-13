@@ -3,26 +3,31 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+// Represents an immutable CKAN resource; defensively copies input data.
 public final class CkanResource {
     private final Map<String, Object> data;
 
-    public CkanResource(Map<String, Object> data) {
-        Objects.requireNonNull(data, "Data map mag niet null zijn");
+    // Constructs CkanResource. Defensively copies initialData.
+    // If "extras" entry is a Map, it's also deeply copied and made unmodifiable.
+    public CkanResource(Map<String, Object> initialData) {
+        Objects.requireNonNull(initialData, "Data map mag niet null zijn");
 
-        Map<String, Object> defensiveCopy = new HashMap<>();
-        for (Map.Entry<String, Object> entry : data.entrySet()) {
+        Map<String, Object> workingCopy = new HashMap<>(initialData); // Initial shallow copy
 
-            if ("extras".equals(entry.getKey()) && entry.getValue() instanceof Map) {
-                @SuppressWarnings("unchecked")
-                Map<String, String> originalExtras = (Map<String, String>) entry.getValue();
-                defensiveCopy.put("extras", Collections.unmodifiableMap(new HashMap<>(originalExtras)));
-            } else {
-                defensiveCopy.put(entry.getKey(), entry.getValue());
-            }
+        Object extrasValue = workingCopy.get("extras");
+        if (extrasValue instanceof Map) {
+            // Assumes 'extrasValue' is Map<String, String>.
+            // A ClassCastException will occur if this type assumption is violated.
+            @SuppressWarnings("unchecked")
+            Map<String, String> originalExtras = (Map<String, String>) extrasValue;
+            // Deep copy 'extras' and make it unmodifiable
+            workingCopy.put("extras", Collections.unmodifiableMap(new HashMap<>(originalExtras)));
         }
-        this.data = Collections.unmodifiableMap(defensiveCopy);
+
+        this.data = Collections.unmodifiableMap(workingCopy);
     }
 
+    // Returns the unmodifiable internal data map.
     public Map<String, Object> getData() {
         return this.data;
     }

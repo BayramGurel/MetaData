@@ -13,24 +13,28 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects; // Added for Objects.requireNonNull
 import java.util.stream.Collectors;
 
+// Main class for orchestrating metadata extraction from files or ZIP archives.
 public class MetadataExtractor {
     private final IFileTypeFilter fileFilter;
     private final IMetadataProvider metadataProvider;
     private final ICkanResourceFormatter resourceFormatter;
     private final ExtractorConfiguration config;
 
+    // Initializes the extractor with necessary components.
     public MetadataExtractor(IFileTypeFilter fileFilter,
                              IMetadataProvider metadataProvider,
                              ICkanResourceFormatter resourceFormatter,
                              ExtractorConfiguration config) {
-        this.fileFilter = fileFilter;
-        this.metadataProvider = metadataProvider;
-        this.resourceFormatter = resourceFormatter;
-        this.config = config;
+        this.fileFilter = Objects.requireNonNull(fileFilter, "File filter mag niet null zijn");
+        this.metadataProvider = Objects.requireNonNull(metadataProvider, "Metadata provider mag niet null zijn");
+        this.resourceFormatter = Objects.requireNonNull(resourceFormatter, "Resource formatter mag niet null zijn");
+        this.config = Objects.requireNonNull(config, "Configuratie mag niet null zijn");
     }
 
+    // Processes the source specified by pathString (can be a file or a ZIP archive).
     public ProcessingReport processSource(String sourcePathString) {
         List<CkanResource> results = new ArrayList<>();
         List<ProcessingError> errors = new ArrayList<>();
@@ -70,6 +74,7 @@ public class MetadataExtractor {
         return finalizeReport(results, errors, ignored);
     }
 
+    // Checks if the given path points to a ZIP file based on configured extensions.
     private boolean isZipFile(Path path) {
         if (path == null || !Files.isRegularFile(path)) {
             return false;
@@ -78,6 +83,7 @@ public class MetadataExtractor {
         return config.getSupportedZipExtensions().stream().anyMatch(filenameLower::endsWith);
     }
 
+    // Prints a processing summary to System.err and returns the consolidated report.
     private ProcessingReport finalizeReport(List<CkanResource> results, List<ProcessingError> errors, List<IgnoredEntry> ignored) {
         System.err.printf("--- Verwerking Samenvatting ---%n");
         System.err.printf("Succesvol: %d, Fouten: %d, Genegeerd: %d%n", results.size(), errors.size(), ignored.size());
@@ -89,6 +95,7 @@ public class MetadataExtractor {
         return new ProcessingReport(results, errors, ignored);
     }
 
+    // Main entry point for the metadata extractor application.
     public static void main(String[] args) {
         System.out.println("--- Metadata Extractor Start ---");
 
@@ -100,9 +107,9 @@ public class MetadataExtractor {
         System.out.println("INFO: Te verwerken bron: " + filePath);
 
         ExtractorConfiguration config = new ExtractorConfiguration();
-        LanguageDetector languageDetector = loadTikaLanguageDetector();
+        LanguageDetector languageDetector = loadTikaLanguageDetector(); // May be null
         IFileTypeFilter filter = new DefaultFileTypeFilter(config);
-        IMetadataProvider provider = new TikaMetadataProvider();
+        IMetadataProvider provider = new TikaMetadataProvider(); // Assuming TikaMetadataProvider exists
         ICkanResourceFormatter formatter = new DefaultCkanResourceFormat(languageDetector, config);
 
         MetadataExtractor extractor = new MetadataExtractor(filter, provider, formatter, config);
@@ -115,15 +122,16 @@ public class MetadataExtractor {
 
         System.out.println("\n--- Metadata Extractor Klaar ---");
         if (!report.getErrors().isEmpty()) {
-            System.exit(2);
+            System.exit(2); // Exit with code 2 if there were processing errors
         }
     }
 
+    // Retrieves file path from command-line args or uses a hardcoded default; validates path existence.
     private static String getFilePathFromArgsOrDefault(String[] args) {
-        String defaultPath = ".\\document\\Veg kartering - habitatkaart 2021-2023.zip";
-        // String defaultPath = null;
+        String defaultPath = ".\\document\\Veg kartering - habitatkaart 2021-2023.zip"; // Example default
+        // String defaultPath = null; // Alternative: no default, argument is required
 
-        String pathToCheck = null;
+        String pathToCheck;
         if (args.length > 0 && args[0] != null && !args[0].isBlank()) {
             pathToCheck = args[0].trim();
             System.out.println("INFO: Gebruik pad uit argument: " + pathToCheck);
@@ -152,14 +160,15 @@ public class MetadataExtractor {
         }
     }
 
+    // Loads Tika language detection models (OptimaizeLangDetector). Returns null if loading fails.
     private static LanguageDetector loadTikaLanguageDetector() {
         try {
             System.out.println("INFO: Laden Tika taalmodellen...");
             LanguageDetector detector = OptimaizeLangDetector.getDefaultLanguageDetector();
-            detector.loadModels();
+            detector.loadModels(); // This can throw IOException
             System.out.println("INFO: Tika taalmodellen geladen.");
             return detector;
-        } catch (NoClassDefFoundError e) {
+        } catch (NoClassDefFoundError e) { // If tika-langdetect jar is missing
             System.err.println("FOUT: Kon Tika taaldetectie klassen niet vinden.");
             System.err.println("Zorg dat 'tika-langdetect' (en dependencies) in classpath staan.");
         } catch (IOException e) {
@@ -169,11 +178,13 @@ public class MetadataExtractor {
             e.printStackTrace(System.err);
         }
         System.err.println("WAARSCHUWING: Taaldetectie uitgeschakeld door laadfout.");
-        return null;
+        return null; // Language detection becomes optional
     }
 
+    // Prints successfully processed resources from the report as formatted JSON to System.out.
     private static void printReportAsJson(ProcessingReport report) {
-        if (report == null || report.getResults().isEmpty()) {
+        // Check if report or its results are null/empty before proceeding
+        if (report == null || report.getResults() == null || report.getResults().isEmpty()) {
             System.out.println("\nINFO: Geen succesvolle resultaten om als JSON te tonen.");
             return;
         }
@@ -181,14 +192,13 @@ public class MetadataExtractor {
         System.out.println("\n--- Succesvol Verwerkte Resources (JSON Output) ---");
         try {
             ObjectMapper mapper = new ObjectMapper();
-            mapper.enable(SerializationFeature.INDENT_OUTPUT);
+            mapper.enable(SerializationFeature.INDENT_OUTPUT); // For pretty-printed JSON
 
+            // Structure JSON as {"resources": [ <list of ckan_resource.data maps> ]}
             Map<String, Object> jsonRoot = new LinkedHashMap<>();
-
             List<Map<String, Object>> resourceDataList = report.getResults().stream()
                     .map(CkanResource::getData)
                     .collect(Collectors.toList());
-
             jsonRoot.put("resources", resourceDataList);
 
             String jsonOutput = mapper.writeValueAsString(jsonRoot);
