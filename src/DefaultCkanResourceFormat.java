@@ -7,6 +7,7 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
+    private final String packageId;
     private static final Map<String, String> FORMAT_MAP = Map.ofEntries(
             Map.entry("application/pdf","PDF"),
             Map.entry("application/msword","DOC"),
@@ -37,9 +38,10 @@ public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
     private final LanguageDetector detector;
     private final ExtractorConfiguration cfg;
 
-    public DefaultCkanResourceFormat(LanguageDetector detector, ExtractorConfiguration cfg) {
+    public DefaultCkanResourceFormat(LanguageDetector detector, ExtractorConfiguration cfg, String packageId) {
         this.detector = detector;
         this.cfg      = Objects.requireNonNull(cfg, "Configuratie mag niet null zijn");
+        this.packageId= Objects.requireNonNull(packageId, "packageId mag niet null zijn");
     }
 
     @Override
@@ -49,7 +51,7 @@ public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
         String fn  = AbstractSourceProcessor.getFilenameFromEntry(entryName);
 
         // Core fields
-        data.put("package_id", "PLACEHOLDER_PACKAGE_ID");
+        data.put("package_id", packageId);
         // ipv URL: geef hier de lokale bestands-identifier mee; bij upload map je dit naar multipart-field 'upload'
         data.put("upload", toRelative(srcId));
 

@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 // Main class for orchestrating metadata extraction from a hard-coded ZIP.
 public class MetadataExtractor {
     private static final String SOURCE_ZIP = ".\\document\\Veg kartering - habitatkaart 2021-2023.zip";
+    private static final String PACKAGE_ID  = "zuid-holland-habitatkaart-2021";
 
     private final IFileTypeFilter fileFilter;
     private final IMetadataProvider metadataProvider;
@@ -81,7 +82,7 @@ public class MetadataExtractor {
         MetadataExtractor extractor = new MetadataExtractor(
                 new DefaultFileTypeFilter(config),
                 new TikaMetadataProvider(),
-                new DefaultCkanResourceFormat(langDetector, config),
+                new DefaultCkanResourceFormat(langDetector, config, PACKAGE_ID),
                 config
         );
 
