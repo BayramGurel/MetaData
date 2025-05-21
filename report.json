@@ -1,5 +1,6 @@
 {
   "resources" : [ {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/PZH_WestduinparkEnWapendal_2023_HabitatRapport.docx",
     "created" : "2023-09-27T20:55:00Z",
     "name" : "Habitatkaart T1 Westduinpark & Wapendal 2021",
     "format" : "DOCX",
@@ -13,9 +14,9 @@
     },
     "mimetype" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "last_modified" : "2023-10-02T07:37:00Z",
-    "url" : "urn:placeholder:vervang-mij"
+    "last_modified" : "2023-10-02T07:37:00Z"
   }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/PZH_WestduinparkEnWapendal_2023_HabitatRapport.pdf",
     "created" : "2023-10-02T07:38:03Z",
     "name" : "PZH WestduinparkEnWapendal 2023 HabitatRapport",
     "format" : "PDF",
@@ -29,9 +30,9 @@
     },
     "mimetype" : "application/pdf",
     "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "last_modified" : "2023-10-02T07:43:12Z",
-    "url" : "urn:placeholder:vervang-mij"
+    "last_modified" : "2023-10-02T07:43:12Z"
   }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 1 - Vegetatiekaarten lokale typen/20220214_Vegetatie_DenHaag_10946_Lokaal.pdf",
     "created" : "2022-02-14T20:40:56Z",
     "name" : "20220214_Vegetatie_DenHaag_10946_Lokaal.pdf",
     "format" : "PDF",
@@ -44,9 +45,9 @@
     },
     "mimetype" : "application/pdf",
     "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "last_modified" : "2022-02-14T20:40:56Z",
-    "url" : "urn:placeholder:vervang-mij"
+    "last_modified" : "2022-02-14T20:40:56Z"
   }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 1 - Vegetatiekaarten lokale typen/20220214_Vegetatie_DenHaag_10946_Lokaal_Legenda.pdf",
     "created" : "2022-02-14T20:37:25Z",
     "name" : "20220214_Vegetatie_DenHaag_10946_Lokaal_Legenda.pdf",
     "format" : "PDF",
@@ -59,9 +60,9 @@
     },
     "mimetype" : "application/pdf",
     "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "last_modified" : "2022-02-14T20:37:25Z",
-    "url" : "urn:placeholder:vervang-mij"
+    "last_modified" : "2022-02-14T20:37:25Z"
   }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 2 - Vegetatiekaarten landelijke typen/20220215_Vegetatie_DenHaag_10946_Landelijk.pdf",
     "created" : "2022-02-15T15:05:52Z",
     "name" : "20220215_Vegetatie_DenHaag_10946_Landelijk.pdf",
     "format" : "PDF",
@@ -74,9 +75,9 @@
     },
     "mimetype" : "application/pdf",
     "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "last_modified" : "2022-02-15T15:05:52Z",
-    "url" : "urn:placeholder:vervang-mij"
+    "last_modified" : "2022-02-15T15:05:52Z"
   }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 2 - Vegetatiekaarten landelijke typen/20220215_Vegetatie_DenHaag_10946_Landelijk_Legenda.pdf",
     "created" : "2022-02-15T15:09:08Z",
     "name" : "20220215_Vegetatie_DenHaag_10946_Landelijk_Legenda.pdf",
     "format" : "PDF",
@@ -89,9 +90,9 @@
     },
     "mimetype" : "application/pdf",
     "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "last_modified" : "2022-02-15T15:09:08Z",
-    "url" : "urn:placeholder:vervang-mij"
+    "last_modified" : "2022-02-15T15:09:08Z"
   }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 3 - Lokale vegetatietypologie/Lokale vegetatietypologie Westduinpark en Wapendal 2021.xlsx",
     "created" : "2021-05-17T12:06:03Z",
     "name" : "Lokale vegetatietypologie Westduinpark en Wapendal 2021.xlsx",
     "format" : "XLSX",
@@ -105,9 +106,9 @@
     },
     "mimetype" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "last_modified" : "2022-03-24T09:17:35Z",
-    "url" : "urn:placeholder:vervang-mij"
+    "last_modified" : "2022-03-24T09:17:35Z"
   }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 4 - Vegetatietabellen/Vegetatietabel - Bossen.xlsx",
     "created" : "2021-11-02T11:17:40Z",
     "name" : "Vegetatietabel - Bossen.xlsx",
     "format" : "XLSX",
@@ -121,9 +122,9 @@
     },
     "mimetype" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "last_modified" : "2022-02-01T11:18:57Z",
-    "url" : "urn:placeholder:vervang-mij"
+    "last_modified" : "2022-02-01T11:18:57Z"
   }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 4 - Vegetatietabellen/Vegetatietabel - Graslanden en heides.xlsx",
     "created" : "2022-01-20T09:09:45Z",
     "name" : "Vegetatietabel - Graslanden en heides.xlsx",
     "format" : "XLSX",
@@ -137,9 +138,9 @@
     },
     "mimetype" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "last_modified" : "2022-02-08T13:57:55Z",
-    "url" : "urn:placeholder:vervang-mij"
+    "last_modified" : "2022-02-08T13:57:55Z"
   }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 4 - Vegetatietabellen/Vegetatietabel - Struwelen.xlsx",
     "created" : "2021-11-02T11:17:40Z",
     "name" : "Vegetatietabel - Struwelen.xlsx",
     "format" : "XLSX",
@@ -153,9 +154,9 @@
     },
     "mimetype" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "last_modified" : "2021-11-03T18:23:50Z",
-    "url" : "urn:placeholder:vervang-mij"
+    "last_modified" : "2021-11-03T18:23:50Z"
   }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 4 - Vegetatietabellen/Vegetatietabel - Ven- en watervegetaties.xlsx",
     "created" : "2021-11-02T11:17:40Z",
     "name" : "Vegetatietabel - Ven- en watervegetaties.xlsx",
     "format" : "XLSX",
@@ -169,9 +170,9 @@
     },
     "mimetype" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "last_modified" : "2022-01-19T14:39:14Z",
-    "url" : "urn:placeholder:vervang-mij"
+    "last_modified" : "2022-01-19T14:39:14Z"
   }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 5 - Vlakkenformulier/Vlakkenformulier Westduinpark en Wapendal definitief.xlsx",
     "created" : "2021-05-04T12:29:06Z",
     "name" : "Vlakkenformulier Westduinpark en Wapendal definitief.xlsx",
     "format" : "XLSX",
@@ -185,9 +186,9 @@
     },
     "mimetype" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "last_modified" : "2022-06-24T12:26:17Z",
-    "url" : "urn:placeholder:vervang-mij"
+    "last_modified" : "2022-06-24T12:26:17Z"
   }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 6 - Verspreidingskaarten soorten/Duingraslandsoorten kalkarm.pdf",
     "created" : "2022-03-07T16:47:45Z",
     "name" : "Duingraslandsoorten kalkarm.pdf",
     "format" : "PDF",
@@ -200,9 +201,9 @@
     },
     "mimetype" : "application/pdf",
     "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "last_modified" : "2022-03-07T16:47:45Z",
-    "url" : "urn:placeholder:vervang-mij"
+    "last_modified" : "2022-03-07T16:47:45Z"
   }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 6 - Verspreidingskaarten soorten/Duingraslandsoorten kalkrijk.pdf",
     "created" : "2022-03-22T08:01:20Z",
     "name" : "Duingraslandsoorten kalkrijk.pdf",
     "format" : "PDF",
@@ -215,9 +216,9 @@
     },
     "mimetype" : "application/pdf",
     "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "last_modified" : "2022-03-22T08:01:20Z",
-    "url" : "urn:placeholder:vervang-mij"
+    "last_modified" : "2022-03-22T08:01:20Z"
   }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 6 - Verspreidingskaarten soorten/Stinzenflora.pdf",
     "created" : "2022-03-22T08:12:27Z",
     "name" : "Stinzenflora.pdf",
     "format" : "PDF",
@@ -230,9 +231,9 @@
     },
     "mimetype" : "application/pdf",
     "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "last_modified" : "2022-03-22T08:12:27Z",
-    "url" : "urn:placeholder:vervang-mij"
+    "last_modified" : "2022-03-22T08:12:27Z"
   }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 6 - Verspreidingskaarten soorten/Struiken.pdf",
     "created" : "2022-03-07T16:45:49Z",
     "name" : "Struiken.pdf",
     "format" : "PDF",
@@ -245,9 +246,9 @@
     },
     "mimetype" : "application/pdf",
     "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "last_modified" : "2022-03-07T16:45:49Z",
-    "url" : "urn:placeholder:vervang-mij"
+    "last_modified" : "2022-03-07T16:45:49Z"
   }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 6 - Verspreidingskaarten soorten/Zeedorpsoorten.pdf",
     "created" : "2022-03-07T16:53:34Z",
     "name" : "Zeedorpsoorten.pdf",
     "format" : "PDF",
@@ -260,9 +261,9 @@
     },
     "mimetype" : "application/pdf",
     "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "last_modified" : "2022-03-07T16:53:34Z",
-    "url" : "urn:placeholder:vervang-mij"
+    "last_modified" : "2022-03-07T16:53:34Z"
   }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 6 - Verspreidingskaarten soorten/Zeereepsoorten.pdf",
     "created" : "2022-03-22T08:04:24Z",
     "name" : "Zeereepsoorten.pdf",
     "format" : "PDF",
@@ -275,9 +276,9 @@
     },
     "mimetype" : "application/pdf",
     "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "last_modified" : "2022-03-22T08:04:24Z",
-    "url" : "urn:placeholder:vervang-mij"
+    "last_modified" : "2022-03-22T08:04:24Z"
   }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/SNLm2021_Westduinpark_Bosgroepen.zip!/SNLm2021_Westduinpark_Bosgroepen.gdb/timestamps",
     "name" : "timestamps",
     "format" : "MPEG",
     "description" : "Geen beschrijving beschikbaar voor: timestamps",
@@ -288,9 +289,9 @@
       "source_identifier" : "C:\\Users\\gurelb\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/SNLm2021_Westduinpark_Bosgroepen.zip!/SNLm2021_Westduinpark_Bosgroepen.gdb/timestamps"
     },
     "mimetype" : "audio/mpeg",
-    "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "url" : "urn:placeholder:vervang-mij"
+    "package_id" : "PLACEHOLDER_PACKAGE_ID"
   }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Vegetatie- en florakartering Westduinpark en Wapendal 2021.pdf",
     "created" : "2022-06-24T12:30:20Z",
     "name" : "Vegetatie- en florakartering Westduinpark en Wapendal 2021.pdf",
     "format" : "PDF",
@@ -304,7 +305,6 @@
     },
     "mimetype" : "application/pdf",
     "package_id" : "PLACEHOLDER_PACKAGE_ID",
-    "last_modified" : "2022-06-24T12:30:20Z",
-    "url" : "urn:placeholder:vervang-mij"
+    "last_modified" : "2022-06-24T12:30:20Z"
   } ]
 }

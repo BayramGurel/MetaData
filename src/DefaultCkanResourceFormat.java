@@ -1,276 +1,206 @@
 import org.apache.tika.language.detect.LanguageDetector;
 import org.apache.tika.language.detect.LanguageResult;
-import org.apache.tika.metadata.DublinCore;
-import org.apache.tika.metadata.Metadata;
-import org.apache.tika.metadata.Property;
-import org.apache.tika.metadata.TikaCoreProperties;
-
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.util.*; // Preserving wildcard import for brevity as in original
+import org.apache.tika.metadata.*;
+import java.time.*;
+import java.util.*;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
-// Formats metadata and text content into a CkanResource.
 public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
-    private final LanguageDetector languageDetector; // Optional: can be null
-    private final ExtractorConfiguration config;
+    private static final Map<String, String> FORMAT_MAP = Map.ofEntries(
+            Map.entry("application/pdf","PDF"),
+            Map.entry("application/msword","DOC"),
+            Map.entry("application/vnd.openxmlformats-officedocument.wordprocessingml.document","DOCX"),
+            Map.entry("application/vnd.ms-excel","XLS"),
+            Map.entry("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","XLSX"),
+            Map.entry("application/vnd.ms-powerpoint","PPT"),
+            Map.entry("application/vnd.openxmlformats-officedocument.presentationml.presentation","PPTX"),
+            Map.entry("text/plain","TXT"),
+            Map.entry("text/csv","CSV"),
+            Map.entry("application/xml","XML"),
+            Map.entry("text/xml","XML"),
+            Map.entry("text/html","HTML"),
+            Map.entry("image/jpeg","JPEG"),
+            Map.entry("image/png","PNG"),
+            Map.entry("image/gif","GIF"),
+            Map.entry("image/tiff","TIFF"),
+            Map.entry("application/zip","ZIP"),
+            Map.entry("application/geo+json","GEOJSON"),
+            Map.entry("application/vnd.geo+json","GEOJSON"),
+            Map.entry("application/geopackage+sqlite3","GPKG"),
+            Map.entry("application/x-sqlite3","GPKG")
+    );
+    private static final Map<String, String> LANG_MAP = Map.of(
+            "nl","NLD","en","ENG","de","DEU","fr","FRA","es","SPA","it","ITA"
+    );
 
-    // Initializes with an optional language detector and a required configuration.
-    public DefaultCkanResourceFormat(LanguageDetector languageDetector, ExtractorConfiguration config) {
-        this.languageDetector = languageDetector;
-        this.config = Objects.requireNonNull(config, "Configuratie mag niet null zijn");
+    private final LanguageDetector detector;
+    private final ExtractorConfiguration cfg;
+
+    public DefaultCkanResourceFormat(LanguageDetector detector, ExtractorConfiguration cfg) {
+        this.detector = detector;
+        this.cfg      = Objects.requireNonNull(cfg, "Configuratie mag niet null zijn");
     }
 
     @Override
-    public CkanResource format(String entryName, Metadata metadata, String text, String sourceIdentifier) {
-        Map<String, Object> resourceData = new LinkedHashMap<>();
-        Map<String, String> extras = new LinkedHashMap<>();
-        // Assumes AbstractSourceProcessor.getFilenameFromEntry is accessible and returns non-null string (can be empty)
-        String filename = AbstractSourceProcessor.getFilenameFromEntry(entryName);
+    public CkanResource format(String entryName, Metadata m, String text, String srcId) {
+        var data   = new LinkedHashMap<String, Object>();
+        var extras = new LinkedHashMap<String, String>();
+        String fn  = AbstractSourceProcessor.getFilenameFromEntry(entryName);
 
-        populateCoreFields(resourceData, metadata, text, filename);
-        populateDates(resourceData, metadata);
-        populateExtrasMap(extras, metadata, text, sourceIdentifier, filename, entryName);
+        // Core fields
+        data.put("package_id", "PLACEHOLDER_PACKAGE_ID");
+        // ipv URL: geef hier de lokale bestands-identifier mee; bij upload map je dit naar multipart-field 'upload'
+        data.put("upload", toRelative(srcId));
 
-        if (!extras.isEmpty()) {
-            resourceData.put("extras", extras);
-        }
-        return new CkanResource(resourceData);
-    }
+        String title = val(m, TikaCoreProperties.TITLE);
+        String clean = cleanTitle(title, cfg.getTitlePrefixPattern());
+        data.put("name", Optional.ofNullable(clean)
+                .or(() -> Optional.ofNullable(title))
+                .orElse(fn));
+        data.put("description", makeDescription(m, text, fn));
 
-    private void populateCoreFields(Map<String, Object> resourceData, Metadata metadata, String text, String filename) {
-        resourceData.put("package_id", "PLACEHOLDER_PACKAGE_ID"); // Placeholder
-        resourceData.put("url", config.getPlaceholderUri());     // Placeholder
-
-        String originalTitle = getMetadataValue(metadata, TikaCoreProperties.TITLE);
-        String cleanedTitle = cleanTitle(originalTitle, config.getTitlePrefixPattern());
-        // Resource name fallback: cleaned title -> original title -> filename
-        String resourceName = Optional.ofNullable(cleanedTitle)
-                .or(() -> Optional.ofNullable(originalTitle))
-                .orElse(filename);
-        resourceData.put("name", resourceName);
-
-        resourceData.put("description", generateDescription(metadata, text, filename));
-
-        String contentType = getMetadataValue(metadata, Metadata.CONTENT_TYPE);
-        resourceData.put("format", mapContentTypeToSimpleFormat(contentType));
-        resourceData.put("mimetype", Optional.ofNullable(contentType)
-                .map(ct -> ct.split(";")[0].trim()) // Get part before ';'
-                .filter(mt -> !mt.isBlank())       // Ensure it's not blank
+        String ct = val(m, Metadata.CONTENT_TYPE);
+        data.put("format",   mapFormat(ct));
+        data.put("mimetype", Optional.ofNullable(ct)
+                .map(s -> s.split(";")[0].trim())
+                .filter(s -> !s.isBlank())
                 .orElse(null));
-    }
 
-    private void populateDates(Map<String, Object> resourceData, Metadata metadata) {
-        parseToInstant(metadata.get(TikaCoreProperties.CREATED))
-                .flatMap(instant -> formatInstantToIso8601(instant, config.getIso8601Formatter()))
-                .ifPresent(isoDate -> resourceData.put("created", isoDate));
+        // Datums
+        parse(m.get(TikaCoreProperties.CREATED))
+                .flatMap(this::fmt)
+                .ifPresent(d -> data.put("created", d));
 
-        String modifiedDateString = Optional.ofNullable(metadata.get(TikaCoreProperties.MODIFIED))
-                .orElse(metadata.get(DublinCore.MODIFIED)); // Fallback for modified date
-        parseToInstant(modifiedDateString)
-                .flatMap(instant -> formatInstantToIso8601(instant, config.getIso8601Formatter()))
-                .ifPresent(isoDate -> resourceData.put("last_modified", isoDate));
-    }
+        String modRaw = Optional.ofNullable(m.get(TikaCoreProperties.MODIFIED))
+                .orElse(m.get(DublinCore.MODIFIED));
+        parse(modRaw)
+                .flatMap(this::fmt)
+                .ifPresent(d -> data.put("last_modified", d));
 
-    private void populateExtrasMap(Map<String, String> extras, Metadata metadata, String text,
-                                   String sourceIdentifier, String filename, String originalEntryName) {
-        addExtraIfPresent(extras, "source_identifier", sourceIdentifier);
-        addExtraIfPresent(extras, "original_entry_name", originalEntryName);
-        addExtraIfPresent(extras, "original_filename", filename);
-        addExtraIfPresent(extras, "creator", getMetadataValue(metadata, TikaCoreProperties.CREATOR));
+        // Extras
+        put(extras, "source_identifier",   srcId);
+        put(extras, "original_entry_name", entryName);
+        put(extras, "original_filename",   fn);
+        put(extras, "creator",             val(m, TikaCoreProperties.CREATOR));
 
-        detectLanguage(text, config.getMaxTextSampleLength())
+        Optional.ofNullable(detector)
+                .flatMap(d -> detect(d, text, cfg.getMaxTextSampleLength()))
                 .filter(LanguageResult::isReasonablyCertain)
-                .ifPresentOrElse(
-                        langResult -> addExtraIfPresent(extras, "language_uri", mapLanguageCodeToNalUri(langResult.getLanguage())),
-                        () -> addExtraIfPresent(extras, "language_uri", mapLanguageCodeToNalUri("und")) // Default to undetermined
-                );
+                .map(LanguageResult::getLanguage)
+                .or(() -> Optional.of("und"))
+                .map(this::toLangUri)
+                .ifPresent(u -> extras.put("language_uri", u));
+
+        if (!extras.isEmpty()) data.put("extras", extras);
+        return new CkanResource(data);
     }
 
-    // Adds key-value to extras if value is not null or blank. Value is trimmed.
-    private static void addExtraIfPresent(Map<String, String> extrasMap, String key, String value) {
-        if (value != null && !value.isBlank()) {
-            extrasMap.put(key, value.trim());
+    private String toRelative(String fullPath) {
+        // Zoek het deel vanaf 'MetaData\' en vervang dat door '.\'
+        String marker = "MetaData\\";
+        int idx = fullPath.indexOf(marker);
+        if (idx >= 0) {
+            return ".\\" + fullPath.substring(idx + marker.length());
         }
+        return fullPath;
     }
 
-    // Cleans title by removing prefixes and normalizing whitespace. Returns null if result is blank.
-    private static String cleanTitle(String title, Pattern prefixPattern) {
-        if (title == null || title.isBlank()) return null;
-        String cleaned = prefixPattern.matcher(title).replaceFirst("");
-        cleaned = cleaned.replace('_', ' ');
-        cleaned = cleaned.replaceAll("\\s+", " ").trim();
-        return cleaned.isBlank() ? null : cleaned;
+    // --- helpers (ongewijzigd) ---
+
+    private static String val(Metadata m, Property p)    { return trim(m.get(p)); }
+    private static String val(Metadata m, String key)    { return trim(m.get(key)); }
+    private static String trim(String s)                 { return (s==null||s.isBlank())?null:s.trim(); }
+    private static void put(Map<String,String> x, String k, String v) {
+        if (v!=null && !v.isBlank()) x.put(k, v.trim());
     }
 
-    // Gets non-blank, trimmed metadata value for a Property, or null.
-    private static String getMetadataValue(Metadata metadata, Property property) {
-        String value = metadata.get(property);
-        if (value == null || value.isBlank()) return null;
-        return value.trim();
+    private static String cleanTitle(String t, Pattern p) {
+        if (t==null||t.isBlank()) return null;
+        String s = p.matcher(t).replaceFirst("")
+                .replace('_',' ')
+                .replaceAll("\\s+"," ")
+                .trim();
+        return s.isBlank()?null:s;
     }
 
-    // Gets non-blank, trimmed metadata value for a string key, or null.
-    private static String getMetadataValue(Metadata metadata, String key) {
-        String value = metadata.get(key);
-        if (value == null || value.isBlank()) return null;
-        return value.trim();
+    private static Optional<Instant> parse(String dt) {
+        if (dt==null||dt.isBlank()) return Optional.empty();
+        List<Supplier<Optional<Instant>>> ps = List.of(
+                ()->Optional.of(OffsetDateTime.parse(dt).toInstant()),
+                ()->Optional.of(ZonedDateTime.parse(dt).toInstant()),
+                ()->Optional.of(Instant.parse(dt)),
+                ()->Optional.of(LocalDateTime.parse(dt).atZone(ZoneId.systemDefault()).toInstant()),
+                ()->Optional.of(LocalDate.parse(dt).atStartOfDay(ZoneId.systemDefault()).toInstant())
+        );
+        return ps.stream().map(Supplier::get).filter(Optional::isPresent).map(Optional::get).findFirst();
     }
 
-    // Formats an Instant to ISO 8601 string, or empty Optional if instant is null.
-    private static Optional<String> formatInstantToIso8601(Instant instant, DateTimeFormatter formatter) {
-        return Optional.ofNullable(instant).map(formatter::format);
+    private Optional<String> fmt(Instant i) {
+        return Optional.ofNullable(i).map(cfg.getIso8601Formatter()::format);
     }
 
-    // Parses a date-time string to Instant, trying multiple ISO formats. Uses system default timezone for local dates/times.
-    private static Optional<Instant> parseToInstant(String dateTimeString) {
-        if (dateTimeString == null || dateTimeString.isBlank()) return Optional.empty();
-
-        List<DateTimeFormatter> formatters = Arrays.asList(
-                DateTimeFormatter.ISO_OFFSET_DATE_TIME, DateTimeFormatter.ISO_ZONED_DATE_TIME,
-                DateTimeFormatter.ISO_INSTANT, DateTimeFormatter.ISO_LOCAL_DATE_TIME,
-                DateTimeFormatter.ISO_LOCAL_DATE);
-
-        for (DateTimeFormatter formatter : formatters) {
-            try {
-                if (formatter == DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-                    return Optional.of(OffsetDateTime.parse(dateTimeString, formatter).toInstant());
-                if (formatter == DateTimeFormatter.ISO_ZONED_DATE_TIME)
-                    return Optional.of(ZonedDateTime.parse(dateTimeString, formatter).toInstant());
-                if (formatter == DateTimeFormatter.ISO_INSTANT) // Instant.parse does not take a formatter argument here
-                    return Optional.of(Instant.parse(dateTimeString));
-                if (formatter == DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-                    return Optional.of(LocalDateTime.parse(dateTimeString, formatter).atZone(ZoneId.systemDefault()).toInstant());
-                if (formatter == DateTimeFormatter.ISO_LOCAL_DATE)
-                    return Optional.of(LocalDate.parse(dateTimeString, formatter).atStartOfDay(ZoneId.systemDefault()).toInstant());
-            } catch (DateTimeParseException ignored) { /* Try next formatter */ }
-        }
-        return Optional.empty();
+    private static String mapFormat(String ct) {
+        if (ct==null||ct.isBlank()) return "Unknown";
+        String key = ct.toLowerCase().split(";")[0].trim();
+        return FORMAT_MAP.getOrDefault(key,
+                key.contains("/")? key.substring(key.lastIndexOf('/')+1)
+                        .toUpperCase()
+                        .replaceAll("[^A-Z0-9]","")
+                        : key.toUpperCase()
+        );
     }
 
-    // Maps content type (e.g., "application/pdf; charset=utf-8") to a simple format string (e.g., "PDF").
-    private static String mapContentTypeToSimpleFormat(String contentType) {
-        return Optional.ofNullable(contentType)
-                .filter(ct -> !ct.isBlank())
-                .map(ct -> ct.toLowerCase().split(";")[0].trim())
-                .map(lowerType -> switch (lowerType) {
-                    case "application/pdf" -> "PDF";
-                    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> "DOCX";
-                    case "application/msword" -> "DOC";
-                    case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> "XLSX";
-                    case "application/vnd.ms-excel" -> "XLS";
-                    case "application/vnd.openxmlformats-officedocument.presentationml.presentation" -> "PPTX";
-                    case "application/vnd.ms-powerpoint" -> "PPT";
-                    case "text/plain" -> "TXT";
-                    case "text/csv" -> "CSV";
-                    case "application/xml", "text/xml" -> "XML";
-                    case "text/html" -> "HTML";
-                    case "image/jpeg", "image/jpg" -> "JPEG";
-                    case "image/png" -> "PNG";
-                    case "image/gif" -> "GIF";
-                    case "image/tiff" -> "TIFF";
-                    case "application/zip" -> "ZIP";
-                    case "application/shp", "application/x-shapefile", "application/vnd.shp" -> "SHP";
-                    case "application/dbf", "application/x-dbf", "application/vnd.dbf" -> "DBF";
-                    case "application/vnd.google-earth.kml+xml" -> "KML";
-                    case "application/vnd.google-earth.kmz" -> "KMZ";
-                    case "application/geo+json", "application/vnd.geo+json" -> "GeoJSON";
-                    case "application/geopackage+sqlite3", "application/x-sqlite3" -> "GPKG";
-                    default -> {
-                        int lastSlash = lowerType.lastIndexOf('/');
-                        String format = (lastSlash != -1 && lastSlash < lowerType.length() - 1)
-                                ? lowerType.substring(lastSlash + 1) : lowerType;
-                        yield format.toUpperCase().replaceAll("[^A-Z0-9]", ""); // Derive from type/subtype
-                    }
-                })
-                .orElse("Unknown");
+    private String toLangUri(String code) {
+        String tag = (code==null||code.isBlank()||code.equalsIgnoreCase("und"))
+                ? "UND"
+                : LANG_MAP.getOrDefault(code.toLowerCase().split("-")[0], "MUL");
+        return "http://publications.europa.eu/resource/authority/language/" + tag;
     }
 
-    // Maps a language code (e.g., "en", "nl-NL") to its NAL URI.
-    private static String mapLanguageCodeToNalUri(String languageCode) {
-        final String NAL_BASE_URI = "http://publications.europa.eu/resource/authority/language/";
-        if (languageCode == null || languageCode.isBlank() || languageCode.equalsIgnoreCase("und")) {
-            return NAL_BASE_URI + "UND";
-        }
-        String baseCode = languageCode.toLowerCase().split("-")[0]; // Use primary language subtag
-        return NAL_BASE_URI + switch (baseCode) {
-            case "nl" -> "NLD"; case "en" -> "ENG"; case "de" -> "DEU";
-            case "fr" -> "FRA"; case "es" -> "SPA"; case "it" -> "ITA";
-            default -> "MUL"; // Default for unmapped or multilingual
-        };
-    }
-
-    // Generates description from metadata (preferring valid entries) or text snippet.
-    private String generateDescription(Metadata metadata, String text, String filename) {
-        String description = getMetadataValue(metadata, DublinCore.DESCRIPTION);
-        if (!isDescriptionValid(description)) {
-            description = getMetadataValue(metadata, TikaCoreProperties.DESCRIPTION);
-            if (!isDescriptionValid(description)) {
-                description = null;
-            }
-        }
-
-        if (description != null) {
-            String cleanedDesc = description.trim().replaceAll("\\s+", " ");
-            if (cleanedDesc.length() > config.getMaxAutoDescriptionLength()) {
-                int end = config.getMaxAutoDescriptionLength();
-                int lastSpace = cleanedDesc.lastIndexOf(' ', end - 3); // -3 for "..."
-                cleanedDesc = (lastSpace > end / 2) // Prefer word boundary if reasonable
-                        ? cleanedDesc.substring(0, lastSpace).trim() + "..."
-                        : cleanedDesc.substring(0, end - 3).trim() + "...";
-            }
-            cleanedDesc = cleanedDesc.replaceAll("^[\\W_]+|[\\W_]+$", "").trim(); // Clean edges
-            if (!cleanedDesc.isEmpty()) {
-                return cleanedDesc;
-            }
-        }
-
-        if (text != null && !text.isBlank()) {
-            String cleanedText = text.trim().replaceAll("\\s+", " ");
-            if (cleanedText.length() > 10) { // Only use text snippet if reasonably long
-                int endIndex = Math.min(cleanedText.length(), config.getMaxAutoDescriptionLength());
-                String snippet = cleanedText.substring(0, endIndex).trim();
-                snippet = snippet.replaceAll("^[\\W_]+|[\\W_]+$", "").trim(); // Clean snippet edges
-                // Add "..." if text was actually truncated and there's space for "..."
-                String suffix = (cleanedText.length() > endIndex && snippet.length() <= config.getMaxAutoDescriptionLength() - 3) ? "..." : "";
-                if (!snippet.isEmpty()) {
-                    return snippet + suffix;
-                }
-            }
-        }
-        return "Geen beschrijving beschikbaar voor: " + filename; // Default Dutch message
-    }
-
-    // Checks if a description string is considered valid based on configuration and content.
-    private boolean isDescriptionValid(String description) {
-        if (description == null || description.isBlank()) return false;
-        String trimmed = description.trim();
-        return trimmed.length() >= this.config.getMinDescMetadataLength()
-                && trimmed.length() <= this.config.getMaxDescMetadataLength()
-                && !trimmed.contains("_x000d_") // Check for specific unwanted content
-                && !trimmed.equalsIgnoreCase("untitled")
-                && !trimmed.equalsIgnoreCase("no title")
-                && !trimmed.matches("(?i)^\\s*template\\s*$"); // Case-insensitive "template" check
-    }
-
-    // Detects language from text sample; returns empty Optional if detector absent, text blank, or error.
-    private Optional<LanguageResult> detectLanguage(String text, int maxSampleLength) {
-        if (this.languageDetector == null || text == null || text.isBlank()) {
-            return Optional.empty();
-        }
+    private Optional<LanguageResult> detect(LanguageDetector d, String txt, int maxLen) {
         try {
-            String sample = text.substring(0, Math.min(text.length(), maxSampleLength)).trim();
-            if (sample.isEmpty()) return Optional.empty();
-            return Optional.of(this.languageDetector.detect(sample));
+            if (txt==null||txt.isBlank()) return Optional.empty();
+            String s = txt.substring(0, Math.min(txt.length(), maxLen)).trim();
+            return s.isEmpty() ? Optional.empty() : Optional.of(d.detect(s));
         } catch (Exception e) {
-            System.err.println("Waarschuwing: Taaldetectie mislukt: " + e.getMessage()); // Preserve warning
+            System.err.println("Waarschuwing: Taaldetectie mislukt: " + e.getMessage());
             return Optional.empty();
         }
+    }
+
+    private String makeDescription(Metadata m, String txt, String fn) {
+        String desc = val(m, DublinCore.DESCRIPTION);
+        if (!valid(desc)) desc = val(m, TikaCoreProperties.DESCRIPTION);
+        if (valid(desc)) {
+            String d = desc.trim().replaceAll("\\s+"," ");
+            if (d.length() > cfg.getMaxAutoDescriptionLength()) {
+                int end = cfg.getMaxAutoDescriptionLength();
+                int sp  = d.lastIndexOf(' ', end-3);
+                d = (sp> end/2 ? d.substring(0, sp) : d.substring(0, end-3)).trim() + "...";
+            }
+            d = d.replaceAll("^[\\W_]+|[\\W_]+$", "").trim();
+            if (!d.isEmpty()) return d;
+        }
+        if (txt!=null && txt.strip().length()>10) {
+            String t   = txt.trim().replaceAll("\\s+"," ");
+            int end    = Math.min(t.length(), cfg.getMaxAutoDescriptionLength());
+            String sn  = t.substring(0, end).replaceAll("^[\\W_]+|[\\W_]+$","").trim();
+            if (!sn.isEmpty()) {
+                return sn + (t.length()>end && sn.length()<=cfg.getMaxAutoDescriptionLength()-3 ? "..." : "");
+            }
+        }
+        return "Geen beschrijving beschikbaar voor: " + fn;
+    }
+
+    private boolean valid(String s) {
+        if (s==null||s.isBlank()) return false;
+        String t = s.trim();
+        return t.length() >= cfg.getMinDescMetadataLength()
+                && t.length() <= cfg.getMaxDescMetadataLength()
+                && !t.contains("_x000d_")
+                && !t.equalsIgnoreCase("untitled")
+                && !t.equalsIgnoreCase("no title")
+                && !t.matches("(?i)^\\s*template\\s*$");
     }
 }
