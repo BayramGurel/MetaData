@@ -1,0 +1,250 @@
+[DEFAULT]
+debug = false
+
+[app:main]
+ckan.datastore.write_url=postgresql://ckan_default:pass@localhost/datastore_default
+ckan.datastore.read_url=postgresql://datastore_default:pass@localhost/datastore_default
+ckan.datapusher.url=http://localhost:8800
+ckan.datapusher.callback_url_base=http://localhost:5000
+ckan.datapusher.api_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJCbjYzRDB4eTlOVUd1RTc3cGtoNmhMd1dCbnVieFF4bnUwQXVRbWU3U2pZIiwiaWF0IjoxNzQ4OTU2OTY4fQ.ntCa0Rdq02KPClK2HN_rcqgpFX9UjF5rhXOUDDo6oHA
+
+use = egg:ckan
+SECRET_KEY = K-B27RrITsG5ztHgnnihDx8D6I8
+ckan.legacy_route_mappings = {}
+config.mode = strict
+
+ckan.devserver.host = localhost
+ckan.devserver.port = 5000
+ckan.devserver.threaded = false
+ckan.devserver.multiprocess = 1
+ckan.devserver.watch_patterns =
+ckan.devserver.ssl_cert =
+ckan.devserver.ssl_key =
+
+ckan.user.last_active_interval = 600
+SESSION_TYPE = cookie
+SESSION_COOKIE_NAME = ckan
+SESSION_KEY_PREFIX = session:
+SESSION_COOKIE_DOMAIN =
+SESSION_COOKIE_PATH =
+SESSION_COOKIE_HTTPONLY = true
+SESSION_COOKIE_SECURE = false
+SESSION_COOKIE_SAMESITE = Lax
+SESSION_REFRESH_EACH_REQUEST = false
+SESSION_PERMANENT = true
+PERMANENT_SESSION_LIFETIME = 31536000
+SESSION_USE_SIGNER = false
+
+sqlalchemy.url = postgresql://ckan_default:pass@localhost/ckan_default
+sqlalchemy.pool_pre_ping = true
+
+ckan.site_url=https://musical-goldfish-94v44prr4r73xqwj-5000.app.github.dev
+apitoken_header_name = Authorization
+ckan.cache_expires = 0
+ckan.cache_enabled = false
+ckan.mimetype_guess = file_ext
+ckan.static_max_age = 3600
+ckan.valid_url_schemes = http https ftp
+ckan.requests.timeout = 5
+ckan.hide_version = false
+
+ckan.auth.anon_create_dataset = false
+ckan.auth.create_unowned_dataset = true
+ckan.auth.create_dataset_if_not_in_organization = true
+ckan.auth.user_create_groups = true
+ckan.auth.user_create_organizations = true
+ckan.auth.user_delete_groups = true
+ckan.auth.user_delete_organizations = true
+ckan.auth.create_user_via_api = false
+ckan.auth.create_user_via_web = true
+ckan.auth.roles_that_cascade_to_sub_groups = admin
+ckan.auth.public_user_details = true
+ckan.auth.public_activity_stream_detail = false
+ckan.auth.allow_dataset_collaborators = false
+ckan.auth.allow_admin_collaborators = false
+ckan.auth.allow_collaborators_to_change_owner_org = false
+ckan.auth.create_default_api_keys = false
+ckan.auth.login_view = user.login
+ckan.auth.reveal_private_datasets = false
+ckan.auth.enable_cookie_auth_in_api = true
+ckan.auth.route_after_login = dashboard.datasets
+
+WTF_CSRF_ENABLED = true
+WTF_CSRF_CHECK_DEFAULT = true
+WTF_CSRF_SECRET_KEY = string:%(SECRET_KEY)s
+WTF_CSRF_METHODS = POST PUT PATCH DELETE
+WTF_CSRF_FIELD_NAME = _csrf_token
+WTF_CSRF_HEADERS = X-CSRFToken X-CSRF-Token
+WTF_CSRF_TIME_LIMIT = 31536000
+WTF_CSRF_SSL_STRICT = true
+WTF_I18N_ENABLED = true
+
+REMEMBER_COOKIE_NAME = remember_token
+REMEMBER_COOKIE_DURATION = 31536000
+REMEMBER_COOKIE_PATH = /
+REMEMBER_COOKIE_SECURE = false
+REMEMBER_COOKIE_HTTPONLY = true
+REMEMBER_COOKIE_REFRESH_EACH_REQUEST = false
+REMEMBER_COOKIE_SAMESITE = None
+
+api_token.nbytes = 32
+api_token.jwt.encode.secret = string:%(SECRET_KEY)s
+api_token.jwt.decode.secret = string:%(SECRET_KEY)s
+api_token.jwt.algorithm = HS256
+
+ckan.site_id = default
+solr_url = http://127.0.0.1:8983/solr/ckan
+solr_user =
+solr_password =
+ckan.search.remove_deleted_packages = true
+ckan.search.solr_commit = true
+ckan.search.solr_allowed_query_parsers =
+ckan.search.show_all_types = dataset
+ckan.search.default_include_private = true
+ckan.search.default_package_sort = score desc, metadata_modified desc
+search.facets = organization groups tags res_format license_id
+search.facets.limit = 50
+search.facets.default = 10
+ckan.extra_resource_fields =
+ckan.search.rows_max = 1000
+ckan.group_and_organization_list_max = 1000
+ckan.group_and_organization_list_all_fields_max = 25
+solr_timeout = 60
+
+ckan.redis.url = redis://localhost:6379/0
+
+ckan.cors.origin_allow_all = false
+ckan.cors.origin_whitelist =
+
+ckan.plugins=activity datastore datapusher datatables_view
+ckan.download_proxy =
+
+ckan.site_title = CKAN
+ckan.site_description =
+ckan.site_intro_text =
+ckan.site_logo = /base/images/ckan-logo.png
+ckan.site_about =
+ckan.theme = css/main
+ckan.favicon = /base/images/ckan.ico
+ckan.datasets_per_page = 20
+package_hide_extras =
+ckan.recaptcha.publickey =
+ckan.recaptcha.privatekey =
+ckan.featured_groups =
+ckan.featured_orgs =
+ckan.default_group_sort = title
+ckan.gravatar_default = identicon
+ckan.debug_supress_header = false
+ckan.site_custom_css =
+ckan.default_collapse_facets = false
+
+ckan.views.default_views = image_view datatables_view
+
+ckan.template_title_delimiter = -
+extra_template_paths =
+extra_public_paths =
+ckan.base_public_folder = public
+ckan.base_templates_folder = templates
+ckan.default.package_type = dataset
+ckan.default.group_type = group
+ckan.default.organization_type = organization
+
+ckan.storage_path=/workspace/data
+ckan.max_resource_size = 10
+ckan.max_image_size = 2
+
+ckan.upload.user.types = image
+ckan.upload.user.mimetypes = image/png image/gif image/jpeg
+ckan.upload.group.types = image
+ckan.upload.group.mimetypes = image/png image/gif image/jpeg
+
+ckan.webassets.path =
+ckan.webassets.url = /webassets
+ckan.webassets.use_x_sendfile = false
+
+ckan.user_list_limit = 20
+ckan.user_reset_landing_page = home.index
+ckan.user.unique_email_states = active
+
+ckan.activity_streams_enabled = true
+ckan.activity_streams_email_notifications = false
+ckan.activity_list_limit = 31
+ckan.activity_list_limit_max = 100
+ckan.email_notifications_since = 2 days
+ckan.hide_activity_from_users = %(ckan.site_id)s
+
+ckan.feeds.author_name =
+ckan.feeds.author_link =
+ckan.feeds.authority_name =
+ckan.feeds.date =
+ckan.feeds.limit = 20
+
+ckan.locale_default = en
+ckan.locales_offered =
+ckan.locales_filtered_out =
+ckan.locale_order =
+ckan.i18n_directory =
+ckan.i18n.extra_directory =
+ckan.i18n.extra_gettext_domain =
+ckan.i18n.extra_locales =
+ckan.i18n.rtl_languages = he ar fa_IR
+ckan.i18n.rtl_theme = css/main-rtl
+ckan.display_timezone = UTC
+ckan.root_path =
+ckan.resource_formats = /workspace/ckan/config/resource_formats.json
+
+ckan.dataset.create_on_ui_requires_resources = true
+package_new_return_url =
+package_edit_return_url =
+licenses_group_url =
+
+smtp.server = localhost
+smtp.starttls = false
+smtp.user =
+smtp.password =
+smtp.mail_from =
+smtp.reply_to =
+email_to =
+error_email_from =
+
+ckan.jobs.timeout = 180
+
+[loggers]
+keys = root, ckan, ckanext, werkzeug
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = WARNING
+handlers = console
+
+[logger_werkzeug]
+level = WARNING
+handlers = console
+qualname = werkzeug
+propagate = 0
+
+[logger_ckan]
+level = INFO
+handlers = console
+qualname = ckan
+propagate = 0
+
+[logger_ckanext]
+level = DEBUG
+handlers = console
+qualname = ckanext
+propagate = 0
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatter_generic]
+format = %(asctime)s %(levelname)-5.5s [%(name)s] %(message)s
