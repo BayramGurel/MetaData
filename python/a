@@ -116,7 +116,7 @@ ckan.redis.url = redis://localhost:6379/0
 ckan.cors.origin_allow_all = false
 ckan.cors.origin_whitelist =
 
-ckan.plugins=activity datastore datapusher datatables_view
+ckan.plugins=activity datastore datapusher datatables_view solrattachment
 ckan.download_proxy =
 
 ckan.site_title = CKAN
