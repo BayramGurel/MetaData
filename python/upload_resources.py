@@ -1,9 +1,10 @@
-import warnings, io, json, zipfile, logging, sys, re
+import warnings, io, json, zipfile, logging, sys, re, hashlib
 from pathlib import Path
 from datetime import datetime
 from ckanapi import RemoteCKAN, NotFound
 from tqdm import tqdm
 
+# Configuratie
 CKAN_URL = "https://psychic-rotary-phone-94v44prrg9427gx6-5000.app.github.dev/"
 API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJPNUlISmpYRWpxcTZNMXdGN1FYajFiMUU4WVVTNUFWTEFteXZBak1IMF9RIiwiaWF0IjoxNzUwMTU1ODE5fQ.3oUuqVytuQGj6RpN4nul6wMxmcDihpG47NF-H74PPY4"
 MANIFEST = Path(__file__).resolve().parent.parent / "report.json"
@@ -22,12 +23,10 @@ def open_stream(spec: str) -> io.BytesIO:
         data = (MANIFEST.parent / parts[0].lstrip("./")).read_bytes()
         for entry in parts[1:]:
             with zipfile.ZipFile(io.BytesIO(data)) as zf:
-                if entry not in zf.namelist():
-                    raise FileNotFoundError(f"Bestand '{entry}' niet gevonden in ZIP.")
                 data = zf.read(entry)
-        stream = io.BytesIO(data)
-        stream.seek(0)
-        return stream
+        buf = io.BytesIO(data)
+        buf.seek(0)
+        return buf
     except Exception as e:
         logging.error(f"Fout bij openen van stream '{spec}': {e}")
         raise
@@ -39,27 +38,56 @@ def format_date(dt_str: str) -> str | None:
         dt = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
         return dt.strftime("%Y-%m-%dT%H:%M:%S")
     except ValueError:
-        logging.warning("Kon datum niet parsen: %r", dt_str)
+        logging.warning(f"Kon datum niet parsen: {dt_str}")
         return None
 
-def ensure_dataset(ckan, pkg_id, pkg_name):
-    try:
-        if pkg_id:
-            return ckan.action.package_show(id=pkg_id)["id"]
-        slug = slugify(pkg_name)
-        return ckan.action.package_show(id=slug)["id"]
-    except NotFound:
-        created = ckan.action.package_create(name=slugify(pkg_name), title=pkg_name)
-        logging.info("➤ Dataset aangemaakt: '%s' → %s", pkg_name, created["id"])
-        return created["id"]
+def ensure_dataset(ckan, meta: dict) -> str:
+    title       = meta.get("title", meta.get("name", "[Provincie zuid-holland]"))
+    slug        = slugify(title)
+    description = meta.get("description", "")
+    license_id  = meta.get("license_id", "cc-BY")
 
-def find_existing_resource(ckan, package_id, name):
+    # DCAT-AP extras
+    extras = {
+        k: v for k, v in {
+            "dct_issued":   format_date(meta.get("issued", "")),
+            "dct_modified": format_date(meta.get("modified", "")),
+            "dct_language": meta.get("language", ""),
+            "dct_spatial":  meta.get("spatial", ""),
+            "dct_temporal": meta.get("temporal", ""),
+            "dct_publisher": meta.get("publisher", "")
+        }.items() if v
+    }
+    tags   = meta.get("tags", [])
+    groups = meta.get("groups", [])
+    owner  = meta.get("organization", {}).get("id", None)
+
+    params = {"name": slug, "title": title, "notes": description, "license_id": license_id}
+    if extras:
+        params["extras"] = json.dumps(extras)
+    if tags:
+        params["tags"] = [{"name": t} for t in tags]
+    if groups:
+        params["groups"] = [{"name": g} for g in groups]
+    if owner:
+        params["owner_org"] = owner
+
     try:
-        res_list = ckan.action.resource_search(package_id=package_id, query=name)
-        for r in res_list.get("results", []):
+        pkg = ckan.action.package_show(id=slug)
+        params["id"] = pkg["id"]
+        pkg = ckan.action.package_update(**params)
+        logging.info(f"↻ Dataset bijgewerkt: {pkg['id']}")
+    except NotFound:
+        pkg = ckan.action.package_create(**params)
+        logging.info(f"✔ Dataset aangemaakt: {pkg['id']}")
+    return pkg["id"]
+
+def find_existing_resource(ckan, package_id: str, name: str) -> str | None:
+    try:
+        for r in ckan.action.resource_search(package_id=package_id, query=name).get("results", []):
             if r["name"] == name:
                 return r["id"]
-    except Exception:
+    except:
         pass
     return None
 
@@ -68,68 +96,71 @@ def delete_all_datasets(ckan):
     if confirm.lower() != "yes":
         logging.info("Verwijderen geannuleerd.")
         return
-    datasets = ckan.action.package_list()
-    for ds in datasets:
+    for ds in ckan.action.package_list():
         try:
             ckan.action.package_delete(id=ds)
-            logging.info("✖ Dataset verwijderd: %s", ds)
+            logging.info(f"✖ Dataset verwijderd: {ds}")
         except Exception as e:
-            logging.error("Kon dataset %s niet verwijderen: %s", ds, e)
+            logging.error(f"Kon dataset {ds} niet verwijderen: {e}")
 
-def main():
+if __name__ == "__main__":
     if not MANIFEST.exists():
-        logging.error("Manifest niet gevonden op %s", MANIFEST)
+        logging.error(f"Manifest niet gevonden op {MANIFEST}")
         sys.exit(1)
 
     ckan = RemoteCKAN(CKAN_URL, apikey=API_KEY)
     try:
         ckan.action.status_show()
     except Exception as e:
-        logging.error("CKAN niet bereikbaar: %s", e)
+        logging.error(f"CKAN niet bereikbaar: {e}")
         sys.exit(1)
 
-    delete_all_datasets(ckan)  # → alleen aanzetten als je zeker bent
+    delete_all_datasets(ckan)  # alleen inschakelen als je écht wilt resetten
 
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    # dataset-metadata uit manifest als aanwezig
+    ds_meta = manifest.get("dataset", {})
+    ds_id   = ensure_dataset(ckan, ds_meta)
+
     for res in tqdm(manifest.get("resources", []), desc="Uploaden"):
         try:
-            ds_id = ensure_dataset(ckan, res.get("package_id", ""), res.get("name", ""))
+            # bronbestand openen
             stream = open_stream(res["upload"])
             fname = res.get("extras", {}).get("original_filename", Path(res["upload"]).name)
-            slug = slugify(fname)
-            created_fmt = format_date(res.get("created", ""))
-            modified_fmt = format_date(res.get("last_modified", ""))
+            slug  = slugify(fname)
+
+            created  = format_date(res.get("created", ""))
+            modified = format_date(res.get("last_modified", ""))
+
+            # lees data in geheugen
+            data = stream.read()
+            # Solr/view-link
+            solr_link = f"{CKAN_URL}dataset/{ds_id}/resource/{{id}}/preview"
+
+            # extras voor resource (inclusief view_url)
+            extras = {**res.get("extras", {})}
+            extras.update({"view_url": solr_link})
 
             payload = {
-                "package_id": ds_id,
-                "name": slug,
-                "format": res["format"],
-                "mimetype": res["mimetype"],
-                "description": res.get("description", ""),
-                "license_id": res.get("license_id", "cc-by"),
-                "upload": stream
+                "package_id":   ds_id,
+                "name":         slug,
+                "description":  res.get("description", ""),
+                "format":       res["format"],
+                "mimetype":     res["mimetype"],
+                "upload":       io.BytesIO(data),
+                **({"created": created}   if created else {}),
+                **({"last_modified": modified} if modified else {}),
+                "extras":       json.dumps(extras)
             }
-
-            if created_fmt:
-                payload["created"] = created_fmt
-            if modified_fmt:
-                payload["last_modified"] = modified_fmt
-
-            extras_dict = res.get("extras", {})
-            if isinstance(extras_dict, dict) and extras_dict:
-                payload["extras"] = json.dumps(extras_dict)
 
             existing = find_existing_resource(ckan, ds_id, slug)
             if existing:
                 payload["id"] = existing
                 result = ckan.action.resource_update(**payload)
-                logging.info("↻ Bijgewerkt: %s → %s", fname, result["url"])
+                logging.info(f"↻ Bijgewerkt: {fname} → {result['url']}")
             else:
                 result = ckan.action.resource_create(**payload)
-                logging.info("✔ Toegevoegd: %s → %s", fname, result["url"])
+                logging.info(f"✔ Toegevoegd : {fname} → {result['url']}")
 
         except Exception as e:
-            logging.exception("✘ Fout bij verwerken van %s: %s", res.get("upload", "onbekend"), e)
-
-if __name__ == "__main__":
-    main()
+            logging.exception(f"✘ Fout bij verwerken van {res.get('upload','onbekend')}: {e}")
