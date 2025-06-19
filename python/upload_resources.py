@@ -11,8 +11,8 @@ from ckanapi import RemoteCKAN, NotFound
 from tqdm import tqdm
 
 # Configuration
-CKAN_URL = "https://psychic-rotary-phone-94v44prrg9427gx6-5000.app.github.dev/"
-API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJPNUlISmpYRWpxcTZNMXdGN1FYajFiMUU4WVVTNUFWTEFteXZBak1IMF9RIiwiaWF0IjoxNzUwMTU1ODE5fQ.3oUuqVytuQGj6RpN4nul6wMxmcDihpG47NF-H74PPY4"
+CKAN_URL = "https://special-space-disco-94v44prrppr36q6-5000.app.github.dev/"
+API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJtall6Qk1uMDVHcE5XRXhDUXEwc05kcDZOZGZSbFVpMjlfYWZ2YzYwdUY4IiwiaWF0IjoxNzUwMzM1NzE1fQ.R7w-Av7dFTeFTNtY8Y0xM6_lDN0MNleQzWz7ewTWJJc"
 MANIFEST = Path(__file__).resolve().parent.parent / "report.json"
 
 warnings.filterwarnings("ignore", "pkg_resources is deprecated", UserWarning)
