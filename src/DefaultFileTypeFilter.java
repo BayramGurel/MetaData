@@ -1,3 +1,4 @@
+import java.util.Locale;
 import java.util.Objects;
 // Assuming ExtractorConfiguration and AbstractSourceProcessor are defined and accessible elsewhere.
 
@@ -17,8 +18,10 @@ public class DefaultFileTypeFilter implements IFileTypeFilter {
         this.config = Objects.requireNonNull(config, "Configuratie mag niet null zijn");
     }
 
-    // Determines if a file/entry is relevant based on its name and configured ignore lists
-    // (prefixes, filenames, extensions).
+    /**
+     * Determines if a file/entry is relevant based on its name and the configured
+     * ignore lists (prefixes, filenames and extensions).
+     */
     @Override
     public boolean isFileTypeRelevant(String entryName) {
         if (entryName == null || entryName.isBlank()) { // Handle null or blank entry names
@@ -31,7 +34,7 @@ public class DefaultFileTypeFilter implements IFileTypeFilter {
             return false;
         }
 
-        String lowerFilename = filename.toLowerCase(); // Use lowercase for case-insensitive checks
+        String lowerFilename = filename.toLowerCase(Locale.ROOT); // Use locale independent lower-case
 
         // Check if filename starts with any configured ignored prefixes
         if (config.getIgnoredPrefixes().stream().anyMatch(lowerFilename::startsWith)) {
@@ -42,17 +45,20 @@ public class DefaultFileTypeFilter implements IFileTypeFilter {
             return false;
         }
 
-        // Check if the file extension is in the configured ignored extensions list
-        int lastDotIndex = lowerFilename.lastIndexOf('.');
-        // A valid extension requires '.' to be present, not as the first character,
-        // and to have characters following it.
-        if (lastDotIndex > 0 && lastDotIndex < lowerFilename.length() - 1) {
-            String extension = lowerFilename.substring(lastDotIndex); // Note: extension includes the dot (e.g., ".txt")
-            if (config.getIgnoredExtensions().contains(extension)) {
-                return false;
-            }
+        String extension = getExtension(lowerFilename);
+        if (!extension.isEmpty() && config.getIgnoredExtensions().contains(extension)) {
+            return false;
         }
 
         return true; // File is relevant if none of the ignore conditions were met
+    }
+
+    /** Returns the lowercase file extension (including dot) or empty string. */
+    private static String getExtension(String filename) {
+        int lastDot = filename.lastIndexOf('.');
+        if (lastDot > 0 && lastDot < filename.length() - 1) {
+            return filename.substring(lastDot).toLowerCase(Locale.ROOT);
+        }
+        return "";
     }
 }
