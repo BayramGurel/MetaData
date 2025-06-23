@@ -7,6 +7,7 @@ import logging
 import re
 import hashlib
 import sys
+import subprocess
 from pathlib import Path
 from datetime import datetime
 
@@ -19,6 +20,7 @@ from tqdm import tqdm
 CKAN_URL = "https://special-space-disco-94v44prrppr36q6-5000.app.github.dev/"
 API_KEY   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJmZDRjUEVrQkVRaVRNNXJ3VUMtYVY4N0R1YlhzeTlZMmlrZlpVa0VRRVJnIiwiaWF0IjoxNzUwMzM3MDQ1fQ.kXvgCvs7Emc7RfPxGZ1znLz7itMqK4p0hXYoEoc8LaA"
 MANIFEST  = Path(__file__).resolve().parent.parent / "report.json"
+EXTRACTOR = Path(__file__).resolve().parent.parent / "src" / "MetadataExtractor.java"
 
 warnings.filterwarnings("ignore", "pkg_resources is deprecated", UserWarning)
 
@@ -66,7 +68,6 @@ def safe_create_package(ckan, params: dict) -> dict:
         if any('already exists' in msg for msg in name_errs):
             slug = params['name']
             logger.warning(f"Slug '{slug}' is trashed—purging and retrying…")
-            # dataset_purge also clears resources
             try:
                 ckan.action.dataset_purge(id=slug)
             except Exception:
@@ -78,9 +79,6 @@ def safe_create_package(ckan, params: dict) -> dict:
 # Deletion helpers
 # -----------------------------------------------------------------------------
 def delete_all_datasets(ckan):
-    """
-    For every dataset: soft-delete + hard-purge (which also purges its resources).
-    """
     for ds_slug in ckan.action.package_list():
         logger.info(f"- Dataset: {ds_slug}")
         try:
@@ -92,13 +90,9 @@ def delete_all_datasets(ckan):
             ckan.action.dataset_purge(id=ds_slug)
             logger.info(f"  • Purged:  {ds_slug}")
         except Exception:
-            # it may not exist or not be supported—ignore
             pass
 
 def delete_all_organizations(ckan):
-    """
-    For every organization: wipe datasets, then soft-delete + purge the org itself.
-    """
     for org_slug in ckan.action.organization_list():
         logger.info(f"- Organization: {org_slug}")
         delete_all_datasets(ckan)
@@ -117,10 +111,6 @@ def delete_all_organizations(ckan):
 # CKAN operations
 # -----------------------------------------------------------------------------
 def ensure_dataset(ckan, meta: dict, org_id: str | None) -> str:
-    """
-    Create or update a CKAN dataset from metadata.
-    If an existing dataset is soft-deleted, purge then re-create.
-    """
     title       = meta.get('title') or Path(meta.get('upload','')).stem
     slug        = slugify(title)
     description = meta.get('description','')
@@ -135,7 +125,6 @@ def ensure_dataset(ckan, meta: dict, org_id: str | None) -> str:
     if org_id:
         params['owner_org'] = org_id
 
-    # DCAT extras
     extras = {}
     for key in ('issued','modified','language','spatial','temporal','publisher'):
         v = meta.get(key)
@@ -159,13 +148,10 @@ def ensure_dataset(ckan, meta: dict, org_id: str | None) -> str:
             created = safe_create_package(ckan, params)
             logger.info(f"✔ Re-created: {created['id']}")
             return created['id']
-
-        # update existing
         params['id'] = pkg['id']
         updated = ckan.action.package_update(**params)
         logger.info(f"↻ Updated:    {updated['id']}")
         return updated['id']
-
     except NotFound:
         created = safe_create_package(ckan, params)
         logger.info(f"✔ Created:    {created['id']}")
@@ -182,6 +168,11 @@ def find_existing_resource(ckan, pkg_id: str, name: str) -> str | None:
 # Main
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
+    # run Java extractor
+    if input("Run MetadataExtractor? Type 'yes' to confirm: ").strip().lower() == 'yes':
+        logger.info(f"{EXTRACTOR}")
+        subprocess.run(["java", str(EXTRACTOR), "--output", str(MANIFEST)], check = True, cwd = EXTRACTOR.parent)
+
     # verify manifest
     if not MANIFEST.exists():
         logger.error(f"Manifest not found at {MANIFEST}")
