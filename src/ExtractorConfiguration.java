@@ -10,7 +10,7 @@ public final class ExtractorConfiguration {
     private final int minDescMetadataLength = 10;
     private final int maxDescMetadataLength = 1000;
     private final Set<String> supportedZipExtensions = Set.of(".zip");
-    private final Set<String> ignoredExtensions = Set.of(".ds_store", "thumbs.db", ".tmp", ".temp", ".bak", ".lock", ".freelist", ".gdbindexes", ".gdbtable", ".gdbtablx", ".atx", ".spx", ".horizon", ".cdx", ".fpt", ".ini", ".cfg", ".config", ".log", ".shp", ".shx", ".dbf", ".prj", ".sbn", ".sbx", ".cpg", ".qpj", ".gpkg", ".gpkg-journal", ".geojson", ".topojson", ".mbtiles");
+    private final Set<String> ignoredExtensions = Set.of(".ds_store", "thumbs.db", ".tmp", ".temp", ".bak", ".lock", ".freelist", ".gdb", ".gdbindexes", ".gdbtable", ".gdbtablx", ".atx", ".spx", ".horizon", ".cdx", ".fpt", ".ini", ".cfg", ".config", ".log", ".shp", ".shx", ".dbf", ".prj", ".sbn", ".sbx", ".cpg", ".qpj", ".gpkg", ".gpkg-journal", ".geojson", ".topojson", ".mbtiles");
     private final List<String> ignoredPrefixes = List.of("~", "._");
     private final List<String> ignoredFilenames = List.of("gdb");
     private final DateTimeFormatter iso8601Formatter;

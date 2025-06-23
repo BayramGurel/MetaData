@@ -19,6 +19,13 @@ public class DefaultFileTypeFilter implements IFileTypeFilter {
 
         String lowerFilename = filename.toLowerCase();
 
+        String lowerEntry    = entryName.toLowerCase();
+
+        // Ignore any file inside an Esri geodatabase (.gdb)
+        if (lowerEntry.contains(".gdb/") || lowerEntry.endsWith(".gdb")) {
+            return false;
+        }
+
         // 1) Ignore any configured prefixes
         if (config.getIgnoredPrefixes().stream()
                 .anyMatch(prefix -> lowerFilename.startsWith(prefix))) {

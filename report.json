@@ -278,19 +278,6 @@
     "package_id" : "zuid-holland-habitatkaart-2021",
     "last_modified" : "2022-03-22T08:04:24Z"
   }, {
-    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/SNLm2021_Westduinpark_Bosgroepen.zip!/SNLm2021_Westduinpark_Bosgroepen.gdb/timestamps",
-    "name" : "timestamps",
-    "format" : "MPEG",
-    "description" : "Geen beschrijving beschikbaar voor: timestamps",
-    "extras" : {
-      "original_entry_name" : "SNLm2021_Westduinpark_Bosgroepen.gdb/timestamps",
-      "original_filename" : "timestamps",
-      "language_uri" : "http://publications.europa.eu/resource/authority/language/UND",
-      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/SNLm2021_Westduinpark_Bosgroepen.zip!/SNLm2021_Westduinpark_Bosgroepen.gdb/timestamps"
-    },
-    "mimetype" : "audio/mpeg",
-    "package_id" : "zuid-holland-habitatkaart-2021"
-  }, {
     "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Vegetatie- en florakartering Westduinpark en Wapendal 2021.pdf",
     "created" : "2022-06-24T12:30:20Z",
     "name" : "Vegetatie- en florakartering Westduinpark en Wapendal 2021.pdf",
