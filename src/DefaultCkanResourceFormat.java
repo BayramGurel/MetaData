@@ -44,8 +44,7 @@ public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
         data.put("description", this.makeDescription(m, text, fn));
         String ct = val(m, "Content-Type");
         data.put("format", mapFormat(ct));
-        data.put("mimetype", Optional.ofNullable(ct).map((s) -> s.split(";")[0].trim()).filter((s) -> !s.isBlank()).orElse(((Object)null).toString()));
-        parse(m.get(TikaCoreProperties.CREATED)).flatMap(this::fmt).ifPresent((d) -> data.put("created", d));
+        data.put("mimetype", Optional.ofNullable(ct).map(s -> s.split(";")[0].trim()).filter(s -> !s.isBlank()).orElse(null));        parse(m.get(TikaCoreProperties.CREATED)).flatMap(this::fmt).ifPresent((d) -> data.put("created", d));
         String modRaw = (String)Optional.ofNullable(m.get(TikaCoreProperties.MODIFIED)).orElse(m.get(DublinCore.MODIFIED));
         parse(modRaw).flatMap(this::fmt).ifPresent((d) -> data.put("last_modified", d));
         put(extras, "source_identifier", srcId);
