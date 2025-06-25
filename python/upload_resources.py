@@ -185,7 +185,6 @@ if __name__ == '__main__':
         ckan.action.status_show()
     except Exception as e:
         logger.error(f"Cannot reach CKAN: {e}")
-        sys.exit(1)
 
     # --- Questions ---
     print("\n=== CONFIGURATION ===")
