@@ -1,9 +1,9 @@
-# MetaData
+# Metadata example
 
-This repository contains a small example for extracting metadata from a ZIP
-archive using Apache Tika. The Java implementation writes the results to
-`report.json`. A helper Python script can upload the results to a CKAN
-instance.
+This repository showcases a small workflow for extracting metadata from the
+files inside a ZIP archive using **Apache&nbsp;Tika**. The Java code outputs its
+results to `report.json`. A companion Python script can then upload these
+results to a CKAN instance.
 
 ## Requirements
 
@@ -13,33 +13,56 @@ instance.
 
 ## Building
 
-Use Maven to compile the project:
+The project uses Maven. From the repository root run:
 
 ```bash
 mvn package
 ```
 
-This will compile the classes under `src` and place the output in
+This downloads all dependencies and compiles the classes under `src` into
 `target/classes`.
 
 ## Running the extractor
 
-The extractor expects the archive `document/Veg kartering - habitatkaart 2021-2023.zip`
-to be present. Run it with:
+The example archive `document/Veg kartering - habitatkaart 2021-2023.zip`
+is included in the repository. After building, execute the extractor:
 
 ```bash
 java -cp target/classes:<dependencies> MetadataExtractor
 ```
 
-A `report.json` file will be generated with metadata for the files inside the
+A `report.json` file will appear with metadata for every file found inside the
 archive.
+
+### Running from IntelliJ
+
+1. Open the repository as a **Maven** project.
+2. IntelliJ automatically downloads the dependencies and compiles the sources.
+3. Locate `MetadataExtractor.java` and press **Run**. The IDE handles the class
+   path for you and places the results in `report.json`.
+
+### Running from Visual Studio Code
+
+Visual Studio Code does not compile Maven projects automatically. Use the
+terminal to build first:
+
+```bash
+mvn package
+```
+
+Afterwards open `MetadataExtractor.java` and invoke **Run Java** or execute the
+`java` command shown above from the integrated terminal.
 
 ## Uploading to CKAN
 
-The script `python/upload_resources.py` reads `report.json` and interacts with a
-CKAN instance. Install its dependencies and run:
+`python/upload_resources.py` reads `report.json` and sends the metadata to a
+CKAN instance. At the top of the script you can adjust the `CKAN_URL` and
+`API_KEY` constants. Install the required Python packages and run it:
 
 ```bash
 pip install ckanapi tqdm
 python python/upload_resources.py
 ```
+
+The script will ask a few questions (for example whether to create a new
+organisation or dataset) and then upload all discovered resources.
