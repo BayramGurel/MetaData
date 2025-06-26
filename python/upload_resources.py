@@ -24,7 +24,7 @@ from tqdm import tqdm
 CKAN_URL: str = "https://special-space-disco-94v44prrppr36q6-5000.app.github.dev/"
 API_KEY: str = (
     # Truncated API key; replace with a valid key
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJmZDRjUEVrQkVRaVRNNXJ3VUMtYVY4N0R1YlhzeTlZMmlrZlpVa0VRRVJnIiwiaWF0IjoxNzUwMzM3MDQ1fQ.kXvgCvs7Emc7RfPxGZ1znLz7itMqK4p0hXYoEoc8LaA"
 )
 MANIFEST: Path = Path(__file__).resolve().parent.parent / "report.json"
 
