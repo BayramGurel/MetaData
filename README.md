@@ -28,11 +28,14 @@ The example archive `document/Veg kartering - habitatkaart 2021-2023.zip`
 is included in the repository. After building, execute the extractor:
 
 ```bash
-java -cp target/classes:<dependencies> MetadataExtractor
+java -cp target/classes:<dependencies> MetadataExtractor [path]
 ```
 
-A `report.json` file will appear with metadata for every file found inside the
-archive.
+The optional `path` argument can point to a file or directory. If it is a file
+(for example the included ZIP archive) the
+results are written to `report.json`. When `path` is a directory every regular
+file inside that directory is processed individually and a file named
+`report-<filename>.json` will be created for each one.
 
 ### Running from IntelliJ
 

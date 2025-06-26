@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.tika.langdetect.optimaize.OptimaizeLangDetector;
 import org.apache.tika.language.detect.LanguageDetector;
 
@@ -69,22 +70,49 @@ public class MetadataExtractor {
     }
 
     public static void main(String[] args) {
-        Path src = Paths.get(".\\document\\Veg kartering - habitatkaart 2021-2023.zip").toAbsolutePath().normalize();
+        String inputPath = args.length > 0 ? args[0] : SOURCE_ZIP;
+        Path src = Paths.get(inputPath).toAbsolutePath().normalize();
         if (!Files.exists(src, new LinkOption[0])) {
-            System.err.println("FATAL: Hard-coded ZIP niet gevonden: " + String.valueOf(src));
+            System.err.println("FATAL: Bron niet gevonden: " + src);
             System.exit(1);
         }
 
         ExtractorConfiguration config = new ExtractorConfiguration();
         LanguageDetector langDetector = loadTikaLanguageDetector();
-        MetadataExtractor extractor = new MetadataExtractor(new DefaultFileTypeFilter(config), new TikaMetadataProvider(), new DefaultCkanResourceFormat(langDetector, config, "zuid-holland-habitatkaart-2021"), config);
-        ProcessingReport report = extractor.processSource(".\\document\\Veg kartering - habitatkaart 2021-2023.zip");
-        writeJson(report, "report.json");
-        if (!report.getErrors().isEmpty()) {
-            System.err.println("Voltooid met fouten. Zie report.json");
-            System.exit(2);
+        MetadataExtractor extractor = new MetadataExtractor(
+                new DefaultFileTypeFilter(config),
+                new TikaMetadataProvider(),
+                new DefaultCkanResourceFormat(langDetector, config, PACKAGE_ID),
+                config);
+
+        if (Files.isDirectory(src, new LinkOption[0])) {
+            try (Stream<Path> stream = Files.list(src)) {
+                stream.filter(p -> Files.isRegularFile(p, new LinkOption[0]))
+                        .forEach(p -> {
+                            System.out.println("Processing " + p.getFileName());
+                            ProcessingReport rpt = extractor.processSource(p.toString());
+                            String safe = p.getFileName().toString().replaceAll("[^a-zA-Z0-9._-]", "_");
+                            String outName = "report-" + safe + ".json";
+                            writeJson(rpt, outName);
+                            if (!rpt.getErrors().isEmpty()) {
+                                System.err.println("Voltooid met fouten voor " + p.getFileName() + ". Zie " + outName);
+                            } else {
+                                System.out.println("Klaar! Zie " + outName);
+                            }
+                        });
+            } catch (IOException e) {
+                System.err.println("FOUT: Kan map niet lezen: " + e.getMessage());
+                System.exit(1);
+            }
         } else {
-            System.out.println("Klaar! Zie report.json");
+            ProcessingReport report = extractor.processSource(src.toString());
+            writeJson(report, "report.json");
+            if (!report.getErrors().isEmpty()) {
+                System.err.println("Voltooid met fouten. Zie report.json");
+                System.exit(2);
+            } else {
+                System.out.println("Klaar! Zie report.json");
+            }
         }
 
     }
