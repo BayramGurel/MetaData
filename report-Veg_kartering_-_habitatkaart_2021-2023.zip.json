@@ -1,0 +1,297 @@
+{
+  "resources" : [ {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/PZH_WestduinparkEnWapendal_2023_HabitatRapport.docx",
+    "created" : "2023-09-27T20:55:00Z",
+    "name" : "Habitatkaart T1 Westduinpark & Wapendal 2021",
+    "format" : "DOCX",
+    "description" : "Habitatkaart T1 Westduinpark & Wapendal 2021 G&G-rapport 2023-093 G&G-advies 2023-093 Van der Goes en Groot ecologisch onderzoeks- en adviesbureau Habitatkaart T1 Westduinpark & Wapendal 2021 Opdrachtgever Provincie Zuid-Holland D.J. van der Goes 202",
+    "extras" : {
+      "original_entry_name" : "Veg kartering - habitatkaart 2021-2023/PZH_WestduinparkEnWapendal_2023_HabitatRapport.docx",
+      "creator" : "Dirk van der Goes",
+      "original_filename" : "PZH_WestduinparkEnWapendal_2023_HabitatRapport.docx",
+      "language_uri" : "http://publications.europa.eu/resource/authority/language/NLD",
+      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/PZH_WestduinparkEnWapendal_2023_HabitatRapport.docx"
+    },
+    "mimetype" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "package_id" : "zuid-holland-habitatkaart-2021",
+    "last_modified" : "2023-10-02T07:37:00Z"
+  }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/PZH_WestduinparkEnWapendal_2023_HabitatRapport.pdf",
+    "created" : "2023-10-02T07:38:03Z",
+    "name" : "PZH WestduinparkEnWapendal 2023 HabitatRapport",
+    "format" : "PDF",
+    "description" : "Van der Goes en Groot ecologisch onderzoeks- en adviesbureau Habitatkaart T1 Westduinpark & Wapendal 2021 G & G -r ap p o rt 2 0 2 3 -0 9 3 G&G-rapport 2023-093 Habitatkaart T1 Westduinpark & Wapendal 2021 2023 D.J. van der Goes Opdrachtgever Provinc",
+    "extras" : {
+      "original_entry_name" : "Veg kartering - habitatkaart 2021-2023/PZH_WestduinparkEnWapendal_2023_HabitatRapport.pdf",
+      "creator" : "dirkvandergoes",
+      "original_filename" : "PZH_WestduinparkEnWapendal_2023_HabitatRapport.pdf",
+      "language_uri" : "http://publications.europa.eu/resource/authority/language/NLD",
+      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/PZH_WestduinparkEnWapendal_2023_HabitatRapport.pdf"
+    },
+    "mimetype" : "application/pdf",
+    "package_id" : "zuid-holland-habitatkaart-2021",
+    "last_modified" : "2023-10-02T07:43:12Z"
+  }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 1 - Vegetatiekaarten lokale typen/20220214_Vegetatie_DenHaag_10946_Lokaal.pdf",
+    "created" : "2022-02-14T20:40:56Z",
+    "name" : "20220214_Vegetatie_DenHaag_10946_Lokaal.pdf",
+    "format" : "PDF",
+    "description" : "Wapendal Bl5 Bl5 Hd1/Gd5.1 Gd5.1 Gd5.1 Bl5 Hd1/Gd5.2/Gd5.1 Gd9.4 Hd1/Gd9.4 Gd5.1 Gd5.1/Hd1 Gd5.2/Hd1/Gd5.1 Gd5.1 Gd5.2/Hd1 Gd5.2/Hd1 ­ SNL-monitoring 2021 Vegetatiekartering ´0 100 20050 Meters Auteur: J. Thielemans Datum: 14-2-2022 Ondergrond: Copyr",
+    "extras" : {
+      "original_entry_name" : "Bijlage 1 - Vegetatiekaarten lokale typen/20220214_Vegetatie_DenHaag_10946_Lokaal.pdf",
+      "original_filename" : "20220214_Vegetatie_DenHaag_10946_Lokaal.pdf",
+      "language_uri" : "http://publications.europa.eu/resource/authority/language/UND",
+      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 1 - Vegetatiekaarten lokale typen/20220214_Vegetatie_DenHaag_10946_Lokaal.pdf"
+    },
+    "mimetype" : "application/pdf",
+    "package_id" : "zuid-holland-habitatkaart-2021",
+    "last_modified" : "2022-02-14T20:40:56Z"
+  }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 1 - Vegetatiekaarten lokale typen/20220214_Vegetatie_DenHaag_10946_Lokaal_Legenda.pdf",
+    "created" : "2022-02-14T20:37:25Z",
+    "name" : "20220214_Vegetatie_DenHaag_10946_Lokaal_Legenda.pdf",
+    "format" : "PDF",
+    "description" : "Legenda Onderzoeksgebied Bossen Bl1.1,Hondstong-eikenbos Bl3.1,Abelen-Iepenbos met stinzen Bl3.2,Abelen-iepenbos zonder stinzen Bl5,Eiken-haagbeukenbos Bl6,Canadapopulieren op open zand Bn1,Naaldbos met zwarte den Graslanden Gr9.1,Pioniervegetatie me",
+    "extras" : {
+      "original_entry_name" : "Bijlage 1 - Vegetatiekaarten lokale typen/20220214_Vegetatie_DenHaag_10946_Lokaal_Legenda.pdf",
+      "original_filename" : "20220214_Vegetatie_DenHaag_10946_Lokaal_Legenda.pdf",
+      "language_uri" : "http://publications.europa.eu/resource/authority/language/UND",
+      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 1 - Vegetatiekaarten lokale typen/20220214_Vegetatie_DenHaag_10946_Lokaal_Legenda.pdf"
+    },
+    "mimetype" : "application/pdf",
+    "package_id" : "zuid-holland-habitatkaart-2021",
+    "last_modified" : "2022-02-14T20:37:25Z"
+  }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 2 - Vegetatiekaarten landelijke typen/20220215_Vegetatie_DenHaag_10946_Landelijk.pdf",
+    "created" : "2022-02-15T15:05:52Z",
+    "name" : "20220215_Vegetatie_DenHaag_10946_Landelijk.pdf",
+    "format" : "PDF",
+    "description" : "Wapendal r46AB03 r46AB03 r20AA01/r14Aa02 r14Aa02 r14Aa02 r46AB03 r20AA01/r14Aa02/r14Aa02 r24RG02 r20AA01/r14RG05 r14Aa02 r14Aa02/r20AA01 r14Aa02/r20AA01/r14Aa02 r14Aa02 r14Aa02/r20AA01 r14Aa02/r20AA01 ­ SNL-monitoring 2021 Vegetatiekartering ´0 100 2",
+    "extras" : {
+      "original_entry_name" : "Bijlage 2 - Vegetatiekaarten landelijke typen/20220215_Vegetatie_DenHaag_10946_Landelijk.pdf",
+      "original_filename" : "20220215_Vegetatie_DenHaag_10946_Landelijk.pdf",
+      "language_uri" : "http://publications.europa.eu/resource/authority/language/UND",
+      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 2 - Vegetatiekaarten landelijke typen/20220215_Vegetatie_DenHaag_10946_Landelijk.pdf"
+    },
+    "mimetype" : "application/pdf",
+    "package_id" : "zuid-holland-habitatkaart-2021",
+    "last_modified" : "2022-02-15T15:05:52Z"
+  }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 2 - Vegetatiekaarten landelijke typen/20220215_Vegetatie_DenHaag_10946_Landelijk_Legenda.pdf",
+    "created" : "2022-02-15T15:09:08Z",
+    "name" : "20220215_Vegetatie_DenHaag_10946_Landelijk_Legenda.pdf",
+    "format" : "PDF",
+    "description" : "Legenda Onderzoeksgebied Bossen r45AA01 Hondstong-Eikenbos r46 Klasse van de eiken- en beukenbossen op voedselrijke grond r46AA01b Abelen-Iepenbos; Soortenarme subassociatie r46AA01c Abelen-Iepenbos; subassociatie met Wilde hyacint r46AB03 Eiken-Haag",
+    "extras" : {
+      "original_entry_name" : "Bijlage 2 - Vegetatiekaarten landelijke typen/20220215_Vegetatie_DenHaag_10946_Landelijk_Legenda.pdf",
+      "original_filename" : "20220215_Vegetatie_DenHaag_10946_Landelijk_Legenda.pdf",
+      "language_uri" : "http://publications.europa.eu/resource/authority/language/NLD",
+      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 2 - Vegetatiekaarten landelijke typen/20220215_Vegetatie_DenHaag_10946_Landelijk_Legenda.pdf"
+    },
+    "mimetype" : "application/pdf",
+    "package_id" : "zuid-holland-habitatkaart-2021",
+    "last_modified" : "2022-02-15T15:09:08Z"
+  }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 3 - Lokale vegetatietypologie/Lokale vegetatietypologie Westduinpark en Wapendal 2021.xlsx",
+    "created" : "2021-05-17T12:06:03Z",
+    "name" : "Lokale vegetatietypologie Westduinpark en Wapendal 2021.xlsx",
+    "format" : "XLSX",
+    "description" : "Lokale typologie Lokale vegetatietypologieWestduinpark en Wapendal 2021 Lokaal type code Lokaal type naam VVN code Omschrijving Kenmerkende soorten Opnames B Bossen Bl Loofbossen Loofbomen bedekken meer dan naaldbomen. Bl1 Eikenbossen Bl1.1 Hondstong",
+    "extras" : {
+      "original_entry_name" : "Bijlage 3 - Lokale vegetatietypologie/Lokale vegetatietypologie Westduinpark en Wapendal 2021.xlsx",
+      "creator" : "Maarten Immerzeel",
+      "original_filename" : "Lokale vegetatietypologie Westduinpark en Wapendal 2021.xlsx",
+      "language_uri" : "http://publications.europa.eu/resource/authority/language/NLD",
+      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 3 - Lokale vegetatietypologie/Lokale vegetatietypologie Westduinpark en Wapendal 2021.xlsx"
+    },
+    "mimetype" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "package_id" : "zuid-holland-habitatkaart-2021",
+    "last_modified" : "2022-03-24T09:17:35Z"
+  }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 4 - Vegetatietabellen/Vegetatietabel - Bossen.xlsx",
+    "created" : "2021-11-02T11:17:40Z",
+    "name" : "Vegetatietabel - Bossen.xlsx",
+    "format" : "XLSX",
+    "description" : "Bossen Westduinpark 2021 - bossen Canadapopulieren op open zand Abelen-iepenbos zonder stinzen Abelen-iepenbos met stinzen Naaldbos met zwarte den Eiken-Haagbeukenbos Hondstong-eikenbos Tabelnummer 19 18 32 83 94 4 92 17 87 91 63 64 65 5 66 Opnamenum",
+    "extras" : {
+      "original_entry_name" : "Bijlage 4 - Vegetatietabellen/Vegetatietabel - Bossen.xlsx",
+      "creator" : "Maarten Immerzeel",
+      "original_filename" : "Vegetatietabel - Bossen.xlsx",
+      "language_uri" : "http://publications.europa.eu/resource/authority/language/UND",
+      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 4 - Vegetatietabellen/Vegetatietabel - Bossen.xlsx"
+    },
+    "mimetype" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "package_id" : "zuid-holland-habitatkaart-2021",
+    "last_modified" : "2022-02-01T11:18:57Z"
+  }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 4 - Vegetatietabellen/Vegetatietabel - Graslanden en heides.xlsx",
+    "created" : "2022-01-20T09:09:45Z",
+    "name" : "Vegetatietabel - Graslanden en heides.xlsx",
+    "format" : "XLSX",
+    "description" : "Graslanden Westduinpark 2021 - graslanden en heides Helmvegetatie binnen de witte duinen Helmvegetatie buiten de witte duinen Duingrasland met helm Duingrasland met groot duinsterretje; soortenarme variant Duingrasland met groot duinsterretje; kruide",
+    "extras" : {
+      "original_entry_name" : "Bijlage 4 - Vegetatietabellen/Vegetatietabel - Graslanden en heides.xlsx",
+      "creator" : "Maarten Immerzeel",
+      "original_filename" : "Vegetatietabel - Graslanden en heides.xlsx",
+      "language_uri" : "http://publications.europa.eu/resource/authority/language/UND",
+      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 4 - Vegetatietabellen/Vegetatietabel - Graslanden en heides.xlsx"
+    },
+    "mimetype" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "package_id" : "zuid-holland-habitatkaart-2021",
+    "last_modified" : "2022-02-08T13:57:55Z"
+  }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 4 - Vegetatietabellen/Vegetatietabel - Struwelen.xlsx",
+    "created" : "2021-11-02T11:17:40Z",
+    "name" : "Vegetatietabel - Struwelen.xlsx",
+    "format" : "XLSX",
+    "description" : "Struwelen Westduinpark 2021 - struwelen Meidoornstruweel Duindoornstruweel Duindoornstruweel met liguster Duindoornstruweel met liguster en witte abeel Duinroosstruweel Rimpelroosstruweel Tabelnummer 55 85 95 10 11 12 77 80 54 8 28 90 72 Opnamenummer",
+    "extras" : {
+      "original_entry_name" : "Bijlage 4 - Vegetatietabellen/Vegetatietabel - Struwelen.xlsx",
+      "creator" : "Maarten Immerzeel",
+      "original_filename" : "Vegetatietabel - Struwelen.xlsx",
+      "language_uri" : "http://publications.europa.eu/resource/authority/language/UND",
+      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 4 - Vegetatietabellen/Vegetatietabel - Struwelen.xlsx"
+    },
+    "mimetype" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "package_id" : "zuid-holland-habitatkaart-2021",
+    "last_modified" : "2021-11-03T18:23:50Z"
+  }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 4 - Vegetatietabellen/Vegetatietabel - Ven- en watervegetaties.xlsx",
+    "created" : "2021-11-02T11:17:40Z",
+    "name" : "Vegetatietabel - Ven- en watervegetaties.xlsx",
+    "format" : "XLSX",
+    "description" : "Turboveg export Westduinpark 2021 - vennen Oevervegetatie met lidsteng Overvegetatie met moeraskruiden Rompgemeenschap van drijvend fonteinkruid Watervegetatie met kikkerbeet en aarvederkruid Watervegetatie met glanzig fonteinkruid Tabelnummer 33 35",
+    "extras" : {
+      "original_entry_name" : "Bijlage 4 - Vegetatietabellen/Vegetatietabel - Ven- en watervegetaties.xlsx",
+      "creator" : "Maarten Immerzeel",
+      "original_filename" : "Vegetatietabel - Ven- en watervegetaties.xlsx",
+      "language_uri" : "http://publications.europa.eu/resource/authority/language/UND",
+      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 4 - Vegetatietabellen/Vegetatietabel - Ven- en watervegetaties.xlsx"
+    },
+    "mimetype" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "package_id" : "zuid-holland-habitatkaart-2021",
+    "last_modified" : "2022-01-19T14:39:14Z"
+  }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 5 - Vlakkenformulier/Vlakkenformulier Westduinpark en Wapendal definitief.xlsx",
+    "created" : "2021-05-04T12:29:06Z",
+    "name" : "Vlakkenformulier Westduinpark en Wapendal definitief.xlsx",
+    "format" : "XLSX",
+    "description" : "Totaal Bossen Heides Lage vegetaties Vlak Lokaal type 1 % Lokaal type 2 % Lokaal type 3 % Toev. 1 Toev. 2 Toev. 3 Opname Opmerking Aanwezigheid van oude levende of dikke dode bomen Afwisseling jonge, oude en zeer oude heide onregelmatige vegetatiestr",
+    "extras" : {
+      "original_entry_name" : "Bijlage 5 - Vlakkenformulier/Vlakkenformulier Westduinpark en Wapendal definitief.xlsx",
+      "creator" : "Maarten Immerzeel",
+      "original_filename" : "Vlakkenformulier Westduinpark en Wapendal definitief.xlsx",
+      "language_uri" : "http://publications.europa.eu/resource/authority/language/UND",
+      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 5 - Vlakkenformulier/Vlakkenformulier Westduinpark en Wapendal definitief.xlsx"
+    },
+    "mimetype" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "package_id" : "zuid-holland-habitatkaart-2021",
+    "last_modified" : "2022-06-24T12:26:17Z"
+  }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 6 - Verspreidingskaarten soorten/Duingraslandsoorten kalkarm.pdf",
+    "created" : "2022-03-07T16:47:45Z",
+    "name" : "Duingraslandsoorten kalkarm.pdf",
+    "format" : "PDF",
+    "description" : "Westduinpark, Bosjes van Poot & Wapendal Auteur: J. Thielemans Lidnr.: 10946 Ondergrond: Copyright © 2022, Dienst voor het kadaster en openbare registers, Apeldoorn. 7-3-2022Datum: Schaal (A4): Legenda Buntgras Dwergviltkruid Klein tasjeskruid Klein",
+    "extras" : {
+      "original_entry_name" : "Bijlage 6 - Verspreidingskaarten soorten/Duingraslandsoorten kalkarm.pdf",
+      "original_filename" : "Duingraslandsoorten kalkarm.pdf",
+      "language_uri" : "http://publications.europa.eu/resource/authority/language/UND",
+      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 6 - Verspreidingskaarten soorten/Duingraslandsoorten kalkarm.pdf"
+    },
+    "mimetype" : "application/pdf",
+    "package_id" : "zuid-holland-habitatkaart-2021",
+    "last_modified" : "2022-03-07T16:47:45Z"
+  }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 6 - Verspreidingskaarten soorten/Duingraslandsoorten kalkrijk.pdf",
+    "created" : "2022-03-22T08:01:20Z",
+    "name" : "Duingraslandsoorten kalkrijk.pdf",
+    "format" : "PDF",
+    "description" : "Westduinpark, Bosjes van Poot & Wapendal Auteur: J. Thielemans Lidnr.: 10946 Ondergrond: Copyright © 2022, Dienst voor het kadaster en openbare registers, Apeldoorn. 22-3-2022Datum: Schaal (A4): Legenda Vals rendiermos Driedistel Duinaveruit Duinkron",
+    "extras" : {
+      "original_entry_name" : "Bijlage 6 - Verspreidingskaarten soorten/Duingraslandsoorten kalkrijk.pdf",
+      "original_filename" : "Duingraslandsoorten kalkrijk.pdf",
+      "language_uri" : "http://publications.europa.eu/resource/authority/language/UND",
+      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 6 - Verspreidingskaarten soorten/Duingraslandsoorten kalkrijk.pdf"
+    },
+    "mimetype" : "application/pdf",
+    "package_id" : "zuid-holland-habitatkaart-2021",
+    "last_modified" : "2022-03-22T08:01:20Z"
+  }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 6 - Verspreidingskaarten soorten/Stinzenflora.pdf",
+    "created" : "2022-03-22T08:12:27Z",
+    "name" : "Stinzenflora.pdf",
+    "format" : "PDF",
+    "description" : "Westduinpark, Bosjes van Poot & Wapendal Auteur: J. Thielemans Lidnr.: 10946 Ondergrond: Copyright © 2022, Dienst voor het kadaster en openbare registers, Apeldoorn. 22-3-2022Datum: Schaal (A4): Legenda Bosanemoon Gele anemoon Gewone vogelmelk Voorja",
+    "extras" : {
+      "original_entry_name" : "Bijlage 6 - Verspreidingskaarten soorten/Stinzenflora.pdf",
+      "original_filename" : "Stinzenflora.pdf",
+      "language_uri" : "http://publications.europa.eu/resource/authority/language/NLD",
+      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 6 - Verspreidingskaarten soorten/Stinzenflora.pdf"
+    },
+    "mimetype" : "application/pdf",
+    "package_id" : "zuid-holland-habitatkaart-2021",
+    "last_modified" : "2022-03-22T08:12:27Z"
+  }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 6 - Verspreidingskaarten soorten/Struiken.pdf",
+    "created" : "2022-03-07T16:45:49Z",
+    "name" : "Struiken.pdf",
+    "format" : "PDF",
+    "description" : "Westduinpark, Bosjes van Poot & Wapendal Auteur: J. Thielemans Lidnr.: 10946 Ondergrond: Copyright © 2022, Dienst voor het kadaster en openbare registers, Apeldoorn. 7-3-2022Datum: Schaal (A4): Legenda Duinroos Egelantier s.l. Wegedoorn Onderzoeksgeb",
+    "extras" : {
+      "original_entry_name" : "Bijlage 6 - Verspreidingskaarten soorten/Struiken.pdf",
+      "original_filename" : "Struiken.pdf",
+      "language_uri" : "http://publications.europa.eu/resource/authority/language/UND",
+      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 6 - Verspreidingskaarten soorten/Struiken.pdf"
+    },
+    "mimetype" : "application/pdf",
+    "package_id" : "zuid-holland-habitatkaart-2021",
+    "last_modified" : "2022-03-07T16:45:49Z"
+  }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 6 - Verspreidingskaarten soorten/Zeedorpsoorten.pdf",
+    "created" : "2022-03-07T16:53:34Z",
+    "name" : "Zeedorpsoorten.pdf",
+    "format" : "PDF",
+    "description" : "Westduinpark, Bosjes van Poot & Wapendal Auteur: J. Thielemans Lidnr.: 10946 Ondergrond: Copyright © 2022, Dienst voor het kadaster en openbare registers, Apeldoorn. 7-3-2022Datum: Schaal (A4): Legenda Bitterkruidbremraap Blauwe bremraap Gewone vleug",
+    "extras" : {
+      "original_entry_name" : "Bijlage 6 - Verspreidingskaarten soorten/Zeedorpsoorten.pdf",
+      "original_filename" : "Zeedorpsoorten.pdf",
+      "language_uri" : "http://publications.europa.eu/resource/authority/language/NLD",
+      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 6 - Verspreidingskaarten soorten/Zeedorpsoorten.pdf"
+    },
+    "mimetype" : "application/pdf",
+    "package_id" : "zuid-holland-habitatkaart-2021",
+    "last_modified" : "2022-03-07T16:53:34Z"
+  }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 6 - Verspreidingskaarten soorten/Zeereepsoorten.pdf",
+    "created" : "2022-03-22T08:04:24Z",
+    "name" : "Zeereepsoorten.pdf",
+    "format" : "PDF",
+    "description" : "Westduinpark, Bosjes van Poot & Wapendal Auteur: J. Thielemans Lidnr.: 10946 Ondergrond: Copyright © 2022, Dienst voor het kadaster en openbare registers, Apeldoorn. 22-3-2022Datum: Schaal (A4): Legenda Akkermelkdistel Blauwe zeedistel Zandhaver Zeem",
+    "extras" : {
+      "original_entry_name" : "Bijlage 6 - Verspreidingskaarten soorten/Zeereepsoorten.pdf",
+      "original_filename" : "Zeereepsoorten.pdf",
+      "language_uri" : "http://publications.europa.eu/resource/authority/language/NLD",
+      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Bijlage 6 - Verspreidingskaarten soorten/Zeereepsoorten.pdf"
+    },
+    "mimetype" : "application/pdf",
+    "package_id" : "zuid-holland-habitatkaart-2021",
+    "last_modified" : "2022-03-22T08:04:24Z"
+  }, {
+    "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Vegetatie- en florakartering Westduinpark en Wapendal 2021.pdf",
+    "created" : "2022-06-24T12:30:20Z",
+    "name" : "Vegetatie- en florakartering Westduinpark en Wapendal 2021.pdf",
+    "format" : "PDF",
+    "description" : "Vegetatie- en florakartering Westduinpark en Wapendal 2021 Provincie Zuid-Holland Bosgroep Midden Nederland Colofon Opdrachtgever: Provincie Zuid-Holland Titel: Vegetatie- en florakartering Westduinpark en Wapendal 2021, Provincie Zuid- Holland Statu",
+    "extras" : {
+      "original_entry_name" : "Vegetatie- en florakartering Westduinpark en Wapendal 2021.pdf",
+      "creator" : "Maarten Immerzeel",
+      "original_filename" : "Vegetatie- en florakartering Westduinpark en Wapendal 2021.pdf",
+      "language_uri" : "http://publications.europa.eu/resource/authority/language/NLD",
+      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/Vegetatiekartering Westduinpark & Wapendal - Eindoplevering.zip!/Vegetatie- en florakartering Westduinpark en Wapendal 2021.pdf"
+    },
+    "mimetype" : "application/pdf",
+    "package_id" : "zuid-holland-habitatkaart-2021",
+    "last_modified" : "2022-06-24T12:30:20Z"
+  } ]
+}
