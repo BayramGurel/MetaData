@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+"""
+Refactored CKAN Uploader Script
+Maintains interactive prompts and behavior, with improved structure, type hints, and logging.
+Enhanced error message for CKAN connection failures.
+"""
 import warnings
 import io
 import json
@@ -10,64 +15,74 @@ import sys
 import subprocess
 from pathlib import Path
 from datetime import datetime
+from typing import Optional, Dict, Any, List, Union
 
 from ckanapi import RemoteCKAN, NotFound, ValidationError
 from tqdm import tqdm
 
 # -----------------------------------------------------------------------------
-# Configuration (hard-coded)
+# Configuration
 # -----------------------------------------------------------------------------
-CKAN_URL = "https://special-space-disco-94v44prrppr36q6-5000.app.github.dev/"
-API_KEY   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJmZDRjUEVrQkVRaVRNNXJ3VUMtYVY4N0R1YlhzeTlZMmlrZlpVa0VRRVJnIiwiaWF0IjoxNzUwMzM3MDQ1fQ.kXvgCvs7Emc7RfPxGZ1znLz7itMqK4p0hXYoEoc8LaA"
-MANIFEST  = Path(__file__).resolve().parent.parent / "report.json"
-EXTRACTOR = Path(__file__).resolve().parent.parent / "src" / "MetadataExtractor.java"
+CKAN_URL: str = "https://special-space-disco-94v44prrppr36q6-5000.app.github.dev/"
+API_KEY: str = (
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
+    "eyJqdGkiOiJmZDRjUEVrQkVRaVRNNXJ3VUMtYV4N0R1YlhzeTlZMmlrZlpVa0VRRVJnI"
+    "iwiaWF0IjoxNzUwMzM3MDQ1fQ.kXvgCvs7Emc7RfPxGZ1znLz7itMqK4p0hXYoEoc8LaA"
+)
+MANIFEST: Path = Path(__file__).resolve().parent.parent / "report.json"
+EXTRACTOR: Path = Path(__file__).resolve().parent.parent / "src" / "MetadataExtractor.java"
 
 warnings.filterwarnings("ignore", "pkg_resources is deprecated", UserWarning)
-
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
 # -----------------------------------------------------------------------------
-# Utils
+# Utility Functions
 # -----------------------------------------------------------------------------
 def slugify(text: str, maxlen: int = 100) -> str:
+    """Generate URL-safe slug from text."""
     stem = Path(text).stem.lower()
-    safe = re.sub(r'[^a-z0-9\-_]+', '-', stem).strip('-')
-    if not safe:
-        safe = 'resource'
-    if len(safe) > maxlen:
-        h = hashlib.sha1(safe.encode()).hexdigest()[:6]
-        safe = safe[:maxlen-7].rstrip('-') + '-' + h
-    return safe
+    slug = re.sub(r'[^a-z0-9\-_]+', '-', stem).strip('-') or 'resource'
+    if len(slug) > maxlen:
+        suffix = hashlib.sha1(slug.encode()).hexdigest()[:6]
+        slug = f"{slug[:maxlen-7].rstrip('-')}-{suffix}"
+    return slug
 
-def format_date(dt_str: str) -> str | None:
+
+def format_date(dt_str: Union[str, None]) -> Optional[str]:
+    """Convert ISO8601 timestamp to CKAN-compatible string."""
     if not dt_str:
         return None
     try:
         dt = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
         return dt.strftime('%Y-%m-%dT%H:%M:%S')
     except ValueError:
-        logger.warning(f"Could not parse date: {dt_str}")
+        logger.warning("Could not parse date '%s', skipping.", dt_str)
         return None
 
+
 def open_stream(spec: str, base_dir: Path) -> io.BytesIO:
-    parts = spec.replace('\\','/').split('!/')
+    """Open a file or nested zip entry as a byte stream."""
+    parts = spec.replace('\\', '/').split('!/')
     data = (base_dir / parts[0].lstrip('./')).read_bytes()
     for entry in parts[1:]:
         with zipfile.ZipFile(io.BytesIO(data)) as zf:
             data = zf.read(entry)
-    buf = io.BytesIO(data); buf.seek(0)
+    buf = io.BytesIO(data)
+    buf.seek(0)
     return buf
 
-def safe_create_package(ckan, params: dict) -> dict:
+
+def safe_create_package(ckan: RemoteCKAN, params: Dict[str, Any]) -> Dict[str, Any]:
+    """Create a CKAN package, purging trashed slug on conflict."""
     try:
         return ckan.action.package_create(**params)
-    except ValidationError as e:
-        errs = getattr(e, 'error_dict', {}) or {}
-        name_errs = errs.get('name') or []
+    except ValidationError as exc:
+        errors = getattr(exc, 'error_dict', {}) or {}
+        name_errs = errors.get('name', [])
         if any('already exists' in msg for msg in name_errs):
             slug = params['name']
-            logger.warning(f"Slug '{slug}' is trashed—purging and retrying…")
+            logger.warning("Slug '%s' trashed—purging and retrying...", slug)
             try:
                 ckan.action.dataset_purge(id=slug)
             except Exception:
@@ -76,88 +91,82 @@ def safe_create_package(ckan, params: dict) -> dict:
         raise
 
 # -----------------------------------------------------------------------------
-# Deletion helpers
+# Deletion Helpers
 # -----------------------------------------------------------------------------
-def delete_all_datasets(ckan):
-    for ds_slug in ckan.action.package_list():
-        logger.info(f"- Dataset: {ds_slug}")
+def delete_all_datasets(ckan: RemoteCKAN) -> None:
+    """Delete and purge all datasets."""
+    for slug in ckan.action.package_list():
+        logger.info("Deleting dataset: %s", slug)
         try:
-            ckan.action.package_delete(id=ds_slug)
-            logger.info(f"  • Deleted: {ds_slug}")
+            ckan.action.package_delete(id=slug)
+            ckan.action.dataset_purge(id=slug)
+            logger.info("  Purged: %s", slug)
         except Exception as e:
-            logger.error(f"  • Failed delete: {e}")
-        try:
-            ckan.action.dataset_purge(id=ds_slug)
-            logger.info(f"  • Purged:  {ds_slug}")
-        except Exception:
-            pass
+            logger.error("  Failed to delete %s: %s", slug, e)
 
-def delete_all_organizations(ckan):
-    for org_slug in ckan.action.organization_list():
-        logger.info(f"- Organization: {org_slug}")
+
+def delete_all_organizations(ckan: RemoteCKAN) -> None:
+    """Delete and purge all organizations (and their datasets)."""
+    for slug in ckan.action.organization_list():
+        logger.info("Deleting organization: %s", slug)
         delete_all_datasets(ckan)
         try:
-            ckan.action.organization_delete(id=org_slug)
-            logger.info(f"  • Deleted org: {org_slug}")
+            ckan.action.organization_delete(id=slug)
+            ckan.action.organization_purge(id=slug)
+            logger.info("  Purged org: %s", slug)
         except Exception as e:
-            logger.error(f"  • Failed org-delete: {e}")
-        try:
-            ckan.action.organization_purge(id=org_slug)
-            logger.info(f"  • Purged org:  {org_slug}")
-        except Exception:
-            pass
+            logger.error("  Failed to delete org %s: %s", slug, e)
 
 # -----------------------------------------------------------------------------
-# CKAN operations
+# CKAN Operations
 # -----------------------------------------------------------------------------
-def ensure_dataset(ckan, meta: dict, org_id: str | None) -> str:
-    title       = meta.get('title') or Path(meta.get('upload','')).stem
-    slug        = slugify(title)
-    description = meta.get('description','')
-    license_id  = meta.get('license_id','cc-BY')
-
-    params = {
-        'name':       slug,
-        'title':      title,
-        'notes':      description,
-        'license_id': license_id,
+def ensure_dataset(ckan: RemoteCKAN, meta: Dict[str, Any], org_id: Optional[str]) -> str:
+    """Create or update a dataset, returning its ID."""
+    title = meta.get('title') or Path(meta.get('upload', '')).stem
+    slug = slugify(title)
+    params: Dict[str, Any] = {
+        'name': slug,
+        'title': title,
+        'notes': meta.get('description', ''),
+        'license_id': meta.get('license_id', 'cc-BY'),
     }
     if org_id:
         params['owner_org'] = org_id
 
-    extras = {}
-    for key in ('issued','modified','language','spatial','temporal','publisher'):
-        v = meta.get(key)
-        if v:
-            extras[f'dct_{key}'] = format_date(v) if key in ('issued','modified') else v
+    extras: Dict[str, Any] = {}
+    for key in ('issued', 'modified', 'language', 'spatial', 'temporal', 'publisher'):
+        if value := meta.get(key):
+            extras[f'dct_{key}'] = format_date(value) if key in ('issued', 'modified') else value
     if extras:
         params['extras'] = json.dumps(extras)
-    if 'tags' in meta:
-        params['tags'] = [{'name': t} for t in meta['tags']]
-    if 'groups' in meta:
-        params['groups'] = [{'name': g} for g in meta['groups']]
+    if tags := meta.get('tags'):
+        params['tags'] = [{'name': t} for t in tags]
+    if groups := meta.get('groups'):
+        params['groups'] = [{'name': g} for g in groups]
 
     try:
         pkg = ckan.action.package_show(id=slug)
         if pkg.get('state') == 'deleted':
-            logger.info(f"⚠ Found trashed dataset '{slug}', purging…")
+            logger.info("Found trashed '%s', purging...", slug)
             try:
                 ckan.action.dataset_purge(id=slug)
             except Exception:
                 pass
-            created = safe_create_package(ckan, params)
-            logger.info(f"✔ Re-created: {created['id']}")
-            return created['id']
+            pkg = safe_create_package(ckan, params)
+            logger.info("Re-created dataset: %s", pkg['id'])
+            return pkg['id']
         params['id'] = pkg['id']
         updated = ckan.action.package_update(**params)
-        logger.info(f"↻ Updated:    {updated['id']}")
+        logger.info("Updated dataset: %s", updated['id'])
         return updated['id']
     except NotFound:
         created = safe_create_package(ckan, params)
-        logger.info(f"✔ Created:    {created['id']}")
+        logger.info("Created dataset: %s", created['id'])
         return created['id']
 
-def find_existing_resource(ckan, pkg_id: str, name: str) -> str | None:
+
+def find_existing_resource(ckan: RemoteCKAN, pkg_id: str, name: str) -> Optional[str]:
+    """Return an existing resource ID by name, if it exists."""
     try:
         res = ckan.action.resource_search(filters={'package_id': pkg_id, 'name': name})
         return res['results'][0]['id'] if res.get('results') else None
@@ -165,47 +174,65 @@ def find_existing_resource(ckan, pkg_id: str, name: str) -> str | None:
         return None
 
 # -----------------------------------------------------------------------------
-# Main
+# CKAN Connection Helper
 # -----------------------------------------------------------------------------
-if __name__ == '__main__':
-    # run Java extractor
-    if input("Run MetadataExtractor? Type 'yes' to confirm: ").strip().lower() == 'yes':
-        logger.info(f"{EXTRACTOR}")
-        subprocess.run(["java", str(EXTRACTOR), "--output", str(MANIFEST)], check = True, cwd = EXTRACTOR.parent)
+def connect_ckan() -> RemoteCKAN:
+    """Establish a connection to CKAN, exiting early on failure."""
+    try:
+        ckan = RemoteCKAN(CKAN_URL, apikey=API_KEY)
+        ckan.action.status_show()
+        return ckan
+    except Exception as e:
+        logger.error(
+            "ERROR: Cannot connect to CKAN at '%s': %s\n"
+            "Possible causes: CKAN server not running, incorrect URL or API endpoint, network/firewall restrictions, or invalid API key.",
+            CKAN_URL,
+            e,
+        )
+        sys.exit(1)
 
-    # verify manifest
+# -----------------------------------------------------------------------------
+# Main Workflow
+# -----------------------------------------------------------------------------
+def main() -> None:
+    # Verify manifest early
     if not MANIFEST.exists():
-        logger.error(f"Manifest not found at {MANIFEST}")
+        logger.error("ERROR: Manifest not found at %s", MANIFEST)
         sys.exit(1)
     base_dir = MANIFEST.parent
 
-    # connect
-    ckan = RemoteCKAN(CKAN_URL, apikey=API_KEY)
-    try:
-        ckan.action.status_show()
-    except Exception as e:
-        logger.error(f"Cannot reach CKAN: {e}")
+    # Connect to CKAN before any interactive prompts
+    ckan = connect_ckan()
 
-    # --- Questions ---
+    # Optionally run Java metadata extractor
+    if input("Run MetadataExtractor? Type 'yes' to confirm: ").strip().lower() == 'yes':
+        logger.info("Executing extractor: %s", EXTRACTOR)
+        subprocess.run(
+            ["java", str(EXTRACTOR), "--output", str(MANIFEST)],
+            check=True,
+            cwd=EXTRACTOR.parent,
+        )
+
+    # Interactive configuration prompts
     print("\n=== CONFIGURATION ===")
-    wipe_orgs  = input("Delete ALL organizations? Type 'yes' to confirm: ").strip().lower() == 'yes'
-    wipe_ds    = input("Delete ALL datasets?      Type 'yes' to confirm: ").strip().lower() == 'yes'
-    org_input  = input("Enter new organization name (leave blank for none): ").strip()
-    separate   = input("Separate dataset per file? Type 'yes' for separate: ").strip().lower() == 'yes'
+    wipe_orgs = (input("Delete ALL organizations? Type 'yes' to confirm: ").strip().lower() == 'yes')
+    wipe_ds = (input("Delete ALL datasets?      Type 'yes' to confirm: ").strip().lower() == 'yes')
+    org_input = input("Enter new organization name (leave blank for none): ").strip() or None
+    separate = (input("Separate dataset per file? Type 'yes' for separate: ").strip().lower() == 'yes')
     print("======================\n")
 
-    # --- Deletion ---
+    # Perform deletions
     if wipe_orgs:
-        print(">> Deleting all organizations:")
+        print(">> Deleting all organizations...")
         delete_all_organizations(ckan)
         print()
     if wipe_ds:
-        print(">> Deleting all datasets:")
+        print(">> Deleting all datasets...")
         delete_all_datasets(ckan)
         print()
 
-    # --- Organization creation ---
-    org_id = None
+    # Organization creation/use
+    org_id: Optional[str] = None
     if org_input:
         slug = slugify(org_input)
         try:
@@ -218,79 +245,90 @@ if __name__ == '__main__':
             print(f">> Created new org:   {org_id}")
         print()
 
-    # --- Upload ---
-    manifest  = json.loads(MANIFEST.read_text(encoding='utf-8'))
-    resources = manifest.get('resources', [])
-    ds_meta   = manifest.get('dataset', {})
+    # Load manifest and prepare upload
+    manifest_data = json.loads(MANIFEST.read_text(encoding='utf-8'))
+    resources: List[Dict[str, Any]] = manifest_data.get('resources', [])
+    ds_meta: Dict[str, Any] = manifest_data.get('dataset', {})
 
     mode = "per-file datasets" if separate else "single dataset"
     print(f">> Uploading in {mode} mode\n")
 
+    # Upload resources
     if not separate:
         ds_id = ensure_dataset(ckan, ds_meta, org_id)
         print(f"→ Using dataset: {ds_id}\n")
         for res in tqdm(resources, desc="Uploading"):
-            stream   = open_stream(res['upload'], base_dir)
-            fname    = res.get('extras',{}).get('original_filename', Path(res['upload']).name)
-            rslug    = slugify(fname)
-            created  = format_date(res.get('created',''))
-            modified = format_date(res.get('last_modified',''))
-            data     = stream.read()
-            solr     = f"{CKAN_URL}dataset/{ds_id}/resource/{{id}}/preview"
-            extras   = {**res.get('extras',{}), 'view_url': solr}
+            stream = open_stream(res['upload'], base_dir)
+            fname = res.get('extras', {}).get('original_filename', Path(res['upload']).name)
+            rslug = slugify(fname)
+            created = format_date(res.get('created'))
+            modified = format_date(res.get('last_modified'))
+            data = stream.read()
+            solr_url = f"{CKAN_URL}dataset/{ds_id}/resource/{{id}}/preview"
+            extras = {**res.get('extras', {}), 'view_url': solr_url}
 
-            payload = {
-                'package_id':    ds_id,
-                'name':          rslug,
-                'description':   res.get('description',''),
-                'format':        res['format'],
-                'mimetype':      res['mimetype'],
-                'upload':        io.BytesIO(data),
-                'extras':        json.dumps(extras),
-                **({'created': created}    if created  else {}),
-                **({'last_modified': modified} if modified else {}),
+            payload: Dict[str, Any] = {
+                'package_id': ds_id,
+                'name': rslug,
+                'description': res.get('description', ''),
+                'format': res['format'],
+                'mimetype': res['mimetype'],
+                'upload': io.BytesIO(data),
+                'extras': json.dumps(extras),
             }
+            if created:
+                payload['created'] = created
+            if modified:
+                payload['last_modified'] = modified
 
-            existing = find_existing_resource(ckan, ds_id, rslug)
-            if existing:
+            if existing := find_existing_resource(ckan, ds_id, rslug):
                 payload['id'] = existing
                 out = ckan.action.resource_update(**payload)
-                logger.info(f"↻ Updated: {fname} → {out['url']}")
+                logger.info("↻ Updated: %s → %s", fname, out['url'])
             else:
                 out = ckan.action.resource_create(**payload)
-                logger.info(f"✔ Added:   {fname} → {out['url']}")
+                logger.info("✔ Added:   %s → %s", fname, out['url'])
     else:
         for res in tqdm(resources, desc="Per-file datasets"):
-            title    = res.get('extras',{}).get('original_filename', Path(res['upload']).name)
-            file_md  = {'title': title, 'description': res.get('description',''), 'license_id': ds_meta.get('license_id','cc-BY')}
-            ds_id    = ensure_dataset(ckan, file_md, org_id)
+            title = res.get('extras', {}).get('original_filename', Path(res['upload']).name)
+            file_meta = {
+                'title': title,
+                'description': res.get('description', ''),
+                'license_id': ds_meta.get('license_id', 'cc-BY'),
+                'upload': res['upload'],
+            }
+            ds_id = ensure_dataset(ckan, file_meta, org_id)
             print(f"\n→ Dataset: {ds_id} ({title})")
 
-            stream   = open_stream(res['upload'], base_dir)
-            rslug    = slugify(title)
-            created  = format_date(res.get('created',''))
-            modified = format_date(res.get('last_modified',''))
-            data     = stream.read()
-            solr     = f"{CKAN_URL}dataset/{ds_id}/resource/{{id}}/preview"
-            extras   = {**res.get('extras',{}), 'view_url': solr}
+            stream = open_stream(res['upload'], base_dir)
+            rslug = slugify(title)
+            created = format_date(res.get('created'))
+            modified = format_date(res.get('last_modified'))
+            data = stream.read()
+            solr_url = f"{CKAN_URL}dataset/{ds_id}/resource/{{id}}/preview"
+            extras = {**res.get('extras', {}), 'view_url': solr_url}
 
             payload = {
-                'package_id':    ds_id,
-                'name':          rslug,
-                'description':   res.get('description',''),
-                'format':        res['format'],
-                'mimetype':      res['mimetype'],
-                'upload':        io.BytesIO(data),
-                'extras':        json.dumps(extras),
-                **({'created': created}    if created  else {}),
-                **({'last_modified': modified} if modified else {}),
+                'package_id': ds_id,
+                'name': rslug,
+                'description': res.get('description', ''),
+                'format': res['format'],
+                'mimetype': res['mimetype'],
+                'upload': io.BytesIO(data),
+                'extras': json.dumps(extras),
             }
+            if created:
+                payload['created'] = created
+            if modified:
+                payload['last_modified'] = modified
 
-            existing = find_existing_resource(ckan, ds_id, rslug)
-            if existing:
+            if existing := find_existing_resource(ckan, ds_id, rslug):
                 payload['id'] = existing
                 out = ckan.action.resource_update(**payload)
-                logger.info(f"↻ Updated: {title} → {out['url']}")
+                logger.info("↻ Updated: %s → %s", title, out['url'])
             else:
                 out = ckan.action.resource_create(**payload)
-                logger.info(f"✔ Created: {title} → {out['url']}")
+                logger.info("✔ Created: %s → %s", title, out['url'])
+
+if __name__ == '__main__':
+    main()
