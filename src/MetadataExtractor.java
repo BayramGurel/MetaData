@@ -18,7 +18,6 @@ import org.apache.tika.language.detect.LanguageDetector;
 public class MetadataExtractor {
     /** Default to the `document` directory */
     private static final String SOURCE_PATH = ".\\document";
-    private static final String PACKAGE_ID = "zuid-holland-habitatkaart-2021";
 
     private final IFileTypeFilter fileFilter;
     private final IMetadataProvider metadataProvider;
@@ -92,12 +91,6 @@ public class MetadataExtractor {
 
         ExtractorConfiguration config = new ExtractorConfiguration();
         LanguageDetector langDetector = loadTikaLanguageDetector();
-        MetadataExtractor extractor = new MetadataExtractor(
-                new DefaultFileTypeFilter(config),
-                new TikaMetadataProvider(),
-                new DefaultCkanResourceFormat(langDetector, config, PACKAGE_ID),
-                config
-        );
 
         if (Files.isDirectory(src, LinkOption.NOFOLLOW_LINKS)) {
             // Process each regular file in the directory
@@ -106,12 +99,24 @@ public class MetadataExtractor {
                         .filter(p -> Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS))
                         .forEach(p -> {
                             System.out.println("Processing " + p.getFileName());
+
+                            // Derive package ID from filename (e.g. "foo.zip" → "foo")
+                            String baseName = p.getFileName().toString();
+                            int dot = baseName.lastIndexOf('.');
+                            String packageId = (dot > 0) ? baseName.substring(0, dot) : baseName;
+
+                            MetadataExtractor extractor = new MetadataExtractor(
+                                    new DefaultFileTypeFilter(config),
+                                    new TikaMetadataProvider(),
+                                    new DefaultCkanResourceFormat(langDetector, config, packageId),
+                                    config
+                            );
+
                             ProcessingReport rpt = extractor.processSource(p.toString());
-                            String safe = p.getFileName()
-                                    .toString()
-                                    .replaceAll("[^a-zA-Z0-9._-]", "_");
+                            String safe = baseName.replaceAll("[^a-zA-Z0-9._-]", "_");
                             String outName = "report-" + safe + ".json";
                             writeJson(rpt, outName);
+
                             if (!rpt.getErrors().isEmpty()) {
                                 System.err.println("Voltooid met fouten voor " + p.getFileName() +
                                         ". Zie " + outName);
@@ -124,9 +129,21 @@ public class MetadataExtractor {
                 System.exit(1);
             }
         } else {
-            // Single file → one report.json
+            // Single file → derive packageId the same way
+            String baseName = src.getFileName().toString();
+            int dot = baseName.lastIndexOf('.');
+            String packageId = (dot > 0) ? baseName.substring(0, dot) : baseName;
+
+            MetadataExtractor extractor = new MetadataExtractor(
+                    new DefaultFileTypeFilter(config),
+                    new TikaMetadataProvider(),
+                    new DefaultCkanResourceFormat(langDetector, config, packageId),
+                    config
+            );
+
             ProcessingReport report = extractor.processSource(src.toString());
             writeJson(report, "report.json");
+
             if (!report.getErrors().isEmpty()) {
                 System.err.println("Voltooid met fouten. Zie report.json");
                 System.exit(2);
