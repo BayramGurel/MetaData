@@ -18,6 +18,8 @@ import org.apache.tika.language.detect.LanguageDetector;
 public class MetadataExtractor {
     /** Default to the `document` directory */
     private static final String SOURCE_PATH = ".\\document";
+    /** Default output directory */
+    private static final String OUTPUT_DIR = "reports";
 
     private final IFileTypeFilter fileFilter;
     private final IMetadataProvider metadataProvider;
@@ -35,6 +37,9 @@ public class MetadataExtractor {
         this.config = Objects.requireNonNull(config, "Configuratie mag niet null zijn");
     }
 
+    /**
+     * Process a single source (file or zip) and return a report.
+     */
     public ProcessingReport processSource(String sourcePathString) {
         List<CkanResource> results = new ArrayList<>();
         List<ProcessingError> errors = new ArrayList<>();
@@ -47,7 +52,6 @@ public class MetadataExtractor {
                 errors.add(new ProcessingError(sourcePathString, "Bron niet gevonden."));
                 return new ProcessingReport(results, errors, ignored);
             }
-
             if (Files.isDirectory(sourcePath, LinkOption.NOFOLLOW_LINKS)) {
                 ignored.add(new IgnoredEntry(sourcePathString, "Bron is map (niet ondersteund als enkel bestand)."));
                 return new ProcessingReport(results, errors, ignored);
@@ -56,7 +60,6 @@ public class MetadataExtractor {
             ISourceProcessor processor = isZipFile(sourcePath)
                     ? new ZipSourceProcessor(fileFilter, metadataProvider, resourceFormatter, config)
                     : new SingleFileProcessor(fileFilter, metadataProvider, resourceFormatter, config);
-
             processor.processSource(sourcePath, sourcePath.toString(), results, errors, ignored);
 
         } catch (Exception e) {
@@ -79,80 +82,6 @@ public class MetadataExtractor {
         return false;
     }
 
-    public static void main(String[] args) {
-        // Default to the document directory if no argument is given
-        String inputPath = (args.length > 0) ? args[0] : SOURCE_PATH;
-        Path src = Paths.get(inputPath).toAbsolutePath().normalize();
-
-        if (!Files.exists(src, LinkOption.NOFOLLOW_LINKS)) {
-            System.err.println("FATAL: Bron niet gevonden: " + src);
-            System.exit(1);
-        }
-
-        ExtractorConfiguration config = new ExtractorConfiguration();
-        LanguageDetector langDetector = loadTikaLanguageDetector();
-
-        if (Files.isDirectory(src, LinkOption.NOFOLLOW_LINKS)) {
-            // Process each regular file in the directory
-            try (Stream<Path> stream = Files.list(src)) {
-                stream
-                        .filter(p -> Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS))
-                        .forEach(p -> {
-                            System.out.println("Processing " + p.getFileName());
-
-                            // Derive package ID from filename (e.g. "foo.zip" → "foo")
-                            String baseName = p.getFileName().toString();
-                            int dot = baseName.lastIndexOf('.');
-                            String packageId = (dot > 0) ? baseName.substring(0, dot) : baseName;
-
-                            MetadataExtractor extractor = new MetadataExtractor(
-                                    new DefaultFileTypeFilter(config),
-                                    new TikaMetadataProvider(),
-                                    new DefaultCkanResourceFormat(langDetector, config, packageId),
-                                    config
-                            );
-
-                            ProcessingReport rpt = extractor.processSource(p.toString());
-                            String safe = baseName.replaceAll("[^a-zA-Z0-9._-]", "_");
-                            String outName = "report-" + safe + ".json";
-                            writeJson(rpt, outName);
-
-                            if (!rpt.getErrors().isEmpty()) {
-                                System.err.println("Voltooid met fouten voor " + p.getFileName() +
-                                        ". Zie " + outName);
-                            } else {
-                                System.out.println("Klaar! Zie " + outName);
-                            }
-                        });
-            } catch (IOException e) {
-                System.err.println("FOUT: Kan map niet lezen: " + e.getMessage());
-                System.exit(1);
-            }
-        } else {
-            // Single file → derive packageId the same way
-            String baseName = src.getFileName().toString();
-            int dot = baseName.lastIndexOf('.');
-            String packageId = (dot > 0) ? baseName.substring(0, dot) : baseName;
-
-            MetadataExtractor extractor = new MetadataExtractor(
-                    new DefaultFileTypeFilter(config),
-                    new TikaMetadataProvider(),
-                    new DefaultCkanResourceFormat(langDetector, config, packageId),
-                    config
-            );
-
-            ProcessingReport report = extractor.processSource(src.toString());
-            writeJson(report, "report.json");
-
-            if (!report.getErrors().isEmpty()) {
-                System.err.println("Voltooid met fouten. Zie report.json");
-                System.exit(2);
-            } else {
-                System.out.println("Klaar! Zie report.json");
-            }
-        }
-    }
-
     private static LanguageDetector loadTikaLanguageDetector() {
         try {
             LanguageDetector ld = OptimaizeLangDetector.getDefaultLanguageDetector();
@@ -164,19 +93,91 @@ public class MetadataExtractor {
         }
     }
 
-    private static void writeJson(ProcessingReport rpt, String fileName) {
-        Map<String, Object> root = new LinkedHashMap<>();
-        root.put("resources",
-                rpt.getResults().stream()
-                        .map(CkanResource::getData)
-                        .collect(Collectors.toList()));
-
+    /**
+     * Write a single JSON containing all packages under their packageId keys.
+     */
+    private static void writeAllJson(Map<String, List<Map<String, Object>>> master, Path outDir) {
         try {
+            if (!Files.exists(outDir)) {
+                Files.createDirectories(outDir);
+            }
+            Path outFile = outDir.resolve("all-reports.json");
             ObjectMapper mapper = new ObjectMapper()
                     .enable(SerializationFeature.INDENT_OUTPUT);
-            mapper.writeValue(Paths.get(fileName).toFile(), root);
+            mapper.writeValue(outFile.toFile(), master);
         } catch (IOException e) {
             System.err.println("Fout bij schrijven JSON: " + e.getMessage());
+        }
+    }
+
+    public static void main(String[] args) {
+        String inputPath = (args.length > 0) ? args[0] : SOURCE_PATH;
+        Path src = Paths.get(inputPath).toAbsolutePath().normalize();
+        if (!Files.exists(src, LinkOption.NOFOLLOW_LINKS)) {
+            System.err.println("FATAL: Bron niet gevonden: " + src);
+            System.exit(1);
+        }
+
+        ExtractorConfiguration config = new ExtractorConfiguration();
+        LanguageDetector langDetector = loadTikaLanguageDetector();
+        Map<String, List<Map<String, Object>>> allReports = new LinkedHashMap<>();
+
+        try {
+            if (Files.isDirectory(src, LinkOption.NOFOLLOW_LINKS)) {
+                try (Stream<Path> stream = Files.list(src)) {
+                    stream.filter(p -> Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS))
+                            .forEach(p -> {
+                                String baseName = p.getFileName().toString();
+                                int dot = baseName.lastIndexOf('.');
+                                String packageId = (dot > 0) ? baseName.substring(0, dot) : baseName;
+
+                                MetadataExtractor extractor = new MetadataExtractor(
+                                        new DefaultFileTypeFilter(config),
+                                        new TikaMetadataProvider(),
+                                        new DefaultCkanResourceFormat(langDetector, config, packageId),
+                                        config
+                                );
+
+                                ProcessingReport rpt = extractor.processSource(p.toString());
+                                allReports.put(packageId,
+                                        rpt.getResults().stream()
+                                                .map(CkanResource::getData)
+                                                .collect(Collectors.toList()));
+
+                                if (!rpt.getErrors().isEmpty()) {
+                                    System.err.println("Voltooid met fouten voor " + baseName);
+                                }
+                            });
+                }
+            } else {
+                String baseName = src.getFileName().toString();
+                int dot = baseName.lastIndexOf('.');
+                String packageId = (dot > 0) ? baseName.substring(0, dot) : baseName;
+
+                MetadataExtractor extractor = new MetadataExtractor(
+                        new DefaultFileTypeFilter(config),
+                        new TikaMetadataProvider(),
+                        new DefaultCkanResourceFormat(langDetector, config, packageId),
+                        config
+                );
+                ProcessingReport rpt = extractor.processSource(src.toString());
+                allReports.put(packageId,
+                        rpt.getResults().stream()
+                                .map(CkanResource::getData)
+                                .collect(Collectors.toList()));
+
+                if (!rpt.getErrors().isEmpty()) {
+                    System.err.println("Voltooid met fouten voor " + baseName);
+                }
+            }
+
+            // write to designated OUTPUT_DIR folder
+            writeAllJson(allReports, Paths.get(OUTPUT_DIR));
+            System.out.println("Klaar! Zie " + OUTPUT_DIR + "/all-reports.json");
+
+        } catch (IOException e) {
+            System.err.println("FOUT: Kan map niet lezen: " + e.getMessage());
+            System.exit(1);
         }
     }
 }
