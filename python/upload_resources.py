@@ -26,8 +26,7 @@ from tqdm import tqdm
 # Configuration Constants
 # -----------------------------------------------------------------------------
 CKAN_URL = "https://special-space-disco-94v44prrppr36q6-5000.app.github.dev/"
-API_KEY =  \
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJmZDRjUEVrQkVRaVRNNXJ3VUMtYVY4N0R1YlhzeTlZMmlrZlpVa0VRRVJnIiwiaWF0IjoxNzUwMzM3MDQ1fQ.kXvgCvs7Emc7RfPxGZ1znLz7itMqK4p0hXYoEoc8LaA"
+API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJmZDRjUEVrQkVRaVRNNXJ3VUMtYVY4N0R1YlhzeTlZMmlrZlpVa0VRRVJnIiwiaWF0IjoxNzUwMzM3MDQ1fQ.kXvgCvs7Emc7RfPxGZ1znLz7itMqK4p0hXYoEoc8LaA"
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MANIFEST = PROJECT_ROOT / "reports" / "all-reports.json"
 
@@ -100,15 +99,17 @@ def ensure_dataset(
         'name': slug,
         'title': title,
         'notes': description,
-        'owner_org': org_id
+        'owner_org': org_id,
+        'type': 'dataset'
     }
-    extras: Dict[str, Any] = {}
+    # Build extras as list of dicts (CKAN expects list of key/value pairs)
+    extras_items: List[Dict[str, str]] = []
     if resource_formats:
-        extras['resource_formats'] = ','.join(sorted(set(resource_formats)))
+        extras_items.append({'key': 'resource_formats', 'value': ','.join(sorted(set(resource_formats)))})
     if resource_count is not None:
-        extras['resource_count'] = str(resource_count)
-    if extras:
-        params['extras'] = json.dumps(extras)
+        extras_items.append({'key': 'resource_count', 'value': str(resource_count)})
+    if extras_items:
+        params['extras'] = extras_items
 
     try:
         pkg = ckan.action.package_show(id=slug)
