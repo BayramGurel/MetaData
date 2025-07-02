@@ -1,5 +1,8 @@
 import java.util.Objects;
 
+/**
+ * Record capturing a processing error for a source.
+ */
 record ProcessingError(String source, String error) {
     public ProcessingError {
         Objects.requireNonNull(source, "Bron mag niet null zijn");

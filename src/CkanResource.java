@@ -3,6 +3,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Immutable wrapper for CKAN resource data.
+ */
 public final class CkanResource {
     private final Map<String, Object> data;
 

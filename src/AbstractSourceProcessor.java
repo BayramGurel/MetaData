@@ -4,6 +4,10 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
+/**
+ * Base class for processors with file filtering and path checks.
+ */
+
 
 public abstract class AbstractSourceProcessor implements ISourceProcessor {
     protected final IFileTypeFilter fileFilter;

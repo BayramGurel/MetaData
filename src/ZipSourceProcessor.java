@@ -11,6 +11,9 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
 
+/**
+ * Processes ZIP archives and optionally nested ZIP files.
+ */
 public class ZipSourceProcessor extends AbstractSourceProcessor {
 
     public ZipSourceProcessor(IFileTypeFilter ff,

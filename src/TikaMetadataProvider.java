@@ -9,6 +9,9 @@ import org.apache.tika.parser.Parser;
 import org.apache.tika.sax.BodyContentHandler;
 import org.xml.sax.SAXException;
 
+/**
+ * Uses Apache Tika to parse metadata and extracted text.
+ */
 public class TikaMetadataProvider implements IMetadataProvider {
     private final Parser tikaParser;
 

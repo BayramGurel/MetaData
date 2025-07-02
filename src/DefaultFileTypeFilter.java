@@ -1,5 +1,8 @@
 import java.util.Objects;
 
+/**
+ * Filters files by name and extension using the configuration.
+ */
 public class DefaultFileTypeFilter implements IFileTypeFilter {
     private final ExtractorConfiguration config;
 

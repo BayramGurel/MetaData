@@ -5,6 +5,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+/**
+ * Processor implementation for handling a single file.
+ */
 public class SingleFileProcessor extends AbstractSourceProcessor {
     public SingleFileProcessor(IFileTypeFilter ff,
                                IMetadataProvider mp,

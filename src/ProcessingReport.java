@@ -3,6 +3,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Immutable summary of extracted resources, errors and ignored entries.
+ */
 public final class ProcessingReport {
     private final List<CkanResource> results;
     private final List<ProcessingError> errors;

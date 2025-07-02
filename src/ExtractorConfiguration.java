@@ -4,7 +4,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Configuration for the extractor: text limits, ignored files/extensions, and formatting patterns.
+ * Configuration for limits, ignore lists and formatting rules.
  */
 public final class ExtractorConfiguration {
 

@@ -15,6 +15,9 @@ import java.util.stream.Stream;
 import org.apache.tika.langdetect.optimaize.OptimaizeLangDetector;
 import org.apache.tika.language.detect.LanguageDetector;
 
+/**
+ * Command line tool to extract metadata and produce CKAN reports.
+ */
 public class MetadataExtractor {
     /** Default to the `document` directory */
     private static final String SOURCE_PATH = ".\\document";

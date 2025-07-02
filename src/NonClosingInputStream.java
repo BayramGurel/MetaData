@@ -3,8 +3,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Wrapper stream that ignores {@link #close()} calls. Useful when a consumer
- * should not close the underlying stream.
+ * InputStream wrapper that ignores calls to close().
  */
 class NonClosingInputStream extends FilterInputStream {
     protected NonClosingInputStream(InputStream in) {

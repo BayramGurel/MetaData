@@ -1,5 +1,8 @@
 import java.util.Objects;
 
+/**
+ * Record describing an ignored entry and the reason.
+ */
 record IgnoredEntry(String source, String reason) {
     public IgnoredEntry {
         Objects.requireNonNull(source, "Bron mag niet null zijn");

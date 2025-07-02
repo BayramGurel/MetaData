@@ -19,6 +19,9 @@ import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.Property;
 import org.apache.tika.metadata.TikaCoreProperties;
 
+/**
+ * Converts extracted metadata and text to a CKAN resource.
+ */
 public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
     private final String packageId;
     private static final Map<String, String> FORMAT_MAP = Map.ofEntries(Map.entry("application/pdf", "PDF"), Map.entry("application/msword", "DOC"), Map.entry("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "DOCX"), Map.entry("application/vnd.ms-excel", "XLS"), Map.entry("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "XLSX"), Map.entry("application/vnd.ms-powerpoint", "PPT"), Map.entry("application/vnd.openxmlformats-officedocument.presentationml.presentation", "PPTX"), Map.entry("text/plain", "TXT"), Map.entry("text/csv", "CSV"), Map.entry("application/xml", "XML"), Map.entry("text/xml", "XML"), Map.entry("text/html", "HTML"), Map.entry("image/jpeg", "JPEG"), Map.entry("image/png", "PNG"), Map.entry("image/gif", "GIF"), Map.entry("image/tiff", "TIFF"), Map.entry("application/zip", "ZIP"), Map.entry("application/geo+json", "GEOJSON"), Map.entry("application/vnd.geo+json", "GEOJSON"), Map.entry("application/geopackage+sqlite3", "GPKG"), Map.entry("application/x-sqlite3", "GPKG"));
