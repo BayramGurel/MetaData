@@ -74,12 +74,12 @@ public class MetadataExtractor {
     }
 
     private boolean isZipFile(Path path) {
-        if (path != null && Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
-            String name = path.getFileName().toString().toLowerCase();
-            return config.getSupportedZipExtensions().stream()
-                    .anyMatch(ext -> name.endsWith(ext.toLowerCase()));
+        if (path == null || !Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
+            return false;
         }
-        return false;
+        String name = path.getFileName().toString().toLowerCase();
+        return config.getSupportedZipExtensions().stream()
+                .anyMatch(ext -> name.endsWith(ext.toLowerCase()));
     }
 
     private static LanguageDetector loadTikaLanguageDetector() {

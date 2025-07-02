@@ -19,41 +19,58 @@ public abstract class AbstractSourceProcessor implements ISourceProcessor {
         this.config = (ExtractorConfiguration)Objects.requireNonNull(config, "Configuratie mag niet null zijn");
     }
 
-    public abstract void processSource(Path var1, String var2, List<CkanResource> var3, List<ProcessingError> var4, List<IgnoredEntry> var5);
+    @Override
+    public abstract void processSource(Path sourcePath,
+                                       String containerPath,
+                                       List<CkanResource> results,
+                                       List<ProcessingError> errors,
+                                       List<IgnoredEntry> ignored);
 
+    /**
+     * Extract just the filename portion from a ZIP entry name.
+     *
+     * @param entryName raw entry name as stored inside the archive
+     * @return the filename part or an empty string when the name is blank
+     */
     protected static String getFilenameFromEntry(String entryName) {
         if (entryName != null && !entryName.isBlank()) {
             String normalizedName = entryName.trim().replace('\\', '/');
-            int lastSlash = normalizedName.lastIndexOf(47);
+            int lastSlash = normalizedName.lastIndexOf('/');
             return lastSlash >= 0 ? normalizedName.substring(lastSlash + 1) : normalizedName;
-        } else {
-            return "";
         }
+        return "";
     }
 
+    /**
+     * Checks whether the given entry refers to an unsafe path.
+     *
+     * @param entryName the entry name from the archive
+     * @return {@code true} if the entry is considered invalid
+     */
     protected boolean isInvalidPath(String entryName) {
         if (entryName == null) {
             return false;
-        } else {
-            String trimmedName = entryName.trim();
-            if (trimmedName.isEmpty()) {
-                return false;
-            } else if (trimmedName.contains("..")) {
+        }
+
+        String trimmedName = entryName.trim();
+        if (trimmedName.isEmpty()) {
+            return false;
+        }
+
+        if (trimmedName.contains("..")) {
+            return true;
+        }
+
+        try {
+            Path path = Paths.get(trimmedName);
+            Path normalizedPath = path.normalize();
+            if (WINDOWS_DRIVE_PATTERN.matcher(normalizedPath.toString()).matches()) {
                 return true;
-            } else {
-                try {
-                    Path path = Paths.get(trimmedName);
-                    Path normalizedPath = path.normalize();
-                    if (WINDOWS_DRIVE_PATTERN.matcher(normalizedPath.toString()).matches()) {
-                        return true;
-                    } else {
-                        return normalizedPath.isAbsolute();
-                    }
-                } catch (InvalidPathException var5) {
-                    System.err.println("Waarschuwing: Ongeldige pad syntax gedetecteerd in entry: " + trimmedName);
-                    return true;
-                }
             }
+            return normalizedPath.isAbsolute();
+        } catch (InvalidPathException e) {
+            System.err.println("Waarschuwing: Ongeldige pad syntax gedetecteerd in entry: " + trimmedName);
+            return true;
         }
     }
 }

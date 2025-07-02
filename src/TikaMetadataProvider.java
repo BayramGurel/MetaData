@@ -20,7 +20,10 @@ public class TikaMetadataProvider implements IMetadataProvider {
         this.tikaParser = (Parser)Objects.requireNonNull(parser, "Tika Parser mag niet null zijn");
     }
 
-    public IMetadataProvider.ExtractionOutput extract(InputStream inputStream, int maxTextLength) throws IOException, TikaException, SAXException, Exception {
+    @Override
+    public IMetadataProvider.ExtractionOutput extract(InputStream inputStream,
+                                                      int maxTextLength)
+            throws IOException, TikaException, SAXException, Exception {
         BodyContentHandler contentHandler = new BodyContentHandler(maxTextLength);
         Metadata metadata = new Metadata();
         ParseContext parseContext = new ParseContext();

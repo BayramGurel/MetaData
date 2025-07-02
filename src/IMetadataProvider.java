@@ -5,8 +5,16 @@ import org.apache.tika.metadata.Metadata;
 import org.xml.sax.SAXException;
 
 interface IMetadataProvider {
-    ExtractionOutput extract(InputStream var1, int var2) throws IOException, TikaException, SAXException, Exception;
+    /**
+     * Extract metadata and text from the provided stream.
+     *
+     * @param inputStream   the content to parse
+     * @param maxTextLength maximum length of text to extract
+     * @return extracted metadata and text
+     */
+    ExtractionOutput extract(InputStream inputStream, int maxTextLength)
+            throws IOException, TikaException, SAXException, Exception;
 
-    public static record ExtractionOutput(Metadata metadata, String text) {
-    }
+    /** Simple holder for the parser output. */
+    public static record ExtractionOutput(Metadata metadata, String text) { }
 }

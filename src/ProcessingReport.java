@@ -29,8 +29,12 @@ public final class ProcessingReport {
         return this.ignored;
     }
 
+    @Override
     public String toString() {
-        int var10000 = this.results.size();
-        return "ProcessingReport{resultaten=" + var10000 + ", fouten=" + this.errors.size() + ", genegeerd=" + this.ignored.size() + "}";
+        return "ProcessingReport{" +
+                "resultaten=" + results.size() +
+                ", fouten=" + errors.size() +
+                ", genegeerd=" + ignored.size() +
+                '}';
     }
 }
