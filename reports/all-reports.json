@@ -58,19 +58,6 @@
     "mimetype" : "application/pdf",
     "package_id" : "04 Vaarweg HARTEL"
   }, {
-    "upload" : ".\\document\\04 Vaarweg HARTEL.zip!/04 Vaarweg HARTEL/43 Hartelbrug/Thumbs.db",
-    "name" : "Thumbs.db",
-    "format" : "XTIKAMSOFFICE",
-    "description" : "Geen beschrijving beschikbaar voor: Thumbs.db",
-    "extras" : {
-      "original_entry_name" : "04 Vaarweg HARTEL/43 Hartelbrug/Thumbs.db",
-      "original_filename" : "Thumbs.db",
-      "language_uri" : "http://publications.europa.eu/resource/authority/language/UND",
-      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\04 Vaarweg HARTEL.zip!/04 Vaarweg HARTEL/43 Hartelbrug/Thumbs.db"
-    },
-    "mimetype" : "application/x-tika-msoffice",
-    "package_id" : "04 Vaarweg HARTEL"
-  }, {
     "upload" : ".\\document\\04 Vaarweg HARTEL.zip!/04 Vaarweg HARTEL/44 Zoetwaterkanaalbrug/0-inspectie hydrauliek Zoetwaterkanaalbrugdbrug.pdf",
     "created" : "2012-03-29T11:44:56Z",
     "name" : "0-inspectie hydrauliek Zoetwaterkanaalbrugdbrug.pdf",
@@ -111,19 +98,6 @@
       "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\04 Vaarweg HARTEL.zip!/04 Vaarweg HARTEL/44 Zoetwaterkanaalbrug/Inspectie OH 44.pdf"
     },
     "mimetype" : "application/pdf",
-    "package_id" : "04 Vaarweg HARTEL"
-  }, {
-    "upload" : ".\\document\\04 Vaarweg HARTEL.zip!/04 Vaarweg HARTEL/44 Zoetwaterkanaalbrug/Thumbs.db",
-    "name" : "Thumbs.db",
-    "format" : "XTIKAMSOFFICE",
-    "description" : "Geen beschrijving beschikbaar voor: Thumbs.db",
-    "extras" : {
-      "original_entry_name" : "04 Vaarweg HARTEL/44 Zoetwaterkanaalbrug/Thumbs.db",
-      "original_filename" : "Thumbs.db",
-      "language_uri" : "http://publications.europa.eu/resource/authority/language/UND",
-      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\04 Vaarweg HARTEL.zip!/04 Vaarweg HARTEL/44 Zoetwaterkanaalbrug/Thumbs.db"
-    },
-    "mimetype" : "application/x-tika-msoffice",
     "package_id" : "04 Vaarweg HARTEL"
   }, {
     "upload" : ".\\document\\04 Vaarweg HARTEL.zip!/04 Vaarweg HARTEL/inspectierapportage Hartel 1e -2012.pdf",
@@ -186,19 +160,6 @@
     "mimetype" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "package_id" : "04 Vaarweg HARTEL",
     "last_modified" : "2012-06-05T06:52:50Z"
-  }, {
-    "upload" : ".\\document\\04 Vaarweg HARTEL.zip!/04 Vaarweg HARTEL/Thumbs.db",
-    "name" : "Thumbs.db",
-    "format" : "XTIKAMSOFFICE",
-    "description" : "Geen beschrijving beschikbaar voor: Thumbs.db",
-    "extras" : {
-      "original_entry_name" : "04 Vaarweg HARTEL/Thumbs.db",
-      "original_filename" : "Thumbs.db",
-      "language_uri" : "http://publications.europa.eu/resource/authority/language/UND",
-      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\04 Vaarweg HARTEL.zip!/04 Vaarweg HARTEL/Thumbs.db"
-    },
-    "mimetype" : "application/x-tika-msoffice",
-    "package_id" : "04 Vaarweg HARTEL"
   } ],
   "05 Regio AARDAM" : [ {
     "upload" : ".\\document\\05 Regio AARDAM.zip!/05 Regio AARDAM/2012 Inspectie Dieptefiltratie en Filteraanslutingen TWK/Inventarisatie By-pass - Filter aansluitingen TWK.pdf",
@@ -277,19 +238,6 @@
     "mimetype" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "package_id" : "05 Regio AARDAM",
     "last_modified" : "2012-06-05T07:37:07Z"
-  }, {
-    "upload" : ".\\document\\05 Regio AARDAM.zip!/05 Regio AARDAM/Thumbs.db",
-    "name" : "Thumbs.db",
-    "format" : "XTIKAMSOFFICE",
-    "description" : "Geen beschrijving beschikbaar voor: Thumbs.db",
-    "extras" : {
-      "original_entry_name" : "05 Regio AARDAM/Thumbs.db",
-      "original_filename" : "Thumbs.db",
-      "language_uri" : "http://publications.europa.eu/resource/authority/language/UND",
-      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\05 Regio AARDAM.zip!/05 Regio AARDAM/Thumbs.db"
-    },
-    "mimetype" : "application/x-tika-msoffice",
-    "package_id" : "05 Regio AARDAM"
   } ],
   "06 Vaarweg MERWEDE" : [ {
     "upload" : ".\\document\\06 Vaarweg MERWEDE.zip!/06 Vaarweg MERWEDE/2012 Inspectie Dieptefiltratie en Filteraanslutingen TWK/Inventarisatie By-pass - Filter aansluitingen TWK.pdf",
@@ -368,19 +316,6 @@
     "mimetype" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "package_id" : "06 Vaarweg MERWEDE",
     "last_modified" : "2012-06-05T07:17:19Z"
-  }, {
-    "upload" : ".\\document\\06 Vaarweg MERWEDE.zip!/06 Vaarweg MERWEDE/Thumbs.db",
-    "name" : "Thumbs.db",
-    "format" : "XTIKAMSOFFICE",
-    "description" : "Geen beschrijving beschikbaar voor: Thumbs.db",
-    "extras" : {
-      "original_entry_name" : "06 Vaarweg MERWEDE/Thumbs.db",
-      "original_filename" : "Thumbs.db",
-      "language_uri" : "http://publications.europa.eu/resource/authority/language/UND",
-      "source_identifier" : "C:\\Users\\Bayra\\Documents\\GitHub\\MetaData\\document\\06 Vaarweg MERWEDE.zip!/06 Vaarweg MERWEDE/Thumbs.db"
-    },
-    "mimetype" : "application/x-tika-msoffice",
-    "package_id" : "06 Vaarweg MERWEDE"
   } ],
   "Veg kartering - habitatkaart 2021-2023" : [ {
     "upload" : ".\\document\\Veg kartering - habitatkaart 2021-2023.zip!/Veg kartering - habitatkaart 2021-2023/PZH_WestduinparkEnWapendal_2023_HabitatRapport.docx",
