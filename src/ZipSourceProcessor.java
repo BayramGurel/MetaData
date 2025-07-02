@@ -21,12 +21,12 @@ public class ZipSourceProcessor extends AbstractSourceProcessor {
     }
 
     @Override
-    public void processSource(Path zipPath,
+    public void processSource(Path sourcePath,
                               String containerPath,
                               List<CkanResource> results,
                               List<ProcessingError> errors,
                               List<IgnoredEntry> ignored) {
-        try (InputStream fis = Files.newInputStream(zipPath);
+        try (InputStream fis = Files.newInputStream(sourcePath);
              BufferedInputStream bis = new BufferedInputStream(fis);
              ZipInputStream zis = new ZipInputStream(bis)) {
 

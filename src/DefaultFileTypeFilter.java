@@ -1,5 +1,4 @@
 import java.util.Objects;
-import java.util.stream.Stream;
 
 public class DefaultFileTypeFilter implements IFileTypeFilter {
     private final ExtractorConfiguration config;
@@ -8,6 +7,11 @@ public class DefaultFileTypeFilter implements IFileTypeFilter {
         this.config = (ExtractorConfiguration)Objects.requireNonNull(config, "Configuratie mag niet null zijn");
     }
 
+    /**
+     * Determine whether the given file should be processed based on its name
+     * and configured ignore rules.
+     */
+    @Override
     public boolean isFileTypeRelevant(String entryName) {
         if (entryName == null || entryName.isBlank()) {
             return false;

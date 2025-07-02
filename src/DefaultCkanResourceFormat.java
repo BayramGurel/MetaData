@@ -99,10 +99,33 @@ public class DefaultCkanResourceFormat implements ICkanResourceFormatter {
     }
 
     private static Optional<Instant> parse(String dt) {
-        if (dt != null && !dt.isBlank()) {
-            List<Supplier<Optional<Instant>>> ps = List.of((Supplier)() -> Optional.of(OffsetDateTime.parse(dt).toInstant()), (Supplier)() -> Optional.of(ZonedDateTime.parse(dt).toInstant()), (Supplier)() -> Optional.of(Instant.parse(dt)), (Supplier)() -> Optional.of(LocalDateTime.parse(dt).atZone(ZoneId.systemDefault()).toInstant()), (Supplier)() -> Optional.of(LocalDate.parse(dt).atStartOfDay(ZoneId.systemDefault()).toInstant()));
-            return ps.stream().map(Supplier::get).filter(Optional::isPresent).map(Optional::get).findFirst();
-        } else {
+        if (dt == null || dt.isBlank()) {
+            return Optional.empty();
+        }
+
+        try {
+            return Optional.of(OffsetDateTime.parse(dt).toInstant());
+        } catch (Exception ignored) { }
+
+        try {
+            return Optional.of(ZonedDateTime.parse(dt).toInstant());
+        } catch (Exception ignored) { }
+
+        try {
+            return Optional.of(Instant.parse(dt));
+        } catch (Exception ignored) { }
+
+        try {
+            return Optional.of(LocalDateTime.parse(dt)
+                    .atZone(ZoneId.systemDefault())
+                    .toInstant());
+        } catch (Exception ignored) { }
+
+        try {
+            return Optional.of(LocalDate.parse(dt)
+                    .atStartOfDay(ZoneId.systemDefault())
+                    .toInstant());
+        } catch (Exception ignored) {
             return Optional.empty();
         }
     }
