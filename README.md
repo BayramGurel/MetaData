@@ -64,7 +64,7 @@ CKAN instance. At the top of the script you can adjust the `CKAN_URL` and
 
 ```bash
 pip install ckanapi tqdm
-python python/upload_resources.py
+python python/upload_ckan.py
 ```
 
 The script will ask a few questions (for example whether to create a new
