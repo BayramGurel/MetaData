@@ -1,10 +1,5 @@
-# requirements for CKAN Uploader Script
+ckanapi>=4.9.2
+tqdm>=4.65.0
 
-# pin setuptools to avoid pkg_resources removal
-setuptools<81.0.0
-
-# CKAN API client
-ckanapi>=3.0.0,<4.0.0
-
-# progress bar
-tqdm>=4.0.0,<5.0.0
+# Optionele extra's
+# Voeg hier andere dependencies toe indien nodig
