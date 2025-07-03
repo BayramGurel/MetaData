@@ -75,10 +75,6 @@ def open_stream(spec: str, base_path: Path) -> io.BytesIO:
 # CKAN API interaction
 # ------------------------------------------------------------------------------
 def connect_ckan(url: str, api_key: str) -> RemoteCKAN:
-    """
-    Establish and verify connection to CKAN.
-    Exits on error.
-    """
     logger = logging.getLogger("ckan.connect")
     logger.info("Connecting to CKAN at %s", url)
     try:
@@ -91,10 +87,6 @@ def connect_ckan(url: str, api_key: str) -> RemoteCKAN:
         sys.exit(1)
 
 def ensure_organization(ckan: RemoteCKAN, title: str) -> str:
-    """
-    Ensure an organization exists (create if missing).
-    Returns its CKAN ID (slug).
-    """
     logger = logging.getLogger("ckan.org")
     org_id = slugify(title)
     try:
@@ -114,10 +106,6 @@ def ensure_dataset(
     resource_formats: Optional[List[str]] = None,
     resource_count: Optional[int] = None
 ) -> str:
-    """
-    Create or update a dataset with metadata and extras.
-    Returns the dataset ID.
-    """
     logger = logging.getLogger("ckan.dataset")
     ds_name = slugify(title)
     params: Dict[str, Any] = {
@@ -160,9 +148,6 @@ def upload_resource(
     resource_format: str,
     mimetype: str
 ) -> None:
-    """
-    Add or replace a resource in a dataset, preserving IDs on update.
-    """
     logger = logging.getLogger("ckan.resource")
     res_name = slugify(filename)
     payload = {
@@ -172,8 +157,6 @@ def upload_resource(
         "mimetype": mimetype,
         "upload": stream,
     }
-
-    # Try updating existing resource
     try:
         search = ckan.action.resource_search(
             filters={"package_id": package_id, "name": res_name}
@@ -185,13 +168,10 @@ def upload_resource(
             return
     except Exception:
         logger.debug("No existing resource to update.")
-
-    # Create new resource
     result = ckan.action.resource_create(**payload)
     logger.info("Created resource '%s' → %s", filename, result.get("url", ""))
 
 def purge_all(ckan: RemoteCKAN) -> None:
-    """Delete every organization and its datasets from CKAN."""
     logger = logging.getLogger("ckan.purge")
     for org in ckan.action.organization_list():
         for pkg in ckan.action.package_list(owner_org=org):
@@ -205,7 +185,6 @@ def purge_all(ckan: RemoteCKAN) -> None:
 # CLI
 # ------------------------------------------------------------------------------
 def parse_args() -> argparse.Namespace:
-    """Parse command-line arguments."""
     p = argparse.ArgumentParser(description="Upload resources to CKAN")
     p.add_argument(
         "--manifest", "-m",
@@ -244,7 +223,7 @@ def main() -> None:
         sys.exit(1)
 
     ckan = connect_ckan(CKAN_URL, API_KEY)
-    base_path = args.manifest.parent
+    base_path = PROJECT_ROOT
 
     if args.purge:
         logger.info("Purging existing data")
@@ -256,6 +235,7 @@ def main() -> None:
         logger.info("Processing package '%s'", pkg_title)
         org_id = ensure_organization(ckan, pkg_title)
 
+        # USE underscore here, not hyphen
         if not args.per_resource:
             formats = [res.get("format", "") for res in resources]
             ds_id = ensure_dataset(
