@@ -18,6 +18,13 @@ Voorbeeld gebruik:
       --manifest reports/all-reports.json --log-level DEBUG --per-resource
 """
 import warnings
+# Suppress deprecated pkg_resources warning from ckanapi
+warnings.filterwarnings(
+    "ignore",
+    message=".*pkg_resources is deprecated.*",
+    category=UserWarning,
+    module="ckanapi.version"
+)
 import io
 import json
 import zipfile
