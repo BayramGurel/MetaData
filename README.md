@@ -42,7 +42,7 @@ Apache Tika is a Java library for detecting and extracting metadata and text fro
 │   └── Veg kartering - habitatkaart 2021-2023.zip   # Sample archive
 │   └── rest.zip                                     # zip files
 ├── src/
-│   └── /MetadataExtractor.java                    # Java extractor
+│   └── /Main.java                                 # Java extractor
 │   └── /rest.java                                 # Java extractor
 ├── target/                                        # Maven build output
 ├── reports/all-reports.json                       # Metadata output (after running)
@@ -88,7 +88,7 @@ Results:
 
 1. Import the repository as a **Maven** project.
 2. IntelliJ will download dependencies and compile sources.
-3. Open `MetadataExtractor.java` and click **Run**.
+3. Open `Main.java` and click **Run**.
 
 Output is written to `report.json` by default.
 
@@ -100,7 +100,7 @@ Output is written to `report.json` by default.
    ```bash
    mvn package
    ```
-3. Open `MetadataExtractor.java`, then use the **Run Java** button in the editor, or execute the same `java` command as above in the integrated terminal.
+3. Open `Main.java`, then use the **Run Java** button in the editor, or execute the same `java` command as above in the integrated terminal.
 
 ---
 
@@ -134,7 +134,7 @@ The Python script reads `report.json` (or multiple JSON files) and uploads entri
 2. **Extract metadata:**
 
    ```bash
-   java -jar target/classes MetadataExtractor document/
+   java -jar target/classes Main document/
    ```
 3. **Upload to CKAN:** `python python/upload_resources.py`
 4. **Verify:** Check your CKAN portal for newly added resources.

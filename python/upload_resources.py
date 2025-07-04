@@ -43,8 +43,8 @@ from tqdm import tqdm
 # -----------------------------------------------------------------------------
 # Standaard configuratie
 # -----------------------------------------------------------------------------
-DEFAULT_CKAN_URL = "https://special-space-disco-94v44prrppr36q6-5000.app.github.dev/"
-DEFAULT_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJmZDRjUEVrQkVRaVRNNXJ3VUMtYVY4N0R1YlhzeTlZMmlrZlpVa0VRRVJnIiwiaWF0IjoxNzUwMzM3MDQ1fQ.kXvgCvs7Emc7RfPxGZ1znLz7itMqK4p0hXYoEoc8LaA"
+DEFAULT_CKAN_URL = "https://zany-space-goldfish-74q44g6qv9gfrp9j-5000.app.github.dev/"
+DEFAULT_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJMOXlOU3UyMk10aUgwa1lsdnl2T3NDSXE2bDM1QVlkZVQ5SlRreElKQ3A0IiwiaWF0IjoxNzUxNjY0Mzc3fQ.aJObEVwV1x-j8E_U2Q58ahxDg8OaFdxwV8vmFRr9rJc"
 DEFAULT_MANIFEST = Path(__file__).resolve().parent.parent / "reports" / "all-reports.json"
 
 # -----------------------------------------------------------------------------
