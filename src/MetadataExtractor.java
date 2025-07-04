@@ -1,27 +1,24 @@
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import org.apache.tika.langdetect.optimaize.OptimaizeLangDetector;
-import org.apache.tika.language.detect.LanguageDetector;
+// MetadataExtractor.java
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.file.*;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 
 /**
- * Command-line tool to extract metadata and produce CKAN reports.
+ * Core logic for metadata extraction. Does not contain a main method
+ * or any static utilities.
  */
 public class MetadataExtractor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataExtractor.class);
-
-    /** Default source directory. */
-    private static final String SOURCE_PATH = "./document";
-    /** Default output directory for reports. */
-    private static final String OUTPUT_DIR = "reports";
 
     private final IFileTypeFilter fileFilter;
     private final IMetadataProvider metadataProvider;
@@ -57,7 +54,6 @@ public class MetadataExtractor {
             sourcePath = Paths.get(sourcePathString).toAbsolutePath().normalize();
 
             if (!Files.exists(sourcePath, LinkOption.NOFOLLOW_LINKS)) {
-                // only log at WARN
                 LOGGER.warn("Source not found: {}", sourcePathString);
                 errors.add(new ProcessingError(sourcePathString, "Source not found."));
                 return new ProcessingReport(results, errors, ignored);
@@ -101,98 +97,5 @@ public class MetadataExtractor {
         return config.getSupportedZipExtensions().stream()
                 .map(String::toLowerCase)
                 .anyMatch(name::endsWith);
-    }
-
-    /**
-     * Loads the Tika language detector, logs only on failure.
-     */
-    private static LanguageDetector loadTikaLanguageDetector() {
-        try {
-            LanguageDetector detector = OptimaizeLangDetector.getDefaultLanguageDetector();
-            detector.loadModels();
-            // suppress success INFO
-            return detector;
-        } catch (Exception e) {
-            LOGGER.warn("Language detector could not be initialized: {}", e.getMessage(), e);
-            return null;
-        }
-    }
-
-    /**
-     * Writes a combined JSON report to `<OUTPUT_DIR>/all-reports.json`.
-     * Logs only on error.
-     */
-    private static void writeAllJson(Map<String, List<Map<String, Object>>> masterMap, Path outDir) {
-        try {
-            if (Files.notExists(outDir)) {
-                Files.createDirectories(outDir);
-            }
-            Path outFile = outDir.resolve("all-reports.json");
-            ObjectMapper mapper = new ObjectMapper()
-                    .enable(SerializationFeature.INDENT_OUTPUT);
-            mapper.writeValue(outFile.toFile(), masterMap);
-        } catch (IOException e) {
-            LOGGER.error("Failed to write JSON report: {}", e.getMessage(), e);
-        }
-    }
-
-    public static void main(String[] args) {
-        String inputPath = (args.length > 0) ? args[0] : SOURCE_PATH;
-        Path src = Paths.get(inputPath).toAbsolutePath().normalize();
-
-        if (!Files.exists(src, LinkOption.NOFOLLOW_LINKS)) {
-            LOGGER.error("FATAL: Source not found: {}", src);
-            System.exit(1);
-        }
-
-        ExtractorConfiguration config = new ExtractorConfiguration();
-        LanguageDetector langDetector = loadTikaLanguageDetector();
-        Map<String, List<Map<String, Object>>> allReports = new LinkedHashMap<>();
-
-        try {
-            if (Files.isDirectory(src, LinkOption.NOFOLLOW_LINKS)) {
-                try (Stream<Path> stream = Files.list(src)) {
-                    stream.filter(p -> Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS))
-                            .forEach(p -> processPath(p, config, langDetector, allReports));
-                }
-            } else {
-                processPath(src, config, langDetector, allReports);
-            }
-            writeAllJson(allReports, Paths.get(OUTPUT_DIR));
-        } catch (IOException e) {
-            LOGGER.error("FATAL: Could not read directory {}: {}", src, e.getMessage(), e);
-            System.exit(1);
-        }
-    }
-
-    /**
-     * Processes one file path and accumulates its report.
-     */
-    private static void processPath(
-            Path path,
-            ExtractorConfiguration config,
-            LanguageDetector langDetector,
-            Map<String, List<Map<String, Object>>> allReports
-    ) {
-        String baseName = path.getFileName().toString();
-        int dot = baseName.lastIndexOf('.');
-        String packageId = (dot > 0) ? baseName.substring(0, dot) : baseName;
-
-        MetadataExtractor extractor = new MetadataExtractor(
-                new DefaultFileTypeFilter(config),
-                new TikaMetadataProvider(),
-                new DefaultCkanResourceFormat(langDetector, config, packageId),
-                config
-        );
-
-        ProcessingReport report = extractor.processSource(path.toString());
-        allReports.put(packageId,
-                report.getResults().stream()
-                        .map(CkanResource::getData)
-                        .collect(Collectors.toList()));
-
-        if (!report.getErrors().isEmpty()) {
-            LOGGER.warn("⚠ Completed with errors for '{}'", packageId);
-        }
     }
 }
