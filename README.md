@@ -141,6 +141,18 @@ The Python script reads `report.json` (or multiple JSON files) and uploads entri
 
 ---
 
+## Ckan
+
+1. **Run ckan on github Codespaces** https://github.com/BayramGurel/ckan
+2. **Change ckan.ini** set `create_user_via_api` and `create_user_via_web` on true (for registration)
+3. **Register as new User** We going to use the user as `admin` for our `python application`
+4. **Set user as admin** We need to put `ckan sysadmin add [USERNAME]` in Ckan terminal
+5. **Read the complex Ckan user guide** https://docs.ckan.org/en/2.11/contents.html
+
+
+
+---
+
 ## License
 
 This project is licensed under the Province of South Holland. See the [LICENSE](LICENSE) file for details.
